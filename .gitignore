@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+*.log
+
+# הערות עבודה והגדרות מקומיות: נשארות במחשב ולא עולות לריפו הציבורי.
+# כל קובץ md חדש בתיקייה פרטי כברירת מחדל. רק README עולה.
+*.md
+!README.md
+vscode-settings.json
+.vscode/
+_private/
+
+# סודות ומטמון מקומי של wrangler (לשלב ה-Worker)
+.dev.vars
+.env
+.env.*
+.wrangler/

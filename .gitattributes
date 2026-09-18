@@ -1,0 +1,5 @@
+# שורות נגמרות ב-LF אצל כולם, גם בווינדוס
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary
