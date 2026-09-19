@@ -2,192 +2,200 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>יומן אקסודוס</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>יומן אקסודוס — דניאל פינסקי בגולדן גלוב</title>
+<meta name="description" content="איפה אקסודוס עכשיו: הסירה, הרוח, הגלים והזרם בזמן אמת, והמסע כולו על הגלובוס. דניאל פינסקי, הישראלי הראשון בגולדן גלוב.">
+<meta name="theme-color" content="#06121b">
+<meta property="og:title" content="יומן אקסודוס — דניאל פינסקי בגולדן גלוב">
+<meta property="og:description" content="איפה אקסודוס עכשיו, מה עושה לה הים, והמסע כולו על הגלובוס">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://exodus-log.com/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/frank-ruhl-libre-hebrew-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/assistant-hebrew-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 
-<link rel="stylesheet" href="assets/style.css">
+<!-- CSS קריטי: הכותרת, שורת המספרים והפריסה של המסך הראשון. כל השאר ב-front.css ונטען בלי לחסום -->
+<style>
+@font-face{font-family:'Frank Ruhl Libre';font-weight:700;font-display:swap;src:url(assets/fonts/frank-ruhl-libre-hebrew-700-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Assistant';font-weight:400;font-display:swap;src:url(assets/fonts/assistant-hebrew-400-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+:root{
+  --bg:#06121b; --bg-2:#0a1b28; --panel:rgba(12,30,44,.72); --line:rgba(190,220,240,.14); --line-2:rgba(190,220,240,.26);
+  --ink:#eef4f7; --ink-2:#b4c6d1; --ink-3:#7f95a3;
+  --accent:#ff8a3c; --accent-2:#ffb27a;
+  --wind:#ffb454; --wave:#cfe6ff; --cur:#3fd6cf; --boat:#ffffff;
+  --serif:'Frank Ruhl Libre',Georgia,'Times New Roman',serif;
+  --sans:'Assistant','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;display:inline-block}
+#hero{position:relative;height:calc(100vh - 86px);height:calc(100svh - 86px);min-height:520px;overflow:hidden;background:linear-gradient(#0b2233,#06121b 58%,#0a2a3a)}
+#sea{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;opacity:0;transition:opacity 1.1s ease}
+#sea.on{opacity:1}
+#sea.drag{cursor:grabbing}
+.scrim{position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(to bottom,rgba(4,12,19,.72),rgba(4,12,19,.28) 24%,rgba(4,12,19,0) 44%),
+  linear-gradient(to top,rgba(4,12,19,.62),rgba(4,12,19,0) 32%)}
+.hero-top{position:absolute;inset-block-start:0;inset-inline:0;padding:max(18px,env(safe-area-inset-top)) clamp(16px,4vw,44px) 0;pointer-events:none}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35em .9em;font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--ink-2)}
+.brand b{font-family:var(--serif);font-weight:700;font-size:1.22rem;letter-spacing:0;color:var(--ink)}
+#storyline{font-family:var(--serif);font-weight:700;font-size:clamp(1.28rem,2.35vw,2.15rem);line-height:1.22;margin:.5em 0 0;max-width:27em;text-wrap:balance;text-shadow:0 1px 18px rgba(3,10,16,.75),0 0 2px rgba(3,10,16,.6)}
+#vitals{display:grid;grid-template-columns:repeat(4,1fr);height:86px;background:var(--bg-2);border-block:1px solid var(--line)}
+#vitals>div{display:flex;flex-direction:column;justify-content:center;padding:0 clamp(10px,2.4vw,30px);border-inline-start:1px solid var(--line);min-width:0}
+#vitals>div:first-child{border:0}
+#vitals .k{font-size:.74rem;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vitals .v{font-size:clamp(1.05rem,2.5vw,1.7rem);font-weight:500;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vitals .v small{font-family:var(--sans);font-size:.62em;color:var(--ink-2);font-weight:400}
+@media (max-width:640px){
+  #hero{height:calc(100svh - 132px);min-height:440px}
+  #vitals{grid-template-columns:repeat(2,1fr);height:132px}
+  #vitals>div:nth-child(3){border-inline-start:0}
+  #vitals>div:nth-child(n+3){border-block-start:1px solid var(--line)}
+  #storyline{font-size:1.16rem;line-height:1.25}
+}
+</style>
+<link rel="stylesheet" href="assets/front.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="assets/front.css"></noscript>
 </head>
 <body>
 
-<div class="wrap">
+<main>
+<!-- ============ המסך הראשון: הסירה בים, עכשיו ============ -->
+<section id="hero" aria-label="אקסודוס בים, בתנאים של הרגע הזה">
+  <canvas id="sea" aria-hidden="true"></canvas>
+  <div class="scrim"></div>
 
-<header class="top">
-  <div class="kicker">
-    <span>Golden Globe Race 2026</span>
-    <b>·</b><span>Exodus · ISR</span>
-    <b>·</b><span>נקודת ציון <span id="kickWhen">—</span></span>
+  <div class="hero-top">
+    <div class="brand"><b>יומן אקסודוס</b><span>דניאל פינסקי · GOLDEN GLOBE RACE 2026</span><span id="kDay"></span></div>
+    <!-- הטקסט החי מגיע מ-STORY ב-data.js; מה שכתוב כאן הוא גיבוי למי שאין לו JavaScript -->
+    <h1 id="storyline">דניאל פינסקי, הישראלי הראשון בגולדן גלוב, מקיף את העולם לבד, בלי עצירות ובלי GPS</h1>
+    <div class="fresh" id="fresh"><i></i><span id="freshTxt">נקודת ציון אחרונה —</span></div>
   </div>
-  <h1>יומן אקסודוס</h1>
-  <div class="lede">
-    <p>דניאל פינסקי הוא הישראלי הראשון שמפליג בגולדן גלוב — הקפת עולם לבד, בלי עצירות, בלי GPS ובלי עזרה מבחוץ. הדף הזה עוקב אחריו: איפה הוא עכשיו, לאן הוא הולך, ומה מזג האוויר עושה לו. המספרים כאן מתעדכנים כמה פעמים ביום, עם כל נקודת ציון חדשה מהלוויין.</p>
-    <p style="font-size:.94rem;color:var(--ink-3)">אפשר לסובב את הסירה בגרירה, לכל כיוון · הניתוח המלא נמצא בדף נפרד, בקישור למטה</p>
+
+  <div class="skyclock" id="skyclock" title="שעת השמש המקומית אצל הסירה">
+    <svg viewBox="0 0 24 24" id="skyIcon" aria-hidden="true"></svg>
+    <span class="num" id="hClock">--:--</span><em id="hSky">אצל דניאל</em>
   </div>
-</header>
 
-<!-- ===== 3D HERO ===== -->
-<section id="heroWrap" aria-label="הדמיית אקסודוס בים">
-  <div class="scene">
-    <canvas id="sea"></canvas>
-    <div class="hud">
-      <div class="hud-tl">
-        <div class="clockrow">
-          <span class="clock" id="hClock">--:--</span>
-          <span class="clocklbl">שעה אצל דניאל</span>
-        </div>
-        <div class="utc" id="hUtc">— UTC</div>
-      </div>
-      <div class="rail">
-        <button type="button" class="ic" id="bSun" title="אל השמש" aria-label="אל השמש"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="3.4"/><g stroke-linecap="round"><path d="M10 2.2v2M10 15.8v2M2.2 10h2M15.8 10h2M4.5 4.5l1.4 1.4M14.1 14.1l1.4 1.4M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4"/></g></svg></button>
-        <button type="button" class="ic" id="bMoon" title="אל הירח" aria-label="אל הירח"><svg viewBox="0 0 20 20"><path d="M15.4 12.6A6.2 6.2 0 0 1 7.4 4.6a6.4 6.4 0 1 0 8 8z"/></svg></button>
-        <button type="button" class="ic" id="bAuto" title="סיבוב אוטומטי" aria-label="סיבוב אוטומטי" aria-pressed="true"><svg viewBox="0 0 20 20"><path d="M16 10a6 6 0 1 1-1.9-4.4" stroke-linecap="round"/><path d="M16.3 3.2v3.1h-3.1" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
-        <button type="button" class="ic" id="bFlow" title="זרימת רוח וזרם" aria-label="זרימת רוח וזרם" aria-pressed="true"><svg viewBox="0 0 20 20"><g stroke-linecap="round"><path d="M2.6 6.4c2-1.8 3.6 1.8 5.6 0s3.6 1.8 5.6 0 2.4.6 3.6.2"/><path d="M2.6 10c2-1.8 3.6 1.8 5.6 0s3.6 1.8 5.6 0 2.4.6 3.6.2"/><path d="M2.6 13.6c2-1.8 3.6 1.8 5.6 0s3.6 1.8 5.6 0 2.4.6 3.6.2"/></g></svg></button>
-        <button type="button" class="ic" id="bChart" title="מפת הצי כולו" aria-label="מפת הצי כולו" aria-pressed="false"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.2"/><ellipse cx="10" cy="10" rx="3.1" ry="7.2"/><path d="M2.9 7.6h14.2M2.9 12.4h14.2" stroke-linecap="round"/></svg></button>
-        <button type="button" class="ic" id="bInfo" title="מקרא" aria-label="מקרא" aria-pressed="false"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.2"/><path d="M10 9v5" stroke-linecap="round"/><circle cx="10" cy="6.2" r=".95" fill="currentColor" stroke="none"/></svg></button>
-      </div>
-      <div class="skychip"><span id="hSky">—</span><em id="hSkySub">—</em></div>
-
-      <div class="mmap" aria-hidden="true">
-        <svg id="mmSvg" viewBox="0 0 120 150"></svg>
-        <div class="cap"><b id="mmDist">2,982</b> מייל ל<span id="mmGate">טרינדאדה</span></div>
-      </div>
-
-      <div class="legpop" id="legPop" hidden>
-        <b>מה רואים כאן</b>
-        <p><i style="background:#FF6600"></i> הרוח — סרטים כתומים באוויר, נעים במהירותה האמיתית</p>
-        <p><i style="background:#4FC3E8"></i> הזרם — סרטים תכולים על פני המים, רוכבים על הגלים</p>
-        <p><i style="background:#fff"></i> כיוון הסירה בשושנה, והמסלול שעבר במפה</p>
-        <p class="dim">כיווני הרוח והזרם מדויקים לכ־20–30 מעלות. מצב המפרשים מוסק, לא ידוע.</p>
-      </div>
-
-      <div class="hud-b">
-        <div class="tile"><span class="k">מיקום</span><span class="v" id="hPos">—</span></div>
-        <div class="tile"><span class="k">הגה</span><span class="v" id="hCog">—</span></div>
-        <div class="tile"><span class="k" id="hWindK">רוח</span><span class="v" id="hWind">—</span>
-          <svg class="spark" id="spark" viewBox="0 0 92 20" preserveAspectRatio="none" aria-hidden="true">
-            <polyline id="spArea" fill="rgba(255,122,31,.22)" stroke="none"/>
-            <polyline id="spLine" fill="none" stroke="#FF8A3C" stroke-width="1.5" stroke-linejoin="round"/>
-            <line id="spNow" x1="0" y1="0" x2="0" y2="20" stroke="rgba(255,255,255,.45)" stroke-width="1"/>
-          </svg>
-        </div>
-        <div class="tile"><span class="k">גלים</span><span class="v" id="hWave">—</span></div>
-        <div class="tile"><span class="k">זרם</span><span class="v" id="hCur">—</span></div>
-        <div class="tile"><span class="k">מפרשים</span><span class="v" id="hSail">—</span></div>
-      </div>
-      <div class="chart" id="chart" hidden>
-        <button type="button" class="chart-x" id="bChartClose" title="חזרה לסירה" aria-label="חזרה לסירה"><svg viewBox="0 0 20 20"><path d="M6 6l8 8M14 6l-8 8" stroke-linecap="round"/></svg></button>
-        <div class="chart-map"><svg id="chartSvg" viewBox="0 0 420 540" preserveAspectRatio="xMidYMid meet"></svg></div>
-        <div class="chart-side">
-          <div class="chart-h">כל הצי · <span id="chWhen">19.9 00:00 UTC</span></div>
-          <table class="fleet"><colgroup><col style="width:12%"><col style="width:50%"><col style="width:38%"></colgroup><thead><tr><th>#</th><th>מפליג</th><th>פער · מייל</th></tr></thead><tbody id="chartList"></tbody></table>
-          <p class="chart-note">קווי החוף: Natural Earth 1:50m, נחלת הכלל. המיקומים מפוענחים מקובץ המעקב. נקודה חיוורת = הדיווח האחרון בן יותר משעתיים.</p>
-        </div>
-        <div class="chart-hint">גלגלו פנימה, או לחצו על כפתור הסגירה, כדי לחזור לסירה</div>
-      </div>
-      <div class="lbl wind" id="lblWind"></div>
-      <div class="lbl cur" id="lblCur"></div>
-      <div class="stamp" id="hStamp">—</div>
-      <div class="hint" id="hHint">גרירה מסובבת ומטה את המבט · גלול מסביב לתמונה</div>
-    </div>
-  </div>
-  <div class="prov">
-    <b>מה כאן אמיתי, ובאיזו מידה</b>
-    <ul>
-      <li><b>נמדד.</b> המיקום, הכיוון והמהירות — ישירות מקובץ המעקב הלוויני. אלה הדברים היחידים שנמדדו בפועל.</li>
-      <li><b>מחושב במדויק.</b> מיקום השמש והירח, שלב הירח ושעת השמש המקומית — אסטרונומיה, מחושבת לרגע שבו אתה פותח את העמוד לפי קו הרוחב והאורך שלה. זה החלק שבאמת חי.</li>
-      <li><b>מודל.</b> הרוח, הגלים והזרם — מתוך מודל אטמוספרי ואוקיינוגרפי, לא ממדידה בסירה. הכיוונים מדויקים בערך ל־20–30 מעלות והעוצמות לקשר או שניים.</li>
-      <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, המעקה מעץ מלוכה, הסוכך הכתום, גנרטור הרוח והגה הרוח בירכתיים — כולם מתוך תצלומים של אקסודוס עצמה. גם <b>דגל ישראל על מפרשי החרטום</b>, שהוא באמת מה שהיא נושאת, ומספר המפרש <b>07</b>. הקווים — ירכתי קאנו, שדרית מלאה, מוט חרטום ותורן קאטר — הם של באבּה 35 משנת 1980. מה שלא מדויק: הפרופורציות המדויקות של התורן והמפרשים, ופרטי הסיפון הקטנים.</li>
-      <li><b>הזרימה על המסך.</b> הפסים הכתומים באוויר והמשולשים התכולים על המים אינם חלקיקים אמיתיים — הם ציור של אותו מודל רוח וזרם שמניע את שאר הסצנה. הכיוון והמהירות שבהם הם נעים הם הנתונים האמיתיים; הצפיפות והגודל נבחרו כדי שיהיה אפשר לראות אותם. כשהרוח מתחזקת הם נעשים מהירים וארוכים יותר.</li>
-      <li><b>מוּסָק, לא ידוע.</b> <b>מצב המפרשים.</b> אין שום נתון על המפרשים — לא במעקב ולא בשום מקום אחר. מה שמצויר הוא החישוב הבא: זווית הרוח האמיתית מתוך הכיוון שבו הסירה נעה והכיוון שממנו באה הרוח, ומתוכה הזווית שמפליג סביר היה מכוון אליה. כרגע הזווית היא כ־<span class="num" id="pvTwa">—</span> מעלות — הרוח נכנסת <span id="pvSide">—</span> — ולכן המפרשים מצוירים בזווית שמתאימה לה. הרוח כרגע <span class="num" id="pvWind">—</span> קשר עם משבים של <span class="num" id="pvGust">—</span>, <span id="pvFcstWrap" hidden>והמודל נותן עד <span class="num" id="pvFcst">—</span> קשר ב־24 השעות הקרובות.</span> זו הסקה, לא ידיעה.</li>
+  <div class="rosewrap" id="rosewrap">
+    <ul class="layers" id="layers" aria-label="שכבות ההדמיה — הקשה מדליקה ומכבה">
+      <li><button type="button" data-layer="wind" aria-pressed="true">
+        <svg viewBox="0 0 30 14" aria-hidden="true"><g stroke="var(--wind)" stroke-width="1.8" fill="none" stroke-linecap="round"><path d="M28 7H6"/><path d="M10 3 5 7l5 4"/><path d="M24 7l4-3.4M20 7l4-3.4M24 7l4 3.4M20 7l4 3.4"/></g></svg>
+        <span><b class="num" id="lgWind">—</b> קשר<em id="lgWindDir">רוח</em></span></button></li>
+      <li><button type="button" data-layer="wave" aria-pressed="true">
+        <svg viewBox="0 0 30 14" aria-hidden="true"><g stroke="var(--wave)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2 9 7l8 5"/><path d="M25 2l-8 5 8 5"/></g></svg>
+        <span><b class="num" id="lgWave">—</b> מ׳<em id="lgWaveT">גל</em></span></button></li>
+      <li><button type="button" data-layer="cur" aria-pressed="true">
+        <svg viewBox="0 0 30 14" aria-hidden="true"><g stroke="var(--cur)" stroke-width="2" fill="none" stroke-linecap="round"><path d="M28 7H8" stroke-dasharray="4 3.2"/><path d="M10 3 5 7l5 4"/></g></svg>
+        <span><b class="num" id="lgCur">—</b> קשר<em id="lgCurDir">זרם</em></span></button></li>
     </ul>
+    <div class="rose" id="rose" role="group" aria-label="שושנת הרוחות: צפון למעלה. גרירה מסובבת את המבט, הקשה מפנה אותו"></div>
+    <p class="roseline" id="roseline"></p>
+  </div>
+
+  <div class="rosehelp" id="roseHelp" hidden></div>
+  <a class="cue" href="#voyage" aria-label="אל המסע על הגלובוס"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר רק <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>
+</section>
+
+<section id="vitals" aria-label="המספרים של הרגע">
+  <div><span class="k">מקום בצי</span><span class="v" id="vRank">—</span></div>
+  <div><span class="k">מהירות וכיוון</span><span class="v" id="vSog">—</span></div>
+  <div><span class="k">פער מהמוביל</span><span class="v" id="vGap">—</span></div>
+  <div><span class="k">עד קו הסיום</span><span class="v" id="vDtf">—</span></div>
+</section>
+
+<!-- ============ המסע על הגלובוס ============ -->
+<section id="voyage" class="band">
+  <header class="sec">
+    <h2>המסע</h2>
+    <p id="voyLine"></p>
+  </header>
+  <div class="globebox">
+    <div id="globe" aria-label="גלובוס: המסלול שנעשה, המסלול שנותר, הצי ונקודות החובה"></div>
+    <div class="globe-ui">
+      <div class="chips" id="globeChips">
+        <button type="button" data-fly="boat" aria-pressed="true">אקסודוס</button>
+        <button type="button" data-fly="fleet">הצי</button>
+        <button type="button" data-fly="world">כל העולם</button>
+      </div>
+      <div class="gl-legend">
+        <span><i class="l-done"></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span>
+      </div>
+    </div>
+    <div class="scrub" id="scrub">
+      <button type="button" id="scPlay" aria-label="נגן את המסע מהזינוק"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="scIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+      <div class="sc-track">
+        <input type="range" id="scRange" min="0" max="1000" value="1000" step="1" aria-label="פס זמן: מהזינוק ועד עכשיו">
+        <div class="sc-ticks" id="scTicks"></div>
+      </div>
+      <output id="scOut" class="num">—</output>
+    </div>
   </div>
 </section>
 
-
-<!-- ============ FAN PANEL — הכל מונע מ-data.js ============ -->
-<section id="fan">
-  <div class="fanstrip">
-    <div><span class="k">השעה אצלו</span><span class="v" id="fClock">—</span></div>
-    <div><span class="k">אור</span><span class="v" id="fLight">—</span></div>
-    <div><span class="k">ירח</span><span class="v" id="fMoon">—</span></div>
-    <div><span class="k">רוח</span><span class="v" id="fWind">—</span></div>
-    <div><span class="k">גלים</span><span class="v" id="fWave">—</span></div>
-  </div>
-
-  <div class="fixline">
-    <span><b>מקום בצי</b> <span id="fxRank">—</span></span>
-    <span><b>פער מהמוביל</b> <span id="fxGap">—</span></span>
-    <span class="when"><b>נקודת ציון אחרונה</b> <span id="fxWhen">—</span></span>
-  </div>
-
-  <!-- כותרת הסיפור · הטקסט החי מגיע מ-STORY ב-assets/data.js; מה שכתוב כאן הוא גיבוי למי שאין לו JavaScript -->
-  <h2 id="storyline">עבר את השער בלנזרוטה ועלה למקום הרביעי — רק מייל אחד מאחורי השלישי, ושלושה מייל ממנו בים</h2>
-
-  <div class="bigcards">
-    <div class="bc">
-      <span class="bk">הכי קרוב אליו</span>
-      <span class="bv"><span class="num" id="bcNearBoat">—</span> מייל</span>
-      <span class="bs"><span id="bcNearBoatName">—</span> · הסירה הקרובה ביותר אליו כרגע</span>
-    </div>
-    <div class="bc">
-      <span class="bk">היבשה הקרובה</span>
-      <span class="bv"><span class="num" id="bcNearLand">—</span> מייל</span>
-      <span class="bs"><span id="bcNearLandName">—</span></span>
-    </div>
-    <div class="bc hi">
-      <span class="bk">מול קצב הזכייה של נוישֶפֶר, 2022</span>
-      <span class="bv"><span class="num" id="bcGhost">—</span> מייל</span>
-      <span class="bs"><span id="bcGhostWord">—</span> את הקצב שבו נוישֶפֶר ניצחה במרוץ הקודם</span>
-    </div>
-    <div class="bc">
-      <span class="bk">לנקודת החובה הבאה</span>
-      <span class="bv"><span class="num" id="bcGate">—</span> מייל</span>
-      <span class="bs"><span id="bcGateName">—</span> · בכיוון <span class="num" id="bcGateBrg">—</span></span>
-    </div>
-  </div>
-
-  <div class="prog">
-    <div class="progtop"><b>היכן הוא במסלול</b><span id="progTxt">—</span></div>
-    <div class="progbar">
-      <div class="progfill" id="progFill" style="width:0%"></div>
-      <span class="dot" id="progDot" style="right:0%" title="אקסודוס"></span>
-      <span class="mk" style="right:5%"></span>
-      <span class="mk" style="right:25%"></span>
-      <span class="mk" style="right:43%"></span>
-      <span class="mk" style="right:65%"></span>
-    </div>
-    <div class="proglbl">
-      <span style="right:0%">צרפת</span>
-      <span style="right:5%">לנזרוטה</span>
-      <span style="right:25%">כף התקווה הטובה</span>
-      <span style="right:43%">כף לואין</span>
-      <span style="right:65%">כף הורן</span>
-      <span style="right:100%" class="end">חזרה</span>
-    </div>
-    <p class="progfoot">מיקומי הכפים על הפס מקורבים — הם נועדו לתת תחושת מרחק, לא למדוד אותו.</p>
-  </div>
+<!-- ============ המרוץ כרגע ============ -->
+<section id="race" class="band">
+  <header class="sec"><h2>המרוץ כרגע</h2><p id="raceLine"></p></header>
+  <div class="racebox"><svg id="raceSvg" role="img" aria-label="הצי לפי המרחק שנותר לכל סירה עד קו הסיום"></svg><div class="tip" id="raceTip" hidden></div></div>
 </section>
 
-<section id="more">
-  <a class="gobtn" href="deep-dive.html">
-    <b>הניתוח המלא</b>
-    <span>מה קרה ביממה האחרונה, תשעת הימים, מפת הצי, ההצלבה מול הדיווחים הרשמיים והתחזיות</span>
-  </a>
+<!-- ============ קנה מידה אנושי ============ -->
+<section id="scale" class="band">
+  <header class="sec"><h2>כמה זה, בעצם</h2></header>
+  <div class="cards" id="cards"></div>
 </section>
+
+<!-- ============ מה מחכה לו ============ -->
+<section id="ahead" class="band">
+  <header class="sec"><h2>24 השעות הקרובות</h2><p id="aheadLine"></p></header>
+  <div class="aheadbox">
+    <figure><figcaption><i style="background:var(--wind)"></i>רוח, קשר <span class="dim">· הקו הדק: משבים</span></figcaption><svg id="chWind" role="img" aria-label="רוח ומשבים לפי שעה"></svg></figure>
+    <figure><figcaption><i style="background:var(--wave)"></i>גובה גל, מטר</figcaption><svg id="chWave" role="img" aria-label="גובה גל לפי שעה"></svg></figure>
+    <div class="tip" id="aheadTip" hidden></div>
+  </div>
+  <div class="daybar" id="daybar" aria-label="היום של דניאל: זריחה, שקיעה, ואיפה השמש עכשיו"></div>
+</section>
+
+<!-- ============ סקסטנט ============ -->
+<section id="sextant" class="band">
+  <header class="sec"><h2>לנווט כמו דניאל</h2><p>בלי GPS. שמש, אופק ושעון מדויק.</p></header>
+  <div class="sxbox" id="sxbox"></div>
+</section>
+
+<section id="more" class="band">
+  <a class="gobtn" href="deep-dive.html"><b>הניתוח המלא</b><span>היממה האחרונה, ההחלטות, הפער, התחזיות ומבחן התחזיות הקודמות</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+
+  <details class="prov">
+    <summary>מה כאן נמדד, מה מחושב ומה מודל</summary>
+    <ul>
+      <li><b>נמדד.</b> המיקום, הכיוון והמהירות, מקובץ המעקב הלווייני של המרוץ. דיווח כל ארבע שעות; מה שביניהם הוא השלמה.</li>
+      <li><b>מחושב במדויק.</b> השמש, הירח, הכוכבים שעל השעון וקו היום והלילה על הגלובוס: אסטרונומיה, לרגע שבו הדף פתוח.</li>
+      <li><b>מודל.</b> הרוח, הגלים והזרם, ממודל אטמוספרי ואוקיינוגרפי ולא ממדידה בסירה. כיוון: ‎±20–30 מעלות. הגל בים פועם בזמן המחזור האמיתי שלו.</li>
+      <li><b>מוסק.</b> מצב המפרשים: אין עליו שום נתון. הוא נגזר מזווית הרוח ומעוצמתה. כרגע: <span id="pvSail">—</span>, רוח ב־<span class="num" id="pvTwa">—</span>°.</li>
+      <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, מעקה הטיק, הסוכך הכתום, דגל ישראל על מפרשי החרטום והמספר 07.</li>
+      <li><b>סכמטי.</b> המסלול שנותר על הגלובוס הוא קו בין נקודות החובה, לא תחזית ניווט.</li>
+    </ul>
+  </details>
+
+  <div class="lite" id="liteRow">
+    <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
+    <span id="liteTxt">פחות חלקיקים ורזולוציה נמוכה יותר, למכשירים שמתחממים</span>
+  </div>
+</section>
+</main>
 
 <footer>
-  <p>המיקום, הכיוון והמהירות מגיעים מקובץ המעקב הלוויני של המרוץ. מזג האוויר מתוך מודל, לא ממדידה בסירה.
-  ההסבר המלא על מה נמדד ומה מוסק נמצא בתיבה שמעל ההדמיה.</p>
-  <p><a href="deep-dive.html">לניתוח המלא, למקורות ולהצלבות ←</a></p>
+  <p>פרויקט אוהדים עצמאי. לא אתר רשמי של המרוץ ולא של הצוות של דניאל. המספרים הם תמונת מצב מנקודת הציון האחרונה, לא שידור חי.</p>
+  <p>מעקב: <a href="https://pro.yb.tl/ggr2026/" rel="noopener">YB Tracking, המעקב הרשמי</a> · דיווחים: <a href="https://goldengloberace.com/" rel="noopener">goldengloberace.com</a> · מזג אוויר: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> · כדור הארץ: NASA Blue Marble · קו חוף: Natural Earth · מפה: MapLibre</p>
 </footer>
 
-</div>
-
 <script src="assets/data.js"></script>
-<script src="assets/geo.js"></script>
-<script src="assets/app.js"></script>
-<script src="assets/front.js"></script>
+<script src="assets/course.js"></script>
+<script src="assets/deck.js" defer></script>
+<script src="assets/rose.js" defer></script>
+<script src="assets/front.js" defer></script>
 </body>
 </html>
