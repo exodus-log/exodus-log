@@ -1,0 +1,38 @@
+{
+ "name": "יומן אקסודוס",
+ "short_name": "אקסודוס",
+ "lang": "he",
+ "dir": "rtl",
+ "description": "איפה אקסודוס עכשיו: דניאל פינסקי בגולדן גלוב",
+ "start_url": "/next/",
+ "scope": "/next/",
+ "id": "/next/",
+ "display": "fullscreen",
+ "display_override": [
+  "fullscreen",
+  "standalone"
+ ],
+ "orientation": "any",
+ "background_color": "#06121b",
+ "theme_color": "#06121b",
+ "icons": [
+  {
+   "src": "/assets/icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/assets/icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/assets/icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}

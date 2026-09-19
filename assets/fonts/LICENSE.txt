@@ -9,4 +9,13 @@ Copyright 2020 The Assistant Project Authors (https://github.com/hafontia/Assist
 == ibm-plex-mono ==
 Copyright 2017 IBM Corp. All rights reserved.
 
+== heebo ==
+Copyright 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)
+
+== b612-mono ==
+Copyright 2012 The B612 Project Authors (https://github.com/polarsys/b612)
+
+== david-libre ==
+Copyright 2016 The David Libre Project Authors (https://github.com/meirsadan/david-libre), with reserved font name "Hadash", "Gentium" and 'SIL'.
+
 Files are the unmodified Hebrew and Latin subsets published by the Fontsource project.
