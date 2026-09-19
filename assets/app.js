@@ -58,7 +58,7 @@ function bearingTo(la1,lo1,la2,lo2){ var p=D2R;
   var y=Math.sin((lo2-lo1)*p)*Math.cos(la2*p);
   var x=Math.cos(la1*p)*Math.sin(la2*p)-Math.sin(la1*p)*Math.cos(la2*p)*Math.cos((lo2-lo1)*p);
   return (Math.atan2(y,x)*R2D+360)%360; }
-var GATE_BRG=bearingTo(FIX.lat,FIX.lon,28.85,-13.50);
+var GATE_BRG=bearingTo(FIX.lat,FIX.lon,GATE[0],GATE[1]);
 function bearing2(deg){ var a=deg*D2R; return [Math.sin(a),-Math.cos(a)]; }
 function norm3(v){ var l=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/l,v[1]/l,v[2]/l]; }
 function cross3(a,b){ return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
@@ -1033,7 +1033,7 @@ function updateHud(c,nowMs){
   put('hWind',Math.round(c.wind)+' kn · '+Math.round(c.windDir)+'°');
   put('hWindK','רוח · '+pos0);
   put('hSail',SAILNAME[planFor(c,twa0)]||'—');
-  put('mmDist',String(FIX.toGate));
+  put('mmDist',Math.round(FIX.toGate).toLocaleString('en-US'));
   drawSpark(nowMs);
   put('hWave',c.waveH.toFixed(1)+' m · '+c.waveT.toFixed(1)+' s');
   put('hCur',c.cur.toFixed(1)+' kn → '+Math.round(c.curDir)+'°');
@@ -1173,7 +1173,7 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 /* ---------- the inset ---------- */
 function drawMini(){
   var el=document.getElementById('mmSvg'); if(!el) return;
-  var W=120,H=150, lo0=-20.0, lo1=-5.0, la0=26.4, la1=45.6;
+  var W=120,H=150, lo0=-24.0, lo1=-9.0, la0=19.5, la1=38.7;
   var P=fitProj(lo0,lo1,la0,la1,W,H,2);
   var me=FLEET[MEI], g=P(me[2],me[3]), gt=P(GATE[0],GATE[1]);
   var s='';
@@ -1190,7 +1190,7 @@ function drawMini(){
   s+='<circle cx="'+gt[0].toFixed(1)+'" cy="'+gt[1].toFixed(1)+'" r="2.6" fill="none" stroke="#fff" stroke-width="1"/>';
   s+='<circle cx="'+g[0].toFixed(1)+'" cy="'+g[1].toFixed(1)+'" r="3" fill="#FF7A1F" stroke="#0b1a26" stroke-width="1"/>';
   s+='<g font-family="Assistant, sans-serif" font-size="5.2" fill="rgba(255,255,255,.72)">'
-    +'<text x="'+(gt[0]-4).toFixed(1)+'" y="'+(gt[1]+1.8).toFixed(1)+'" text-anchor="end">לנזרוטה</text></g>';
+    +'<text x="'+(gt[0]-4).toFixed(1)+'" y="'+(gt[1]+1.8).toFixed(1)+'" text-anchor="end">טרינדאדה</text></g>';
   s+='<g transform="translate(3 '+(H-36)+') scale(0.39)" opacity=".92">'
     +'<circle cx="42" cy="42" r="33" fill="rgba(6,16,24,.50)" stroke="rgba(255,255,255,.30)" stroke-width="2"/>'
     +'<text x="42" y="15" text-anchor="middle" font-size="15" fill="rgba(255,255,255,.7)" font-family="IBM Plex Mono, monospace">N</text>'
@@ -1207,15 +1207,15 @@ function drawChart(){
   var el=document.getElementById('chartSvg'); if(!el) return;
   var wide=(el.clientWidth||600)>560;
   var W=wide?420:360, H=wide?540:430;
-  var lo0=-16.5, lo1=-0.5, la0=27.4, la1=47.6;
+  var lo0=-24.0, lo1=-8.0, la0=19.6, la1=39.8;
   var P=fitProj(lo0,lo1,la0,la1,W,H,10);
   var me=FLEET[MEI], g=P(me[2],me[3]), gt=P(GATE[0],GATE[1]), st=P(START[0],START[1]);
   var s='',i,v;
   s+='<rect width="'+W+'" height="'+H+'" fill="#0a2236" rx="6"/>';
   s+='<path d="'+grat(P,lo0,lo1,la0,la1,5,W,H)+'" stroke="rgba(255,255,255,.08)" stroke-width=".6" fill="none"/>';
   s+='<g font-family="IBM Plex Mono, monospace" font-size="8" fill="rgba(255,255,255,.34)">';
-  for(v=30;v<=45;v+=5){ var a=P(v,lo0); s+='<text x="4" y="'+(a[1]+3).toFixed(1)+'">'+v+'°N</text>'; }
-  for(v=-15;v<=-5;v+=5){ var b=P(la0,v); s+='<text x="'+b[0].toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle">'+Math.abs(v)+'°W</text>'; }
+  for(v=Math.ceil(la0/5)*5;v<=la1;v+=5){ var a=P(v,lo0); s+='<text x="4" y="'+(a[1]+3).toFixed(1)+'">'+v+'°N</text>'; }
+  for(v=Math.ceil(lo0/5)*5;v<=lo1;v+=5){ var b=P(la0,v); s+='<text x="'+b[0].toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle">'+Math.abs(v)+'°W</text>'; }
   s+='</g>';
   s+='<path d="'+landPath(P)+'" fill="#26435b" stroke="#4f7794" stroke-width=".9"/>';
   s+='<path d="M '+g[0].toFixed(1)+' '+g[1].toFixed(1)+' L '+gt[0].toFixed(1)+' '+gt[1].toFixed(1)
@@ -1234,7 +1234,7 @@ function drawChart(){
   s+='<g font-family="Assistant, sans-serif" font-size="11.5" fill="#FFC48A">'
     +'<text x="'+(g[0]-8).toFixed(1)+'" y="'+(g[1]+3.5).toFixed(1)+'" text-anchor="end">אקסודוס</text></g>';
   s+='<g font-family="Assistant, sans-serif" font-size="9.5" fill="rgba(255,255,255,.72)">'
-    +'<text x="'+(gt[0]+7).toFixed(1)+'" y="'+(gt[1]+3).toFixed(1)+'">לנזרוטה · שער 1</text>'
+    +'<text x="'+(gt[0]+7).toFixed(1)+'" y="'+(gt[1]+3).toFixed(1)+'">טרינדאדה · נקודת חובה</text>'
     +'<text x="'+(st[0]+6).toFixed(1)+'" y="'+(st[1]+3).toFixed(1)+'">הזינוק</text></g>';
   /* scale bar: 200 nm */
   var p1=P(30,-15), p2=P(30,-15+200/60/Math.cos(30*Math.PI/180));

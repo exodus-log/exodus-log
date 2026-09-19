@@ -69,6 +69,8 @@ function render(){
     $('fxWhen').textContent = p(d.getUTCDate()) + '.' + (d.getUTCMonth()+1) + ' ' +
                               p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC · ' + ageTxt;
     if (age > 8 && $('fxWhen').parentNode) $('fxWhen').parentNode.classList.add('stale');
+    if ($('chWhen')) $('chWhen').textContent =
+      p(d.getUTCDate()) + '.' + (d.getUTCMonth()+1) + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
     if ($('kickWhen')) $('kickWhen').textContent =
       p(d.getUTCDate()) + '.' + p(d.getUTCMonth()+1) + '.' + d.getUTCFullYear() + ' ' +
       p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
@@ -89,6 +91,7 @@ function render(){
   if ($('bcGate')){
     $('bcGate').textContent = thou(FIX.toGate);
     if ($('bcGateName')) $('bcGateName').textContent = FIX.gate || '—';
+    if ($('mmGate')) $('mmGate').textContent = FIX.gate || '';
     if ($('bcGateBrg') && typeof GATE !== 'undefined'){
       $('bcGateBrg').textContent = n(bearing(FIX.lat,FIX.lon,GATE[0],GATE[1])) + '°';
     }
