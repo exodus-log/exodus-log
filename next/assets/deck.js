@@ -199,6 +199,7 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP;',WAVE
   ' if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',
   '  float n1=vn(q), nx1=vn(q+vec2(e,0.0)), nz1=vn(q+vec2(0.0,e));',
   '  N=normalize(vN+vec3((nx1-n1)*1.35,0.0,(nz1-n1)*1.35)*det); }',
+  ' N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(45.0,150.0,dist)*0.82));',
   ' vec3 V=normalize(uEye-vW);',
   ' float fres=pow(1.0-max(dot(N,V),0.0),4.0)*0.78+0.045;',
   ' float hn=clamp(vH/max(uAmpMax,0.05)*0.5+0.5,0.0,1.0);',
@@ -567,8 +568,8 @@ function applyConditions(c){
 /* ===== flow field: wind streaks in the air, current darts on the water ===== */
 var LOWP=(C.clientWidth||400)<560 || (navigator.deviceMemory&&navigator.deviceMemory<=4) ||
          (navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
-var NWIND=LOWP?330:780, NCUR=LOWP?70:150, NSPRAY=LOWP?0:70, NWAKE=14, NCHEV=LOWP?9:16;
-var TSEG=5, CSEG=9;
+var NWIND=LOWP?330:780, NCUR=LOWP?44:84, NSPRAY=LOWP?0:70, NWAKE=14, NCHEV=LOWP?9:16;
+var TSEG=5, CSEG=12;
 var FR=78, CR=58;
 var MAXV=NWIND*TSEG*6+NCUR*CSEG*12+NSPRAY*6+NWAKE*12+NCHEV*48+900;
 var flowArr=new Float32Array(MAXV*5), flowBuf=gl.createBuffer(), flowN=0;
@@ -630,7 +631,7 @@ function ribbon(tr,eye,w,a,ci){
 function softDash(tr,eye,w,a,ci,dashPh){
   var n=tr.n,k;
   for(k=0;k<n-1;k++){
-    if(((k+dashPh)&1)===1) continue;                 /* מקווקו: כל מקטע שני ריק */
+    if(((k+dashPh)%3)===2) continue;                 /* מקווקו: שני מקטעים מלאים, אחד ריק */
     var f0=k/(n-1), f1=(k+1)/(n-1);
     var ax=tr.x[k], ay=tr.y[k], az=tr.z[k], bx=tr.x[k+1], by=tr.y[k+1], bz=tr.z[k+1];
     var dx=bx-ax, dy=by-ay, dz=bz-az;
@@ -721,11 +722,12 @@ function buildCurrent(c,t,dt,eye){
     p.px+=Math.sin(cr)*crawl*dt; p.pz-=Math.cos(cr)*crawl*dt;
     var x=p.px, z=p.pz, k, tr=p.t; tr.n=CSEG+1;
     for(k=CSEG;k>=0;k--){ tr.x[k]=x; tr.z[k]=z; tr.y[k]=waveY(x,z,t)*0.55-p.dep;
-      x-=Math.sin(cr)*0.62; z+=Math.cos(cr)*0.62; }
+      x-=Math.sin(cr)*0.95; z+=Math.cos(cr)*0.95; }
     var fade2=Math.min(1,p.age/2.0)*Math.min(1,(p.life-p.age)/2.6);
     var edg2=Math.min(1,2.4*(1-rr2/p.R));
-    a=(0.50+Math.min(0.30,c.cur*0.22))*fade2*edg2*(1-p.dep/3.4); if(a<0.012) continue;
-    softDash(tr,eye,0.17+p.dep*0.05,a,1,i); }
+    var dcam=Math.hypot(eye[0]-p.px,eye[2]-p.pz);
+    a=(0.34+Math.min(0.26,c.cur*0.20))*fade2*edg2*(1-p.dep/3.6)*Math.max(0,Math.min(1,1.25-dcam/64)); if(a<0.012) continue;
+    softDash(tr,eye,0.10+p.dep*0.04,a,1,i); }
 }
 
 /* --- פני המים: שברוני הסוול, הקו אל השער, קו החרטום והשובל --- */

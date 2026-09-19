@@ -180,6 +180,13 @@ svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',func
 [gSun,gMoon].forEach(function(g){ g.addEventListener('keydown',function(ev){
   if(ev.key==='Enter'||ev.key===' '){ EXO.faceBody(g.getAttribute('data-body')); ev.preventDefault(); } }); });
 
+/* מקלדת: חצים מסובבים את המבט ב-15 מעלות, רווח מדליק ומכבה סיבוב אוטומטי */
+host.setAttribute('tabindex','0');
+host.addEventListener('keydown',function(ev){ var b=EXO.frame.camBearing;
+  if(ev.key==='ArrowLeft'){ EXO.lookToward((b+345)%360); ev.preventDefault(); }
+  else if(ev.key==='ArrowRight'){ EXO.lookToward((b+15)%360); ev.preventDefault(); }
+  else if(ev.key===' '&&ev.target===host){ EXO.toggleAuto(); ev.preventDefault(); } });
+
 /* רמז חד-פעמי: הטריז "נושם" כמה שניות בפעם הראשונה */
 try{ if(!localStorage.getItem('exo.roseSeen')){ host.classList.add('hint');
   setTimeout(function(){ host.classList.remove('hint'); },7000); localStorage.setItem('exo.roseSeen','1'); } }catch(e){}
