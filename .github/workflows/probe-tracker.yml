@@ -1,0 +1,42 @@
+name: probe-tracker
+# One-off check: does the race tracker answer requests that come from GitHub Actions runners?
+# Runs only when this file changes, or by hand. It reads three public files and writes nothing.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/probe-tracker.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch the tracker files and report
+        run: |
+          set +e
+          {
+            echo "### pro.yb.tl from a GitHub Actions runner"
+            echo ""
+            echo "| file | client | http | bytes | seconds | content-type |"
+            echo "|---|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          BROWSER="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in BIN/ggr2026/AllPositions3 JSON/ggr2026/RaceSetup JSON/ggr2026/leaderboard; do
+            for who in curl browser; do
+              if [ "$who" = "curl" ]; then
+                out=$(curl -sS -L --max-time 60 -o /tmp/body -w '%{http_code}|%{size_download}|%{time_total}|%{content_type}' "https://pro.yb.tl/$u" 2>/tmp/err)
+              else
+                out=$(curl -sS -L --max-time 60 -A "$BROWSER" -o /tmp/body -w '%{http_code}|%{size_download}|%{time_total}|%{content_type}' "https://pro.yb.tl/$u" 2>/tmp/err)
+              fi
+              rc=$?
+              if [ $rc -ne 0 ]; then out="curl error $rc: $(tr '\n' ' ' </tmp/err)|||"; fi
+              IFS='|' read -r code bytes secs ctype <<< "$out"
+              echo "| $u | $who | $code | $bytes | $secs | $ctype |" | tee -a "$GITHUB_STEP_SUMMARY"
+            done
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "leaderboard, first team: $(jq -c '.tags[0].teams[0] | {id, rankR, dtf}' /tmp/body 2>&1 | head -c 200)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "checked at $(date -u +%FT%TZ)" | tee -a "$GITHUB_STEP_SUMMARY"
