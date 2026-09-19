@@ -47,6 +47,9 @@ function render(){
   var now = Date.now();
   var c = cond(now);
 
+  /* ---------- משפט הכותרת: מגיע מ-data.js, הטקסט ב-index.html הוא גיבוי ---------- */
+  if (typeof STORY !== 'undefined' && STORY && $('storyline')) $('storyline').textContent = STORY;
+
   /* ---------- שורת המצב: מקום, פער, טריות נקודת הציון ---------- */
   var gap = null;
   if (typeof FLEET !== 'undefined' && FLEET.length) gap = Math.round(FIX.dtf - FLEET[0][5]);
