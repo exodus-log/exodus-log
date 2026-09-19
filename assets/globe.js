@@ -90,7 +90,9 @@ var tiles=new URL('assets/tiles/earth/',location.href).href+'{z}/{x}/{y}.jpg';
 var here=[FIX.lon,FIX.lat];
 var style={ version:8, projection:{type:'globe'},
   sky:{'atmosphere-blend':['interpolate',['linear'],['zoom'],0,1,4.5,0.85,7,0]},
-  light:{anchor:'map',position:[1.5,90,80]},
+  /* בלי light מכוון-מפה: MapLibre מצלה בעזרתו צד שלם של הכדור, וזה טרמינטור מזויף
+     שאין לו קשר לשמש האמיתית. קו היום והלילה מגיע משכבת night למטה, שמחושבת אסטרונומית. */
+  light:{anchor:'viewport',position:[1.15,210,30],intensity:0.5},
   sources:{
     earth:{type:'raster',tiles:[tiles],tileSize:512,minzoom:0,maxzoom:3,attribution:'כדור הארץ: NASA Blue Marble'},
     land:{type:'geojson',data:landGeoJSON(),attribution:'קו חוף: Natural Earth'},
