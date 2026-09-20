@@ -477,7 +477,7 @@ function caprailMesh(){ var NS=34,p=[],idx=[],i;
     idx.push(a,a+4,a+1,a+1,a+4,a+5); idx.push(a+2,a+3,a+6,a+3,a+7,a+6); }
   return mesh(p,idx); }
 function decalMesh(side){
-  var NS=26, t0=0.615, t1=0.822, v0=0.600, v1=0.855, off=0.055;   /* EXODUS ברבע הקדמי (תמונות 13, 14) */
+  var NS=26, t0=0.801, t1=0.943, v0=0.600, v1=0.855, off=0.055;   /* EXODUS ממש ליד החרטום: 8% עד 11% מהאורך, לפי תמונות 12 ו-13 */
   var p=[],uv=[],idx=[],i,j;
   function pt(t,sv){ var x=(t-0.5)*LOA, w=hb(t), sh2=sheer(t), dp=dep(t);
     return [x, -dp+sv*(sh2+dp), side*w*Math.pow(Math.sin(sv*Math.PI/2),0.72)]; }
@@ -556,7 +556,7 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
                     function(y){return 0.115+0.145*Math.max(0,(y+1.72)/1.1);}),
     M_RUD=foilMesh([[-2.32,-1.60],[-3.02,-1.36],[-3.08,-0.56],[-2.32,-0.60]],function(){return 0.075;}),
     M_MAST=cylMesh(0.086,0.118,14.95,0.35,FREE+7.40,0),
-    M_SPRIT=cylMesh(0.075,0.062,1.85,0,0,0), M_BOOM=cylMesh(0.062,0.058,4.80,0,0,0),
+    M_SPRIT=cylMesh(0.082,0.066,1.32,0,0,0), M_BOOM=cylMesh(0.062,0.058,4.80,0,0,0),
     M_HATCH=boxMesh(0.80,0.42,0.88,-2.75,FREE+0.26,0),
     M_COAM1=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,-0.76),
     M_COAM2=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,0.76),
@@ -569,8 +569,8 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
     M_STEP=boxMesh(0.52,0.13,1.04,-2.58,FREE-0.15,0),
     M_DECS=decalMesh(1), M_DECP=decalMesh(-1),
     M_MAIN=sailMesh(4.72,13.26,0.55), M_MAINR=sailMesh(4.30,9.60,0.44),
-    M_YANK=sailMesh(4.55,13.70,0.58,0.430), M_STAY=sailMesh(3.25,10.35,0.50,0.246),
-    M_SPIN=sailMesh(6.60,14.20,1.10,0.410), M_JIB=sailMesh(2.95,8.60,0.40,0.300),
+    M_YANK=sailMesh(4.45,13.40,0.58,0.363), M_STAY=sailMesh(3.25,10.35,0.50,0.246),
+    M_SPIN=sailMesh(6.40,14.00,1.10,0.376), M_JIB=sailMesh(2.95,8.60,0.40,0.400),
     D_LEG=cylMesh(0.075,0.062,0.86,0,0.43,0), D_HIP=boxMesh(0.30,0.24,0.36,0,0.97,0),
     D_TOR=cylMesh(0.175,0.190,0.56,0,1.22,0), D_SHO=boxMesh(0.20,0.14,0.44,0,1.52,0),
     D_COAT=boxMesh(0.26,0.50,0.09,0,1.24,0), D_ARM=cylMesh(0.052,0.046,0.60,0,0,0),
@@ -1214,7 +1214,9 @@ function wireMesh(segs,r){                       /* חיבל: מוטות משו�
   }
   return mesh(p,idx); }
 
-var MAST_X=0.35, MAST_TOP=FREE+14.60, HOUNDS=FREE+11.10, SPR_TIP=7.00, TACK_X=6.80, STAY_X=3.10;
+/* J=5.36 מ׳ מהמפרט, והמדידה מתמונות 12 ו-13 מאשרת: החרטומית בולטת 0.3 עד 0.7 מ׳ מעבר לחרטום, לא 1.5.
+   לכן התורן נשאר ב-x=0.35 ונקודת הקשירה יורדת מ-6.80 ל-5.71 (0.40 מ׳ מעבר לחרטום שב-5.31). */
+var MAST_X=0.35, MAST_TOP=FREE+14.60, HOUNDS=FREE+11.10, SPR_TIP=6.05, TACK_X=5.71, STAY_X=3.10;
 var SPR_Y=FREE+0.42, STERN_X=-5.20;
 /* מספר המשטחים וצורת האחורן לא נראים בתמונות שהיו: נבחר משטח אחד בכל צד, כמקובל בבאבא 35, ואחורן יחיד. לבדיקה. */
 var SPREAD_Y=FREE+7.60, SPREAD_Z=1.52;
@@ -1237,7 +1239,7 @@ var M_RIG=wireMesh([
 var M_SPREAD=wireMesh([[[MAST_X,SPREAD_Y,0.06],[MAST_X,SPREAD_Y+0.16,SPREAD_Z]],
                        [[MAST_X,SPREAD_Y,-0.06],[MAST_X,SPREAD_Y+0.16,-SPREAD_Z]]],0.035);
 /* המפרש שהורד, קשור כגליל לבן על החרטומית (כך בתמונת הלילה) */
-var M_FURL=cylMesh(0.115,0.085,2.30,0,0,0);
+var M_FURL=cylMesh(0.115,0.085,1.50,0,0,0);
 
 /* ---------- המפרש הראשי: לוח כתום בראש, "7" שחור, טלאי המרוץ, ושורות נקודות צמצום ----------
    מחליף את numberTexture ("07" כחול ו-ISR), שלא תואם את התמונות. v=1 (ראש המפרש) הוא ראש הקנבס. */
@@ -1456,7 +1458,7 @@ function sevenTexture(){
   return texFromCanvas(cv);
 }
 var TEX_SEVEN=sevenTexture();
-var M_SEV7=panelOnHull(1,0.544,0.596,0.588,0.853,0.055), M_SEV7P=panelOnHull(-1,0.544,0.596,0.588,0.853,0.055);
+var M_SEV7=panelOnHull(1,0.462,0.538,0.527,0.913,0.055), M_SEV7P=panelOnHull(-1,0.462,0.538,0.527,0.913,0.055);   /* טבעת של 0.8 מ׳ באמצע הגוף */
 
 /* ---------- לילה (9ה׳): זוהר חם מהאשנבים ונקודה אדומה בקוקפיט מתחת לדודג׳ר ---------- */
 function cabinGlow(boatM,eye,right,upv,nightF){
@@ -1813,10 +1815,10 @@ function frameBody(){
   var jibA=(twa>158?-1:1)*Math.max(10,Math.min(62,twa*0.42))*D2R*sgn;
   var flatS=c.wind<4?0.5:1;
   var mainM=mMul(mMul(boatM,mTrans(0.35,FREE+1.15,0)),mRotY(boomA));
-  var yankM=mMul(mMul(boatM,mTrans(6.80,FREE+0.52,0)),mRotY(jibA));
+  var yankM=mMul(mMul(boatM,mTrans(5.71,FREE+0.52,0)),mRotY(jibA));
   var stayM=mMul(mMul(boatM,mTrans(3.10,FREE+0.18,0)),mRotY(jibA));
   var jibM2=mMul(mMul(boatM,mTrans(4.90,FREE+0.34,0)),mRotY(jibA));
-  var spinM=mMul(mMul(boatM,mTrans(7.30,FREE+0.26,0)),mRotY(jibA*0.78));
+  var spinM=mMul(mMul(boatM,mTrans(6.05,FREE+0.30,0)),mRotY(jibA*0.78));
   var jibM =mMul(mMul(boatM,mTrans(5.70,FREE+0.46,0)),mRotY(jibA));
   /* what she is most likely carrying, from wind strength and angle */
   var plan=planFor(c,twa); lastPlan=plan;
@@ -1970,10 +1972,10 @@ function frameBody(){
   drawMesh(M_COAM1,boatM, COL.rail);
   drawMesh(M_COAM2,boatM, COL.rail);
   drawMesh(M_MAST, boatM, COL.spar);
-  drawMesh(M_SPRIT,mMul(mMul(boatM,mTrans(6.08,FREE+0.42,0)),mRotZ(Math.PI/2)),COL.timber);
+  drawMesh(M_SPRIT,mMul(mMul(boatM,mTrans(5.44,FREE+0.42,0)),mRotZ(Math.PI/2)),COL.timber);
   drawMesh(M_RIG,  boatM, COL.wire);
   drawMesh(M_SPREAD,boatM, COL.spar);
-  if(plan==='spin'||plan==='heavy') drawMesh(M_FURL, mMul(mMul(boatM,mTrans(6.05,FREE+0.56,0)),mRotZ(Math.PI/2)), COL.tops);
+  if(plan==='spin'||plan==='heavy') drawMesh(M_FURL, mMul(mMul(boatM,mTrans(5.42,FREE+0.58,0)),mRotZ(Math.PI/2)), COL.tops);
   drawMesh(M_VANEP,boatM, COL.spar);
   drawMesh(M_VANE, mMul(mMul(mMul(boatM,mTrans(-5.62,FREE+0.62,0)),mRotZ(-0.16)),mRotY(Math.sin(t*0.37)*0.20+((c.windDir-FIX.cog+540)%360-180)*D2R*0.10)), COL.vane);
   drawMesh(M_PADL, boatM, COL.bott);
