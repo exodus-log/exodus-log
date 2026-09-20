@@ -47,4 +47,12 @@
 #journey .gobtn{border-inline-start:3px solid var(--accent)}
 #journey .gobtn:hover{border-color:var(--line-2);border-inline-start-color:var(--accent)}
 #journey footer{margin-top:clamp(40px,6vw,72px)}
+/* "מה נמדד ומה מחושב" — הרשימה שאומרת לקורא מה בהדמיה אמיתי ומה משוער. זה הלב של האתר,
+   והיא רצה עד כה ב-143 תווים לשורה על מחשב (הטווח הקריא הוא 55 עד 80). המשפטים שלה שלמים,
+   ולכן היא עוברת לסריף התיעודי שהוחלט; המילה המובילה (נמדד., מחושב במדויק.) נשארת בגופן
+   הממשק, כמפתח. */
+#journey .prov ul{max-width:40em}
+#journey .prov li{font-family:var(--serif);font-size:1.02em;line-height:1.62;margin-block:.5em}
+#journey .prov li>b:first-child,#journey .prov li>strong:first-child{font-family:var(--sans);font-weight:600;letter-spacing:.01em}
+#journey footer p{max-width:46em}
 @media (max-width:640px){ #journey{font-size:16px} }
