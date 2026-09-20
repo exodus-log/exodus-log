@@ -1172,6 +1172,10 @@ function buildCurrent(c,t,dt,eye){
   if(!EXO.layers.cur) return;
   if(LAB.cur!=='ribbon'){ buildCurrentOld(c,t,dt,eye); return; }
   var i,p,a, cr=c.curDir*D2R, cspd=Math.max(0.03,c.cur*0.5144), lite=(EXO.quality==='lite'), under=!!LAB._under;
+  /* עוצמת הזרם. עד כאן סרט של זרם 0.1 קשר צויר כמעט באותה אטימות ובאותו עובי כמו זרם של 2 קשר,
+     ולכן ים כמעט חסר זרם נראה כמו קרשים טורקיזיים צפים. עכשיו גם האטימות וגם העובי נגזרים מהמהירות.
+     LAB.curGain ו-LAB.curThin הם ידיות לבדיקות; 1 הוא ברירת המחדל. */
+  var str=sst(0.08,1.0,c.cur), gain=(LAB.curGain==null?1:LAB.curGain), thin=(LAB.curThin==null?1:LAB.curThin);
   var n=Math.round(NCUR*(lite?0.5:1));
   /* מהירות הזחילה מוגזמת פי כמה כדי שתיראה; היחס בין זרם חלש לחזק נשמר */
   var crawl=cspd;
@@ -1191,18 +1195,20 @@ function buildCurrent(c,t,dt,eye){
       x-=fxd*0.95; z-=fzd*0.95; }
     var fade2=Math.min(1,p.age/2.0)*Math.min(1,(p.life-p.age)/2.6), edg2=Math.min(1,2.4*(1-rr2/p.R));
     var dcam=Math.hypot(eye[0]-p.px,eye[2]-p.pz);
-    var base=under?[0.74,0.62,0.50][ly]:(0.44+Math.min(0.20,c.cur*0.16));
+    var base=(under?[0.60,0.50,0.40][ly]:0.34)*(0.46+0.54*str)*gain;
     var d3=Math.sqrt(dcam*dcam+(eye[1]-(-dep))*(eye[1]-(-dep)));
     a=base*fade2*edg2*Math.max(0,Math.min(1,1.25-dcam/(under?52:64)))*sst(2.5,7.0,d3); if(a<0.012) continue;      /* סרט שעובר ממש מול העין נמוג */
-    var hw=(0.175+0.125*h1(i*3.9))*(1+0.10*ly), sh=[0.0,0.42,0.80][ly];   /* חצי עובי: 0.35 עד 0.6 מ' עובי מלא */
+    var hw=(0.125+0.090*h1(i*3.9))*(1+0.10*ly)*(0.78+0.22*str)*thin, sh=[0.0,0.42,0.80][ly];   /* חצי עובי: כ-0.18 עד 0.30 מ' עובי מלא */
     curRibbon(tr,eye,hw,a,sh);
-    var hx=tr.x[CSEG], hy=tr.y[CSEG], hz=tr.z[CSEG], HL=1.15+hw*2.2, HWd=0.85+hw*1.6, tx=hx+fxd*0.55, tz=hz+fzd*0.55;
+    /* הראש קטן ודק מהגוף. קודם הוא היה עבה ממנו, ושתי הזרועות נפגשו באותו פיקסל — ובמיזוג מצטבר
+       הן הכפילו את עצמן והראש יצא כתם מלא במקום חץ. */
+    var hx=tr.x[CSEG], hy=tr.y[CSEG], hz=tr.z[CSEG], HL=(0.70+0.95*str)+hw*2.2, HWd=(0.50+0.55*str)+hw*1.6, tx=hx+fxd*0.55, tz=hz+fzd*0.55;
     /* הראש: חץ פתוח. הזרועות במישור האופקי כשמסתכלים מלמעלה, ובמישור האנכי כשמסתכלים מהצד, כך שהוא נקרא מכל זווית */
     var vy=Math.abs(eye[1]-hy), vh=Math.hypot(eye[0]-hx,eye[2]-hz), kv=sst(0.35,1.1,vy/Math.max(0.5,vh));
     var ox=cnx*HWd*kv, oz=cnz*HWd*kv, oy=HWd*(1-kv);
-    curStroke(hx,hy,hz,tx,hy,tz,eye,hw,a,sh);
-    curStroke(tx-fxd*HL+ox,hy+oy,tz-fzd*HL+oz,tx,hy,tz,eye,hw*0.92,a,sh);
-    curStroke(tx-fxd*HL-ox,hy-oy,tz-fzd*HL-oz,tx,hy,tz,eye,hw*0.92,a,sh); }
+    curStroke(hx,hy,hz,tx,hy,tz,eye,hw*0.85,a*0.9,sh);
+    curStroke(tx-fxd*HL+ox,hy+oy,tz-fzd*HL+oz,tx,hy,tz,eye,hw*0.62,a*0.72,sh);
+    curStroke(tx-fxd*HL-ox,hy-oy,tz-fzd*HL-oz,tx,hy,tz,eye,hw*0.62,a*0.72,sh); }
 }
 
 /* ======================= מנה ד׳, סעיף 9ד׳: תורן, חיבל, מפרשים ודגל =======================
