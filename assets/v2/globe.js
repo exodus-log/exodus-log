@@ -268,7 +268,7 @@ function zForWidth(w){ return Math.log(78271.517*Math.cos(here[1]*Math.PI/180)*M
 function widthForZ(z){ return mppAt(z)*Math.max(1,box.clientWidth); }
 var armB=0, retArmed=false, tracking=false;
 window.__exoGlobeArm=function(brg){ try{ map.resize(); stop(); range.value=1000; draw(T1,true); retArmed=false;
-  armB=((brg+540)%360)-180; map.jumpTo({center:here,bearing:armB}); }catch(e){} };
+  armB=0; map.jumpTo({center:here,bearing:0}); }catch(e){} };
 /* ההדמיה מדווחת בכל פריים כמה מטרים רוחב היא מראה; הגלובוס מתיישר לזה בדיוק, בלי אנימציה. */
 window.__exoGlobeTrack=function(widthM,brg){ try{
   tracking=true;
@@ -283,18 +283,31 @@ function applyPend(){ pRaf=0; try{
   if(pendB!==null){ var b=pendB; pendB=null; map.setBearing(b); }
   if(pendC){ var c=pendC; pendC=null; map.setCenter(c); } }catch(e){} }
 function queuePend(){ if(!pRaf) pRaf=requestAnimationFrame(applyPend); }
+function boatMid(){ var p=map.project(here), w=box.clientWidth, h=box.clientHeight; return p.x>-w*0.1&&p.x<w*1.1&&p.y>-h*0.1&&p.y<h*1.1; }
+function zGlobe(){ var Z=window.EXO&&EXO.zoomAxis; return (Z&&Z.wOfU)?zForWidth(Z.wOfU(Z.GLOBE)):14; }
+function zXfade(){ var Z=window.EXO&&EXO.zoomAxis; return (Z&&Z.wOfU)?zForWidth(Z.wOfU(Z.XF)):16; }
+var retX=0;
 map.on('zoom',function(){ if(tracking) return; var z=map.getZoom();
-  if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/3.0)); pendB=armB*k; queuePend(); if(k===0) armB=0; }
-  if(z<7.6) retArmed=true; if(!retArmed||!window.__exoGlobeReturn||!window.EXO||!EXO.zoomAxis) return;
-  var p=map.project(here), w=box.clientWidth, h=box.clientHeight, mid=(p.x>-w*0.15&&p.x<w*1.15&&p.y>-h*0.15&&p.y<h*1.15);
-  /* ברור שמתקרבים אל הסירה ולא אל הצי: המרכז נמשך אליה, חזק יותר ככל שמתקרבים */
-  var pull=Math.max(0,Math.min(0.30,(z-6.2)*0.075));
-  if(pull>0.004&&!map.isEasing()){ var c=map.getCenter();
-    pendC=[c.lng+(here[0]-c.lng)*pull,c.lat+(here[1]-c.lat)*pull]; queuePend(); }
-  /* החזרה: אותו ציר, הפוך. רוחב השטח של הגלובוס מתורגם ל-u של ההדמיה. */
+  if(!window.__exoGlobeReturn||!window.EXO||!EXO.zoomAxis) return;
+  /* החזרה: אותו ציר, הפוך. רוחב השטח של הגלובוס מתורגם ל-u של ההדמיה, והיא מקבלת אותו כמות שהוא. */
   var Z=EXO.zoomAxis, u=Z.uOfW(widthForZ(z));
-  var X=(mid&&u<Z.GLOBE)?Math.max(0,Math.min(1,(Z.GLOBE-u)/(Z.GLOBE-Z.XF))):0;
-  window.__exoGlobeReturn(X,map.getBearing()); if(X>=1) retArmed=false; });
+  var X=(u<Z.GLOBE&&(retX>0||boatMid()))?Math.max(0,Math.min(1,(Z.GLOBE-u)/(Z.GLOBE-Z.XF))):0;
+  retX=X; window.__exoGlobeReturn(X,0,u); });
+/* כל מי שמשנה זום — צביטה, גלגלת, או צביטה שנמשכת מההדמיה — עובר כאן, בכתיבה אחת למפה בכל פריים.
+   המשיכה אל הסירה היא חלק מאותה כתיבה ולא תגובה לאירוע: כשמתקרבים והסירה על המסך המרכז נמשך אליה
+   משלוש רמות לפני המסירה, ובתוך ההצלבה הוא מגיע אליה בדיוק — כי ההדמיה שמתחת תמיד ממורכזת על הסירה. */
+function zLim(z){ var hi=map.getMaxZoom(); if(!boatMid()) hi=Math.max(map.getZoom(),Math.min(hi,12));      /* רחוק מהסירה אין מה לראות מעבר לרזולוציית התמונה */
+  return Math.max(map.getMinZoom(),Math.min(hi,z)); }
+function driveZoom(z,anchor,pt){ var z0=map.getZoom(); z=zLim(z);
+  map.jumpTo({zoom:z});
+  if(anchor&&pt){ var q=map.project(anchor), w=box.clientWidth, h=box.clientHeight;      /* הנקודה שמתחת לאצבעות נשארת מתחתן */
+    if(Math.abs(q.x-pt[0])+Math.abs(q.y-pt[1])>0.4) map.jumpTo({center:map.unproject([w/2+q.x-pt[0],h/2+q.y-pt[1]])}); }
+  if(z>z0){ var zG=zGlobe(), zX=zXfade();
+    if(z>zG-3&&boatMid()){ var f=1-Math.exp(-(z-Math.max(z0,zG-3))*0.85);
+      if(z>zG){ var Xn=Math.min(1,(z-zG)/Math.max(0.01,zX-zG)), Xp=Math.max(0,Math.min(0.999,(z0-zG)/Math.max(0.01,zX-zG))); f=Math.max(f,(Xn-Xp)/(1-Xp)); }
+      var c=map.getCenter(); f=Math.max(0,Math.min(1,f));
+      map.jumpTo({center:[c.lng+(here[0]-c.lng)*f,c.lat+(here[1]-c.lat)*f]}); } } }
+window.__exoGlobeDrive=function(widthM){ try{ if(window.__exoGlobeZoomStop) window.__exoGlobeZoomStop(); driveZoom(zForWidth(widthM)); }catch(e){} };
 /* כניסה מתוך ההתרחקות מהסירה */
 window.__exoGlobeEnter=function(how){ if(!window.__exoGlobeLoaded){ window.__exoGlobeWant=how; return; } try{ map.resize(); stop(); range.value=1000; draw(T1,true);
   if(how==='handoff'){ return; }
@@ -348,6 +361,30 @@ function addSpace(){
    מתחילה מחדש. זה מה שהרגיש מדורג בכל הדרך מזום 8 ועד 3, בעוד ההדמיה שמעליו רציפה לגמרי.
    כאן הגלגלת מזינה יעד בלבד, והזום נמשך אליו בכל פריים בקצב אקספוננציאלי — אותו חוק שמפעיל את ציר ההדמיה,
    ובאותו גודל צעד (2.4 נפר ליחידת u, כלומר 2.4/ln2 רמות זום), כך שסיבוב אחד עובר את ההצלבה בלי לשנות תחושה. */
+function pinchZoom(){
+  try{ map.touchZoomRotate.disable(); map.setMaxZoom(19); map.getCanvasContainer().style.touchAction='none'; }catch(e){}
+  var on=false, dP=0, lnW=0, anchor=null, pt=null, raf=0;
+  function gain(z){ return 1.25+1.15*Math.max(0,Math.min(1,(z-7)/3)); }
+  function geo(e){ var r=box.getBoundingClientRect(), a=e.touches[0], b=e.touches[1];
+    return {d:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)), x:(a.clientX+b.clientX)/2-r.left, y:(a.clientY+b.clientY)/2-r.top}; }
+  function owns(){ return document.body.classList.contains('g-open'); }
+  function apply(){ raf=0; if(!on) return; try{
+    var W=Math.exp(lnW);
+    if(!owns()){ if(window.EXO&&EXO.zoomAxis&&EXO.setU) EXO.setU(EXO.zoomAxis.uOfW(W)); return; }      /* ההדמיה חזרה באמצע המחווה */
+    if(window.__exoGlobeZoomStop) window.__exoGlobeZoomStop();
+    driveZoom(zForWidth(W),anchor,pt); try{ anchor=map.unproject(pt); }catch(x){}
+    var Wr=widthForZ(map.getZoom()); if(Math.abs(Math.log(Wr/W))>0.02) lnW=Math.log(Wr);      /* נעצרנו בגבול: לא צוברים מרחק מת, וההיפוך מיידי */
+  }catch(e){} }
+  box.addEventListener('touchstart',function(e){ if(e.touches.length!==2||!owns()){ on=false; return; }
+    var g=geo(e); on=true; dP=g.d; pt=[g.x,g.y]; lnW=Math.log(widthForZ(map.getZoom()));
+    try{ anchor=map.unproject(pt); }catch(x){ anchor=null; } },{capture:true,passive:true});
+  box.addEventListener('touchmove',function(e){ if(!on||e.touches.length<2) return;
+    e.preventDefault(); e.stopPropagation();
+    var g=geo(e), z=owns()?map.getZoom():12; lnW+=gain(z)*Math.log(dP/g.d); dP=g.d; pt=[g.x,g.y];
+    if(!raf) raf=requestAnimationFrame(apply); },{capture:true,passive:false});
+  function end(e){ if(e.touches.length<2) on=false; }
+  box.addEventListener('touchend',end,{capture:true,passive:true}); box.addEventListener('touchcancel',end,{capture:true,passive:true});
+}
 function smoothZoom(){
   try{ map.scrollZoom.disable(); }catch(e){}
   var zT=map.getZoom(), raf=0, last=0;
@@ -355,13 +392,16 @@ function smoothZoom(){
   function step(ts){
     var dt=last?Math.min(0.05,(ts-last)/1000):0.0167; last=ts;
     var z=map.getZoom(), d=zT-z;
-    if(Math.abs(d)<0.0015){ raf=0; last=0; if(d) map.jumpTo({zoom:zT}); return; }
-    map.jumpTo({zoom:z+d*(1-Math.exp(-dt/0.075))});
+    if(!document.body.classList.contains('g-open')){ raf=0; last=0;
+      if(zT>z&&window.EXO&&EXO.zoomAxis&&EXO.glideTo){ var Z=EXO.zoomAxis; EXO.glideTo(Math.max(Z.MAX,Math.min(Z.XF,Z.uOfW(widthForZ(zT)))),260); } return; }
+    if(Math.abs(d)<0.0015){ raf=0; last=0; if(d) driveZoom(zT); return; }
+    driveZoom(z+d*(1-Math.exp(-dt/0.075))); if(Math.abs(map.getZoom()-z)<1e-5&&Math.abs(d)>0.0015) zT=map.getZoom();
     raf=requestAnimationFrame(step); }
   function nudge(dz){
     if(!raf){ try{ map.stop(); }catch(e){} zT=map.getZoom(); last=0; }
     zT=lim(zT+dz);
     if(!raf) raf=requestAnimationFrame(step); }
+  pinchZoom();
   box.addEventListener('wheel',function(e){
     if(e.ctrlKey) return;                                   /* צביטת משטח מגע נשארת של הדפדפן */
     e.preventDefault(); e.stopPropagation();

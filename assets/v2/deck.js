@@ -739,7 +739,7 @@ function chevron(px,pz,dx,dz,size,a,t){
    u הוא המשתנה היחיד. 0 עד U_MAX: מסלול סביב הסירה, 9 עד 150 מטר (לוגריתמי, כמו קודם). 0 עד ‎−1: המצלמה מחליקה אל עמדת
    ההגאי. ‎−1 עד ‎−2: על הסיפון, הצביטה משנה רק את שדה הראייה (70° עד 38°). U_MAX עד U_TOP: המצלמה מתיישרת למבט מלמעלה
    ומתרחקת מהר. U_TOP עד U_GLOBE: הצלבה אל הגלובוס, שמונעת מהצביטה עצמה. cam.r נגזר מ-u; מי שכותב ל-cam.r ישירות מתורגם. */
-var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_GLOBE=U_MAX+2.82, U_XF=U_GLOBE-1.1, zoomT=0, camGlide=null;
+var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_XF=U_TOP-0.12, U_GLOBE=U_TOP+0.42, zoomT=0, camGlide=null;
 function rOfU(u){ return u>=0?9*Math.exp(Math.min(u,U_MAX)+Math.max(0,u-U_MAX)*2.4):9*Math.max(0,1+u); }
 function uOfR(r){ return r>=9?Math.log(r/9):(r/9-1); }
 function uCeil(){ return (!reduce&&EXO.globeReady&&EXO.quality!=='lite')?U_GLOBE:U_MAX; }
@@ -748,6 +748,7 @@ function setU(u,quiet){ if(cam.u===undefined) cam.u=uOfR(cam.r);
   /* מתקרבים אל הסיפון: המבט מתיישר בהדרגה אל האופק, כדי לא להגיע להגה כשמסתכלים על הרצפה */
   /* והוא פונה בהדרגה אל החרטום: מגיעים להגה כשמסתכלים קדימה, כמו מי שעומד שם */
   if(!quiet&&u<cam.u&&cam.u<0.35&&u>U_DECK-0.01){ var k=Math.min(1,(cam.u-u)*1.4); cam.el+=(0.20-cam.el)*k; cam.az+=(nearestAz(-FIX.cog*D2R)-cam.az)*k; }
+  if(u>cam.u&&u>U_MAX&&cam.u<U_XF){ var a0=Math.max(cam.u,U_MAX), kN=Math.min(1,(u-a0)/Math.max(1e-4,U_XF-a0)); cam.az+=(nearestAz(0)-cam.az)*kN; cam.vaz=0; }
   cam.u=u; cam.r=cam._r=rOfU(u); if(!quiet){ zoomT=performance.now(); camGlide=null; } }
 function zoomAxisFrame(now){
   if(cam.u===undefined||cam.r!==cam._r){ cam.u=uOfR(Math.max(0.01,cam.r)); cam._r=cam.r; }
@@ -755,6 +756,7 @@ function zoomAxisFrame(now){
   if(camGlide){ var f=(now-camGlide.t0)/camGlide.dur; if(f>=1){ cam.u=camGlide.to; camGlide=null; } else { f=f*f*(3-2*f); cam.u=camGlide.from+(camGlide.to-camGlide.from)*f; } }
   /* ההצלבה נשארת איפה שהמשתמש עצר: הזום רציף מהסיפון ועד החלל, בלי מדרגות ובלי קפיצות */
   if(cam.u>uCeil()) cam.u=uCeil();
+  if(cam.u>=U_XF-0.02){ cam.az+=(nearestAz(0)-cam.az)*Math.min(1,dt*9); cam.vaz=0; }      /* מי שהגיע לכאן בהחלקה ולא ב-setU מתיישר גם הוא */
   cam.r=cam._r=rOfU(cam.u); }
 function xfm(m,x,y,z){ return [m[0]*x+m[4]*y+m[8]*z+m[12], m[1]*x+m[5]*y+m[9]*z+m[13], m[2]*x+m[6]*y+m[10]*z+m[14]]; }
 var RIG=[];                                   /* המפרשים של הפריים הזה: מטריצה, אורך תחתית, אורך מוביל */
@@ -2289,7 +2291,8 @@ EXO.setU=function(u){ setU(u); kick(); };
 /* ההמרה המלאה בין מרחק מצלמה ל-u, בשני חלקי הציר. הגלובוס משתמש בה כדי לחזור אל ההדמיה באותו קנה מידה. */
 function uOfRFull(r){ return r<=150?uOfR(r):(U_MAX+Math.log(r/150)/2.4); }
 EXO.zoomAxis={DECK:U_DECK,MAX:U_MAX,TOP:U_TOP,XF:U_XF,GLOBE:U_GLOBE,uOfR:uOfR,uOfRFull:uOfRFull,
-  uOfW:function(w){ return uOfRFull(Math.max(1,w/(2*Math.tan(LAB._hfx||0.30)))); }};
+  uOfW:function(w){ return uOfRFull(Math.max(1,w/(2*Math.tan(LAB._hfx||0.30)))); },
+  wOfU:function(u){ return 2*rOfU(u)*Math.tan(LAB._hfx||0.30); }, K:2.4};
 EXO.setCam=function(mode){ cam.auto=false; camFly=null; cam.tilt=0; cam.vaz=cam.vel=0;
   if(mode==='deck'){ cam.az=-FIX.cog*D2R; cam.el=0.20; EXO.glideTo(U_DECK,1400); } else { cam.el=0.26; EXO.glideTo(uOfR(homeR()),1400); } kick(); };
 EXO.dive=function(down){ LAB.cam='orbit'; EXO.lookToward((((-cam.az*R2D)%360)+360)%360,{el:down?-0.40:0.26,dur:1500}); };
@@ -2318,7 +2321,7 @@ C.addEventListener('pointermove',function(e){
   var n=Object.keys(pts).length;
   if(n>=2){ var d=pdist(); if(pinch0>10&&d>10){ var uw=u0+Math.log(pinch0/d);
       if(uCeil()===U_MAX){ if(uw>U_MAX+0.36&&EXO.onZoomOut){ pinch0=0; EXO.onZoomOut(); } }
-      else if(uw>U_GLOBE&&EXO.onOver) EXO.onOver(uw-U_GLOBE);      /* הצביטה ממשיכה אחרי ההצלבה: היא כבר מרחיקה את הגלובוס */
+      else if(EXO.globeOwns){ if(EXO.onOver) EXO.onOver(uw-U_GLOBE); kick(); return; }      /* אחרי המסירה אותה צביטה נוהגת בגלובוס, פנימה והחוצה */
       setU(uw); } kick(); return; }
   var dx=e.clientX-prev.x, dy=e.clientY-prev.y;
   var sgD=1-2*(cam.u<0?smooth(0,1,-cam.u):0); LAB.ringHotT=performance.now();      /* על הסיפון הגרירה מסובבת את הראש; הסימן מתהפך בהדרגה, דרך אפס */

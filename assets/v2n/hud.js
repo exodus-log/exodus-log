@@ -287,14 +287,14 @@ function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendo
 function openGlobe(how){
   if(gFailed){ toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); return; }
   if(jOpen) closeJourney(false);
-  if(!gOpen){ gOpen=true; G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
+  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
   try{ $('gBack').focus({preventScroll:true}); }catch(e){} }
-function closeGlobe(fromPop){ if(!gOpen) return; gOpen=false; G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
+function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
   G.style.opacity=''; gxOn=false; gRet=false; document.body.classList.remove('g-x');
-  if(LIVE){ EXO.pause(false); if(EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.TOP); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
+  if(LIVE){ EXO.pause(false); if(!stay&&EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.XF-0.02); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
   if(!fromPop&&gPushed){ gPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
 $('gBack').addEventListener('click',function(){ closeGlobe(false); });
 window.__exoBackToBoat=function(){ closeGlobe(false); };   /* הקשה כפולה על הגלובוס */
@@ -312,13 +312,13 @@ function globeX(f){ var X=f.gX||0;
       if(X>=0.999){ gxOn=false; document.body.classList.remove('g-x'); openGlobe('handoff'); G.style.opacity=''; if(!f.touching&&window.__exoGlobeSettle) window.__exoGlobeSettle(); }
       else if(X<=0){ gxOn=false; document.body.classList.remove('g-x'); G.style.opacity=''; } } }
   else if(gRet){ G.style.opacity=X.toFixed(3);
-    if(X<=0.001){ gRet=false; closeGlobe(false); }
+    if(X<=0.001){ gRet=false; closeGlobe(false,true); }
     else if(X>=0.999&&!retLive){ gRet=false; G.style.opacity=''; EXO.pause(true); } } }
 var retLive=false;
-window.__exoGlobeReturn=function(X,bearing){ if(!LIVE||!gOpen||!EXO.zoomAxis) return; var Z=EXO.zoomAxis;
+window.__exoGlobeReturn=function(X,bearing,u){ if(!LIVE||!gOpen||!EXO.zoomAxis) return; var Z=EXO.zoomAxis;
   if(X>0&&!gRet){ gRet=true; EXO.pause(false); if(EXO.setBearing) EXO.setBearing(((bearing%360)+360)%360); }
-  retLive=X>0; if(gRet) EXO.setU(Z.GLOBE-0.0005-X*(Z.GLOBE-Z.TOP)); };
-if(LIVE){ EXO.onOver=function(over){ if(gOpen&&window.__exoMap){ try{ window.__exoMap.stop(); window.__exoMap.setZoom(Math.max(0.6,8.4-over*2.2)); }catch(e){} } };
+  retLive=X>0; if(gRet) EXO.setU(Math.min(Z.GLOBE-0.0005,(u===undefined?Z.GLOBE-X*(Z.GLOBE-Z.XF):u))); };
+if(LIVE){ EXO.onOver=function(over){ var Z=EXO.zoomAxis; if(gOpen&&Z&&window.__exoGlobeDrive) window.__exoGlobeDrive(Z.wOfU(Z.GLOBE)*Math.exp(over*Z.K)); };
   var gTick=setInterval(function(){ if(window.__exoGlobeLoaded){ EXO.globeReady=true; clearInterval(gTick); } },700); }
 idle(function(){ setTimeout(function(){ if(!LIVE||EXO.quality!=='lite') globeBuild(); },3200); },4000);
 
