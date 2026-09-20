@@ -54,7 +54,7 @@ jobs:
       - name: Publish
         if: steps.run.outputs.changed == 'true' || steps.run.outputs.logged == 'true'
         env:
-          MSG: ${{ steps.run.outputs.message || 'היסטוריית הצי: נקודות חדשות' }}
+          MSG: "${{ steps.run.outputs.message || 'היסטוריית הצי: נקודות חדשות' }}"
         run: |
           git config user.name "exodus-log data bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
