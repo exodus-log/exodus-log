@@ -35,7 +35,10 @@ var compact=false; function measure(){ compact=stage.clientWidth<=700; }
 
 function renderHud(s){
   var c=s.cond, d=new Date(s.now);
-  put('hDay','יום '+FIX.dayN);
+  /* יום המרוץ נגזר מהשעון המוצג ולא מנקודת הציון: גרירה של 30 שעות קדימה החליפה את התאריך
+     ל-22.09 והשאירה "יום 15". אותה נוסחה שרצועת הימים בגלובוס משתמשת בה. */
+  var dayN=(typeof RACE_START!=='undefined')?Math.floor((s.now/1000-RACE_START)/86400)+1:FIX.dayN;
+  put('hDay','יום '+dayN);
   put('hDate',pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'.'+d.getUTCFullYear());
   put('hPos',dmm(FIX.lat,2,'N','S')+'  '+dmm(FIX.lon,3,'E','W'));
   var fx=new Date(FIX.at*1000), age=(s.now/1000-FIX.at)/3600;
