@@ -477,7 +477,7 @@ function caprailMesh(){ var NS=34,p=[],idx=[],i;
     idx.push(a,a+4,a+1,a+1,a+4,a+5); idx.push(a+2,a+3,a+6,a+3,a+7,a+6); }
   return mesh(p,idx); }
 function decalMesh(side){
-  var NS=26, t0=0.175, t1=0.470, v0=0.605, v1=0.870, off=0.055;
+  var NS=26, t0=0.615, t1=0.822, v0=0.600, v1=0.855, off=0.055;   /* EXODUS ברבע הקדמי (תמונות 13, 14) */
   var p=[],uv=[],idx=[],i,j;
   function pt(t,sv){ var x=(t-0.5)*LOA, w=hb(t), sh2=sheer(t), dp=dep(t);
     return [x, -dp+sv*(sh2+dp), side*w*Math.pow(Math.sin(sv*Math.PI/2),0.72)]; }
@@ -561,11 +561,11 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
     M_COAM1=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,-0.76),
     M_COAM2=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,0.76),
     M_VANEP=boxMesh(0.06,0.95,0.06,-5.45,FREE+0.45,0),
-    M_VANE=boxMesh(0.38,1.30,0.030,0,0.65,0),
+    M_VANE=boxMesh(0.32,1.28,0.028,0,0.64,0),
     M_PADL=boxMesh(0.12,1.00,0.30,-5.48,-0.42,0),
     M_GEN=cylMesh(0.16,0.16,0.22,-4.95,FREE+1.95,-0.62),
     M_GENP=cylMesh(0.05,0.05,1.9,-4.95,FREE+1.0,-0.62),
-    M_DECK=deckMesh(), M_DECKO=deckMesh(0.905,0.006,0.085,0.955), M_SOLE=boxMesh(2.22,0.07,1.46,-3.41,FREE-0.44,0),
+    M_DECK=deckMesh(), M_DECKO=deckMesh(0.905,0.006,0.085,0.955), M_DECKF=deckMesh(0.905,0.009,0.752,0.955), M_SOLE=boxMesh(2.22,0.07,1.46,-3.41,FREE-0.44,0),
     M_STEP=boxMesh(0.52,0.13,1.04,-2.58,FREE-0.15,0),
     M_DECS=decalMesh(1), M_DECP=decalMesh(-1),
     M_MAIN=sailMesh(4.72,13.26,0.55), M_MAINR=sailMesh(4.30,9.60,0.44),
@@ -580,14 +580,15 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
 
 /* her real livery: white topsides, dark antifoul, varnished teak rail, that orange dodger */
 var COL={ tops:[0.940,0.950,0.960], bott:[0.105,0.125,0.155], boot:[0.40,0.13,0.11],   /* boot: הצבע האמיתי לא ודאי עד שתהיה תמונת יום של קו המים */
-          rail:[0.445,0.430,0.400], deck:[0.885,0.395,0.105], deckEdge:[0.915,0.920,0.920], trunk:[0.865,0.875,0.875], teak:[0.470,0.455,0.425],
-          hatch:[0.62,0.63,0.64], vane:[0.80,0.81,0.82],
-          dodge:[0.93,0.40,0.11], spar:[0.86,0.84,0.79], sail:[1,1,1], wire:[0.30,0.31,0.33],
+          rail:[0.445,0.430,0.400], deck:[0.885,0.395,0.105], dkwhite:[0.895,0.898,0.888], deckEdge:[0.915,0.920,0.920], trunk:[0.865,0.875,0.875], teak:[0.470,0.455,0.425],
+          hatch:[0.62,0.63,0.64], vane:[0.70,0.72,0.74],
+          dodge:[0.93,0.40,0.11], dodgeIn:[0.085,0.195,0.145], spar:[0.86,0.84,0.79], sail:[1,1,1], wire:[0.30,0.31,0.33],
           seam:[0.855,0.862,0.870], steel:[0.78,0.80,0.83], jack:[0.95,0.80,0.12], timber:[0.46,0.25,0.13],
           solar:[0.125,0.135,0.165], bronze:[0.31,0.34,0.24], glass:[0.10,0.13,0.15], ring:[0.86,0.15,0.12],
           wind:[1.0,0.45,0.10], cur:[0.31,0.76,0.91],
-          skin:[0.80,0.60,0.45], tee:[0.94,0.94,0.93], coat:[0.34,0.16,0.15],
-          pant:[0.55,0.57,0.61], hair:[0.14,0.10,0.07] };
+          skin:[0.78,0.57,0.41], tee:[0.115,0.135,0.205], short:[0.74,0.71,0.64],
+          shade:[0.055,0.060,0.075], cush:[0.60,0.545,0.665], navy:[0.085,0.105,0.165],
+          hair:[0.115,0.080,0.055] };
 var lastPlan='', SAIL_FLIP=1;
 function planFor(c,twa){ return (twa>=118)?(c.wind<12?'spin':(c.wind<26?'poled':'heavy'))
   :(twa>=70?(c.wind<22?'reach':'heavy'):(c.wind<19?'beat':'heavy')); }
@@ -1254,18 +1255,19 @@ function mainTexture(){
   for(k=1;k<14;k++){ x.beginPath(); x.moveTo(0,s*k/14); x.lineTo(s,s*k/14); x.stroke(); }   /* תפרי לוחות אופקיים, כל מטר בערך */
   x.fillStyle='#e8681c'; x.fillRect(0,0,s,s*0.150);                /* לוח כתום ב-15% העליונים */
   x.fillStyle='rgba(255,255,255,0.14)'; x.fillRect(0,s*0.126,s,s*0.024);
-  var b=box(1.55,1.85,0.50,0.615);                                 /* "7" שחור גדול מתחת ללוח הכתום */
+  var b=box(1.45,1.75,0.52,0.800);                                 /* "7" שחור מיד מתחת ללוח הכתום */
   x.save(); x.fillStyle='#14181d';
   x.font='700 100px Georgia, "Times New Roman", serif';
   x.textAlign='center'; x.textBaseline='middle';
   var m=x.measureText('7'), gw=m.width||55;
   x.translate(b[0]+b[2]/2, b[1]+b[3]/2); x.scale(b[2]/gw, b[3]/72); x.fillText('7',0,0); x.restore();
-  b=box(0.58,0.58,0.24,0.135);                                     /* טלאי המרוץ: ריבוע שחור וטבעת זהובה, לא קריא */
-  x.fillStyle='#1b1f24'; x.fillRect(b[0],b[1],b[2],b[3]);
+  b=box(1.28,1.28,0.42,0.545);                                     /* טלאי המרוץ: ריבוע שחור עם מסגרת לבנה וטבעת זהובה, לא קריא */
+  x.fillStyle='#e9e7e0'; x.fillRect(b[0],b[1],b[2],b[3]);
+  x.fillStyle='#1b1f24'; x.fillRect(b[0]+b[2]*0.07,b[1]+b[3]*0.07,b[2]*0.86,b[3]*0.86);
   x.save(); x.translate(b[0]+b[2]/2,b[1]+b[3]/2); x.scale(b[2],b[3]);
-  x.strokeStyle='#c9a648'; x.lineWidth=0.17; x.beginPath(); x.arc(0,0,0.31,0,6.283); x.stroke(); x.restore();
+  x.strokeStyle='#c9a648'; x.lineWidth=0.13; x.beginPath(); x.arc(0,0.02,0.24,0,6.283); x.stroke(); x.restore();
   x.fillStyle='rgba(40,46,58,0.32)';                               /* שתי שורות נקודות צמצום */
-  for(var r=0;r<2;r++){ var vv=0.115+r*0.105;
+  for(var r=0;r<2;r++){ var vv=0.100+r*0.095;
     for(k=1;k<9;k++){ var d=box(0.07,0.07,k/9,vv); x.fillRect(d[0],d[1],Math.max(1,d[2]),Math.max(1,d[3])); } }
   return texFromCanvas(cv);
 }
@@ -1371,7 +1373,7 @@ var M_TILLER=gMesh(gTi);
 var gD=G(); (function(){
   gBox(gD,1.15,0.035,1.15,1.35,trunkTop(1.35)+0.05,0);                /* פאנל גמיש מאחורי הפתח הקדמי */
   gBox(gD,1.45,0.035,1.55,-0.75,trunkTop(-0.75)+0.05,0);              /* הפאנל הגדול, בין התורן לדודג׳ר */
-  gBox(gD,0.34,0.26,0.30,4.62,dY(4.62)+0.18,0);                       /* כננת עוגן ידנית */
+  gBox(gD,0.26,0.19,0.24,4.66,dY(4.66)+0.14,0);                       /* כננת עוגן ידנית */
   gTube(gD,[5.25,dY(5.25)+0.10,0],[5.62,dY(5.25)+0.02,0],0.075,6);    /* גלגלת עוגן */
 })();
 var M_DARK=gMesh(gD);
@@ -1414,8 +1416,8 @@ function clothMesh(x0,x1,y0,h,z,flip){
     p.push(x,y0,z, x,y0+h,z); uv.push(flip?1-f:f,0, flip?1-f:f,1); }
   for(i=0;i<N;i++){ var b=i*2; if(flip) idx.push(b,b+2,b+1,b+1,b+2,b+3); else idx.push(b,b+1,b+2,b+1,b+3,b+2); }
   return mesh(p,idx,uv); }
-var M_CLOTHS=clothMesh(-4.20,-2.45,dY(-3.3)+0.14,0.44, dW(-3.3)-0.04,false),
-    M_CLOTHP=clothMesh(-4.20,-2.45,dY(-3.3)+0.14,0.44,-(dW(-3.3)-0.04),true),
+var M_CLOTHS=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46, dW(-2.7)-0.04,false),
+    M_CLOTHP=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46,-(dW(-2.7)-0.04),true),
     M_CLOTHT=clothMesh(-0.48,0.48,dY(-5.05)+0.26,0.28,-5.15,false);
 
 /* ---------- הגוף: תפרי לוחות, פס שפשוף, והמדבקה של המספר ---------- */
@@ -1454,7 +1456,7 @@ function sevenTexture(){
   return texFromCanvas(cv);
 }
 var TEX_SEVEN=sevenTexture();
-var M_SEV7=panelOnHull(1,0.503,0.552,0.585,0.900,0.055), M_SEV7P=panelOnHull(-1,0.503,0.552,0.585,0.900,0.055);
+var M_SEV7=panelOnHull(1,0.544,0.596,0.588,0.853,0.055), M_SEV7P=panelOnHull(-1,0.544,0.596,0.588,0.853,0.055);
 
 /* ---------- לילה (9ה׳): זוהר חם מהאשנבים ונקודה אדומה בקוקפיט מתחת לדודג׳ר ---------- */
 function cabinGlow(boatM,eye,right,upv,nightF){
@@ -1488,6 +1490,55 @@ function cabinGlow(boatM,eye,right,upv,nightF){
   gl.bufferSubData(gl.ARRAY_BUFFER,start*20,flowArr.subarray(start*5,flowN*5));
   rngAir=[rngAir[0],flowN-rngAir[0]];
 }
+
+/* כרית ההגאי: סגלגלה, על המושב האחורי (תמונות 02 ו-11) */
+var gCu=G(); gBox(gCu,0.52,0.085,0.44,-4.10,dY(-4.10)-0.30,0);
+var M_CUSH=gMesh(gCu);
+/* הדודג׳ר: פס כחול־כהה לאורך השפה העליונה, ובטנה ירוקה כהה מבפנים (תמונה 01) */
+function dodgerTrim(){
+  var p=[],idx=[],N=9,i;
+  for(i=0;i<=N;i++){ var a=Math.PI*i/N, y=sheer(-0.15)+0.12+Math.sin(a)*0.62, z=-Math.cos(a)*1.02;
+    p.push(-2.53,y,z, -2.34,y,z); }
+  for(i=0;i<N;i++){ var b=i*2; idx.push(b,b+2,b+1, b+1,b+2,b+3); }
+  return mesh(p,idx); }
+var M_DODTRIM=dodgerTrim();
+function dodgerLiner(){
+  var p=[],idx=[],N=9,i;
+  for(i=0;i<=N;i++){ var a=Math.PI*i/N, y=sheer(-0.15)+0.115+Math.sin(a)*0.605, z=-Math.cos(a)*0.995;
+    p.push(-2.47,y,z, -1.60,y,z); }
+  for(i=0;i<N;i++){ var b=i*2; idx.push(b,b+1,b+2, b+1,b+3,b+2); }
+  return mesh(p,idx); }
+var M_DODLIN=dodgerLiner();
+
+/* ======================= דניאל — מודל לפי התמונות (20.9.2026) =======================
+   מקור: התמונה שבה הוא מנופף מהקוקפיט (16), ושתי תמונות הקוקפיט (02, 11).
+   שיער חום כהה מתולתל, משקפי שמש, חולצת טי כחולה־כהה קצרה, מכנסיים בהירים קצרים.
+   מיקום: יושב על מושב הקוקפיט הימני, פונה קדימה, והיד הרחוקה על הטילר. הקוקפיט הוא
+   x=-4.50 עד -2.32, רצפתו ב-FREE-0.44 והמושבים בערך ב-FREE-0.02; הטילר מגיע עד x=-3.07.
+   הפרופורציות הן של אדם בגובה 1.78 מ׳: ראש 0.21, גו 0.60, זרוע 0.30+0.27, ירך 0.45, שוק 0.43. */
+var HELM_X=-3.52, HELM_Z=0.60, HELM_Y=FREE-0.02;
+function crewParts(){
+  var sk=G(), sh=G(), tr=G(), hr=G(), gl2=G();
+  gBox(tr,0.30,0.21,0.40, 0.00,0.105,0);                                   /* אגן */
+  gTube(tr,[0.04,0.15, 0.115],[0.46,0.11, 0.155],0.088,6);                 /* ירכיים, אופקיות קדימה */
+  gTube(tr,[0.04,0.15,-0.115],[0.46,0.11,-0.155],0.088,6);
+  gTube(sk,[0.46,0.11, 0.155],[0.50,-0.40, 0.165],0.062,6);                /* שוקיים, יורדות אל הרצפה */
+  gTube(sk,[0.46,0.11,-0.155],[0.50,-0.40,-0.165],0.062,6);
+  gBox(sk,0.19,0.07,0.095, 0.545,-0.42, 0.165);                            /* כפות רגליים */
+  gBox(sk,0.19,0.07,0.095, 0.545,-0.42,-0.165);
+  gBox(sh,0.235,0.46,0.375, -0.01,0.44,0);                                 /* גו */
+  gBox(sh,0.215,0.14,0.415, -0.01,0.70,0);                                 /* כתפיים */
+  gTube(sh,[0.00,0.695, 0.20],[0.09,0.475, 0.255],0.055,6);                /* זרועות עליונות, בשרוול */
+  gTube(sh,[0.00,0.695,-0.20],[0.11,0.470,-0.255],0.055,6);
+  gTube(sk,[0.09,0.475, 0.255],[0.20,0.315, 0.315],0.046,6);               /* אמה ימנית: היד על הדופן */
+  gTube(sk,[0.11,0.470,-0.255],[0.40,0.455,-0.470],0.046,6);               /* אמה שמאלית: היד על הטילר */
+  gTube(sk,[0.20,0.315,0.315],[0.235,0.300,0.330],0.062,6);
+  gTube(sk,[0.40,0.455,-0.470],[0.435,0.455,-0.500],0.062,6);
+  gTube(sk,[-0.01,0.775,0],[0.00,0.855,0],0.052,6);                        /* צוואר */
+  gBox(gl2,0.035,0.048,0.145, 0.088,0.955,0);                              /* משקפי שמש */
+  return { sk:gMesh(sk), sh:gMesh(sh), tr:gMesh(tr), gl:gMesh(gl2) }; }
+var CREW=crewParts();
+var C_HEAD=sphMesh(0.104,0.00,0.955,0,1.02,0.93), C_HAIR=sphMesh(0.119,-0.018,0.975,0,0.93,0.97);
 
 function buildFlow(c,t,dt,eye,bodyY){
   flowN=0; rngCur=[0,0]; rngSurf=[0,0]; rngAir=[0,0];
@@ -1906,17 +1957,20 @@ function frameBody(){
   drawMesh(M_BOTT, boatM, COL.bott);
   drawMesh(M_TOPS, boatM, COL.tops);
   drawMesh(M_DECK, boatM, COL.deckEdge);
-  drawMesh(M_DECKO,boatM, COL.deck);
+  drawMesh(M_DECKO,boatM, COL.dkwhite);
+  drawMesh(M_DECKF,boatM, COL.deck);
   drawMesh(M_SOLE, boatM, COL.teak);
   drawMesh(M_STEP, boatM, COL.teak);
   drawMesh(M_RAIL, boatM, COL.rail);
   drawMesh(M_TRUNK,boatM, COL.trunk);
+  drawMesh(M_DODLIN,boatM, COL.dodgeIn);
   drawMesh(M_DODGE,boatM, COL.dodge);
+  drawMesh(M_DODTRIM,boatM, COL.navy);
   drawMesh(M_HATCH,boatM, COL.hatch);
   drawMesh(M_COAM1,boatM, COL.rail);
   drawMesh(M_COAM2,boatM, COL.rail);
   drawMesh(M_MAST, boatM, COL.spar);
-  drawMesh(M_SPRIT,mMul(mMul(boatM,mTrans(6.08,FREE+0.42,0)),mRotZ(Math.PI/2)),COL.spar);
+  drawMesh(M_SPRIT,mMul(mMul(boatM,mTrans(6.08,FREE+0.42,0)),mRotZ(Math.PI/2)),COL.timber);
   drawMesh(M_RIG,  boatM, COL.wire);
   drawMesh(M_SPREAD,boatM, COL.spar);
   if(plan==='spin'||plan==='heavy') drawMesh(M_FURL, mMul(mMul(boatM,mTrans(6.05,FREE+0.56,0)),mRotZ(Math.PI/2)), COL.tops);
@@ -1940,26 +1994,20 @@ function frameBody(){
     drawMesh(M_RING,  boatM, COL.ring);
     drawMesh(M_SLING, boatM, COL.tops);
     drawMesh(M_ROPE,  boatM, COL.dodge);
+    drawMesh(M_CUSH,  boatM, COL.cush);
     if(plan!=='poled') drawMesh(M_POLE, mMul(mMul(boatM,mTrans(1.35,dY(1.35)+0.14,0.92)),mRotZ(Math.PI/2)), COL.spar);
   }
 
-  /* Daniel: 1.78 m, standing at the helm */
+  /* דניאל, 1.78 מ׳: יושב על המושב הימני של הקוקפיט, פונה קדימה, יד שמאל על הטילר */
   if(sD<0.22){
-  var sway=Math.sin(t*0.62)*0.035;
-  var dM=mMul(mMul(boatM,mTrans(-2.58,FREE-0.085,0)),mRotZ(sway));
-  drawMesh(D_LEG, mMul(dM,mTrans(0,0,-0.10)), COL.pant);
-  drawMesh(D_LEG, mMul(dM,mTrans(0,0, 0.10)), COL.pant);
-  drawMesh(D_HIP, dM, COL.pant);
-  drawMesh(D_TOR, dM, COL.tee);
-  drawMesh(D_SHO, dM, COL.tee);
-  drawMesh(D_COAT, mMul(dM,mTrans(0,0, 0.175)), COL.coat);
-  drawMesh(D_COAT, mMul(dM,mTrans(0,0,-0.175)), COL.coat);
-  drawMesh(D_COAT, mMul(mMul(dM,mTrans(-0.135,0,0)),mRotY(Math.PI/2)), COL.coat);
-  drawMesh(D_ARM, mMul(mMul(mMul(dM,mTrans(0,1.44, 0.235)),mRotX(0.62)),mTrans(0,-0.30,0)), COL.coat);
-  drawMesh(D_ARM, mMul(mMul(mMul(dM,mTrans(0,1.44,-0.235)),mRotX(-0.16)),mTrans(0,-0.30,0)), COL.coat);
-  drawMesh(D_NECK, dM, COL.skin);
-  drawMesh(D_HEAD, dM, COL.skin);
-  drawMesh(D_HAIR, mMul(dM,mTrans(-0.012,0.030,0)), COL.hair);
+  var sway=Math.sin(t*0.52)*0.030, lean=Math.sin(t*0.37+1.2)*0.022;
+  var dM=mMul(mMul(mMul(boatM,mTrans(HELM_X,HELM_Y,HELM_Z)),mRotZ(lean)),mRotY(sway));
+  drawMesh(CREW.tr, dM, COL.short);
+  drawMesh(CREW.sh, dM, COL.tee);
+  drawMesh(CREW.sk, dM, COL.skin);
+  drawMesh(C_HEAD,  dM, COL.skin);
+  drawMesh(C_HAIR,  dM, COL.hair);
+  drawMesh(CREW.gl, dM, COL.shade);
   }
 
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
