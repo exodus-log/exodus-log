@@ -275,9 +275,45 @@ window.__exoGlobeEnter=function(how){ if(!window.__exoGlobeLoaded){ window.__exo
   if(how==='out'){ setChip(null); armB=0; map.jumpTo({center:here,zoom:5.6}); map.easeTo({center:here,zoom:3.4,duration:reduce?0:1700,essential:true}); }
   else fly(how||'boat'); }catch(e){} };
 
+/* ===================== חלל: הכדור מתרחק אל תוך שדה כוכבים =====================
+   עד היום ההתרחקות נעצרה בזום 0.6 והכדור נשאר ככדור קטן על רקע שחור ריק. עכשיו הזום יורד עד ‎−1.6,
+   מאחורי הקנבס יש שדה כוכבים שנחשף בהדרגה, והתוויות נעלמות כשהכדור קטן מכדי שיקראו עליו. */
+function addSpace(){
+  var lay=document.getElementById('globeLayer'), box=document.getElementById('globe');
+  if(!lay||!box) return;
+  try{ map.setMinZoom(-1.6); }catch(e){}
+  var sky=document.createElement('canvas');
+  sky.width=1600; sky.height=1000;
+  var x=sky.getContext('2d'), i;
+  var g=x.createRadialGradient(800,500,60,800,500,1100);
+  g.addColorStop(0,'#071420'); g.addColorStop(0.55,'#040b13'); g.addColorStop(1,'#01050a');
+  x.fillStyle=g; x.fillRect(0,0,1600,1000);
+  function h(n){ var v=Math.sin(n*127.1+311.7)*43758.5453; return v-Math.floor(v); }
+  for(i=0;i<760;i++){                                  /* כוכבים: גודל ובהירות מתפלגים, כמה מהם חמימים */
+    var px=h(i*1.7)*1600, py=h(i*3.1+5)*1000, b=Math.pow(h(i*5.3+9),2.1), r=0.35+b*1.5;
+    var warm=h(i*7.9+2)<0.18;
+    x.fillStyle='rgba('+(warm?255:222)+','+(warm?226:234)+','+(warm?198:248)+','+(0.16+b*0.78).toFixed(3)+')';
+    x.beginPath(); x.arc(px,py,r,0,6.283); x.fill(); }
+  for(i=0;i<2200;i++){                                 /* אבק כוכבים דק לאורך אלכסון אחד, במקום כתמים */
+    var t=h(i*2.7), cx=t*1700-50, cy=150+t*640+(h(i*3.3)*2-1)*105*(0.4+0.6*Math.sin(t*3.14));
+    x.fillStyle='rgba(176,196,226,'+(0.012+h(i*9.1)*0.030).toFixed(3)+')';
+    x.beginPath(); x.arc(cx,cy,0.6+h(i*4.4)*1.5,0,6.283); x.fill(); }
+  sky.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s linear;pointer-events:none;z-index:0';
+  box.style.zIndex='1';
+  lay.insertBefore(sky,box);
+  var st=document.createElement('style');
+  st.textContent='.zspace .gl-name,.zspace .gl-deg,.zspace .gl-label{display:none!important}'
+   +'.zspace .gl-boat{transform:scale(.55)}';
+  document.head.appendChild(st);
+  function upd(){ var z=map.getZoom();
+    sky.style.opacity=Math.max(0,Math.min(1,(2.2-z)/1.7)).toFixed(3);
+    document.body.classList[z<1.0?'add':'remove']('zspace'); }
+  map.on('zoom',upd); map.on('move',upd); upd();
+}
+
 map.on('load',function(){
   draw(T1,true);
-  try{ addGrid(); addNames(); }catch(e){}
+  try{ addGrid(); addNames(); addSpace(); }catch(e){}
   var att=box.querySelector('.maplibregl-ctrl-attrib'); if(att){ att.classList.remove('maplibregl-compact-show'); att.removeAttribute('open'); }
   function night(){ map.getSource('night').setData(nightPolys((EXO&&EXO.state)?EXO.state.now:Date.now())); }
   night(); setInterval(night,5*60000);
