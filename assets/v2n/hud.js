@@ -41,7 +41,21 @@ function renderHud(s){
   var fx=new Date(FIX.at*1000), age=(s.now/1000-FIX.at)/3600;
   var ageTxt=age<1?'לפני פחות משעה':age<24?'לפני '+heb(age,'שעה','שעתיים','שע׳'):'לפני '+heb(age/24,'יום','יומיים','ימים');
   var hf=$('hFix'); hf.textContent='נ״צ '+pad(fx.getUTCHours())+':'+pad(fx.getUTCMinutes())+' UTC · '+ageTxt; hf.className=age>12?'stale':'dim';
-  if(c){
+  /* מספרי המרוץ הם תמונת המצב של נקודת הציון. מעל 12 שעות זה כבר לא "עכשיו", והשורה אומרת זאת. */
+  var stale=age>12, aw=$('vAgeW');
+  if(aw){ aw.hidden=!stale; if(stale){ put('vAge',ageTxt); aw.className='stale'; } }
+  /* "תחזית" רק כשהזמן המוצג נמצא אחרי ההווה האמיתי — כלומר גררו קדימה. forecast של pickCond
+     (אחרי OBS_UNTIL) נכון כמעט כל היום, כי הרענון רץ פעמיים ביום: בזמן אמת הערך הוא ההערכה
+     הטובה ביותר של *עכשיו*, לא ניבוי של העתיד, וכיתוב "תחזית" עליו היה מטעה בכיוון ההפוך. */
+  var ahead=(LIVE&&EXO.clockOff)?EXO.clockOff():0;
+  var fw=$('hFcastW'); if(fw) fw.hidden=!(c&&!c.missing&&ahead>5*60000);
+  if(c&&c.missing){
+    /* אין טבלת מזג אוויר. לא ממציאים מספר: מקף במקום ערך, והשורה השלישית נעלמת. */
+    put('hWind','—'); put('hBft',''); put('hWave','—'); put('hSea',''); put('hCur','—');
+    show('hRow3',false);
+    if(!renderHud._noCond){ renderHud._noCond=true;
+      setTimeout(function(){ toast('נתוני מזג האוויר לא נטענו. המיקום והמספרים מהמעקב נכונים; הרוח, הגל והזרם אינם מוצגים',8000); },2400); }
+  } else if(c){
     var S=compact?' ':' · ', U=compact?'':' ';
     put('hWind',deg3(c.windDir)+S+Math.round(c.wind)+U+'kn'+S+'G'+Math.round(c.gust)); put('hBft','בופור '+beaufort(c.wind));
     put('hWave',c.waveH.toFixed(1)+U+'m'+S+Math.round(c.waveT)+U+'s'+S+deg3(c.waveDir)); put('hSea','מצב ים '+douglas(c.waveH));

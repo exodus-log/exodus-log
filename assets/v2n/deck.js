@@ -31,6 +31,8 @@ var LAB=EXO.lab={ compass:'world', wind:'sails', wave:'arcs', cur:'ribbon', line
   cloud:0.35, vis:300, water:'subtropic', cam:'orbit', fov:64, ringHot:0, ringHotT:0, RR:13, ringStyle:'dash', ringTint:'white' };
 
 function pickCond(now){
+  if(!COND||!COND.length) return { pres:null,presTrend:null,airT:null,seaT:null,cloud:null,visKm:null,precip:null,
+    wind:0,gust:0,windDir:0,waveH:0.25,waveT:6,waveDir:0,cur:0,curDir:0,forecast:false,past:false,missing:true };
   var best=COND[0], bi=0, i;
   for(i=0;i<COND.length;i++) if(Date.parse(COND[i][0]+'Z')<=now){ best=COND[i]; bi=i; }
   var nx=COND[Math.min(bi+1,COND.length-1)];
