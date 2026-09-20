@@ -183,12 +183,15 @@ body.g-open #sndBtn,body.j-open #sndBtn{display:none}
 #toast.off{opacity:0}
 
 /* הגלובוס: שכבה קבועה על כל המסך, אחות של ההדמיה. שורת הנתונים, השעונים ושורת המספרים נשארים מעליו */
-#globeLayer{position:absolute;inset:0;background:#02060b;visibility:hidden;pointer-events:none}   /* מוסתר אבל בגודל מלא: כך MapLibre נבנה ברקע ומוכן כשמתרחקים */
+#globeLayer{position:absolute;inset:0;z-index:0;background:#02060b;visibility:hidden;pointer-events:none}   /* מוסתר אבל בגודל מלא: כך MapLibre נבנה ברקע ומוכן כשמתרחקים */
 body.g-open #globeLayer{visibility:visible;pointer-events:auto}
 body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כבר נראה, אבל המגע עדיין שייך להדמיה */
 #globe{position:absolute;inset:0} #globe .maplibregl-canvas{outline:none}
-.g-vig{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(2,6,11,.62),rgba(2,6,11,.18) 15%,rgba(2,6,11,0) 27%),linear-gradient(to top,rgba(2,6,11,.55),rgba(2,6,11,0) 24%)}
-.g-ui{position:absolute;top:calc(var(--top) + 8px);left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 14px}
+/* addSpace מכניס שדה כוכבים לפני הקנבס ונותן ל-#globe z-index:1. בלי z-index על השכבה עצמה
+   (שסוגר את ההקשר) ובלי z-index כאן, הקנבס של המפה היה עולה מעל כפתור החזרה, המקרא, רצועת
+   הימים ושורות הנתונים שלמעלה — בטלפון הן נעלמו לגמרי כשהגלובוס נפתח. */
+.g-vig{position:absolute;inset:0;pointer-events:none;z-index:2;background:linear-gradient(to bottom,rgba(2,6,11,.62),rgba(2,6,11,.18) 15%,rgba(2,6,11,0) 27%),linear-gradient(to top,rgba(2,6,11,.55),rgba(2,6,11,0) 24%)}
+.g-ui{position:absolute;z-index:3;top:calc(var(--top) + 8px);left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 14px}
 .g-ui button{pointer-events:auto;border:0;background:none;color:var(--ink2);font:400 12.5px var(--ui);padding:9px 9px 7px;cursor:pointer;border-bottom:1px solid transparent;text-shadow:var(--sh)}
 .g-ui button:hover{color:#fff} .g-ui button[aria-pressed=true]{color:#fff;border-bottom-color:rgba(255,255,255,.85)}
 .g-ui #gBack{border:1px solid var(--hair);border-radius:3px;color:var(--ink);padding:7px 12px;background:rgba(7,17,26,.35)}
@@ -199,7 +202,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-leg i{display:inline-block;width:16px;height:0;border-top:2px solid #fff}
 .g-leg .l-todo{border-top:1.5px dashed rgba(255,255,255,.7)} .g-leg .l-fleet{width:7px;height:7px;border:0;border-radius:50%;background:rgba(240,246,249,.9)}
 .g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
-.g-scrub{position:absolute;left:calc(var(--ms) + 46px + env(safe-area-inset-left,0px));right:calc(var(--ls) + 46px + env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));
+.g-scrub{position:absolute;z-index:3;left:calc(var(--ms) + 46px + env(safe-area-inset-left,0px));right:calc(var(--ls) + 46px + env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));
   display:flex;align-items:center;gap:12px;text-shadow:var(--sh)}
 .g-scrub button{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
 .g-scrub button:hover{background:rgba(7,17,26,.7)} .g-scrub button svg{width:16px;height:16px}
@@ -276,7 +279,10 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   #menuBtn::before{content:"";position:absolute;inset:7px;border:1px solid rgba(225,236,243,.55);border-radius:50%}
   #menuBtn svg{width:13px;height:13px}
   .g-scrub{left:calc(14px + env(safe-area-inset-left,0px));right:calc(58px + env(safe-area-inset-right,0px));bottom:calc(62px + 19px + var(--ms) + 12px + env(safe-area-inset-bottom,0px));gap:8px}
-  .g-scrub output{min-width:0;max-width:7.2em;white-space:normal;line-height:1.2;font-size:11px}
+  /* בטלפון התאריך עולה מעל הרצועה, אחרת הוא נדחס אל השנתות */
+  .g-scrub{padding-top:15px}
+  .g-scrub output{position:absolute;right:0;bottom:calc(100% - 15px);min-width:0;max-width:none;white-space:nowrap;padding:0;font-size:11px}
+  .g-scrub .sc-ticks span{font-size:9px}
   .g-leg{display:none}
   body.g-open .lay{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
 }
