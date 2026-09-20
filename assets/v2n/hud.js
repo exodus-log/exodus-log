@@ -282,17 +282,18 @@ var popSkip=0;      /* history.back() שאנחנו יזמנו: ה-popstate של�
 var G=$('globeLayer'), gOpen=false, gBuild=null, gPushed=false, gFailed=false;
 function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendor/maplibre-gl.css'),loadScript('assets/vendor/maplibre-gl.js'),
     (typeof LAND50!=='undefined')?Promise.resolve():loadScript('assets/geo/land50.js'),
-    loadScript('assets/v2n/names.js').catch(function(){})]).then(function(){ return loadScript('assets/v2n/globe.js'); })
+    loadScript('assets/v2n/names.js').catch(function(){}),
+    loadScript('assets/fleet-log.js').catch(function(){})]).then(function(){ return loadScript('assets/v2n/globe.js'); })
     .catch(function(){ gFailed=true; if(gOpen){ closeGlobe(false); toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); } })); }
 function openGlobe(how){
   if(gFailed){ toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); return; }
   if(jOpen) closeJourney(false);
-  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
+  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
   try{ $('gBack').focus({preventScroll:true}); }catch(e){} }
-function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
+function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
   G.style.opacity=''; gxOn=false; gRet=false; document.body.classList.remove('g-x');
   if(LIVE){ EXO.pause(false); if(!stay&&EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.XF-0.02); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
   if(!fromPop&&gPushed){ gPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
@@ -304,7 +305,14 @@ if(LIVE) EXO.onZoomOut=function(){ openGlobe('out'); };      /* בלי מעבר�
    ביציאה: כש-gX עולה מעל אפס הגלובוס מתמקם מעל הסירה, באותו כיוון מצפן, ונחשף בהדרגה; ב-1 הוא מקבל את המגע וההדמיה נעצרת.
    בחזרה: globe.js מדווח כמה עמוק התקרבו אל הסירה (__exoGlobeReturn), ההדמיה מתעוררת מתחת לגלובוס, והוא מתפוגג. */
 var gxOn=false, gRet=false;
-function globeX(f){ var X=f.gX||0;
+/* הרצועה השעתית שייכת לסיפון: היא נעלמת לאורך ההצלבה אל הגלובוס וחוזרת בחזרה אליו.
+   על הגלובוס יש רצועת ימים משלו, והיא לא נוגעת בשעון של ההדמיה. */
+var tsV=-1;
+function tsVeil(X){ if(!TS||!TS.box) return; var v=Math.round(Math.max(0,Math.min(1,1-X))*40)/40;
+  if(v===tsV) return; tsV=v;      /* נקרא בכל פריים של ההצלבה: כותבים רק כשבאמת השתנה */
+  TS.box.style.opacity=v>=0.999?'':v.toFixed(3);
+  TS.box.style.pointerEvents=v<0.5?'none':''; }
+function globeX(f){ var X=f.gX||0; tsVeil(gOpen?1:X);
   if(!gOpen){
     if(X>0&&!gxOn&&window.__exoGlobeArm){ gxOn=true; document.body.classList.add('g-x'); window.__exoGlobeArm(f.camBearing); }
     if(gxOn){ G.style.opacity=X.toFixed(3);

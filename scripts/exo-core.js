@@ -395,7 +395,75 @@ function diff(a, b) {
   return rows;
 }
 
+/* ---------- היסטוריית הצי: קובץ שגדל, נקודה לכל סירה כל ארבע שעות ----------
+   היסטוריית הצי ב-course.js נאפתה פעם אחת ונגמרת ב-19.9.2026; בלי המשך, כל מה שאחריה הוא קו ישר
+   בין נקודת האפייה האחרונה למצב הנוכחי, ורצועת הימים בגלובוס משקרת על אמצע המרוץ. הקובץ הזה
+   (assets/fleet-log.js) נבנה מחדש בכל ריצה מהמיזוג של מה שכבר נשמר עם מה שקובץ המעקב מחזיק עכשיו,
+   ולכן הוא גם מתמלא אחורה בריצה הראשונה וגם לא מאבד כלום כשהמעקב מקצר את ההיסטוריה שלו.
+
+   הפורמט, שורה לכל סירה מופרדת ב-;:  id, t0, lat0*100, lon0*100, dtf0, ואז רביעיות של דלתות
+   (dt, dlat, dlon, ddtf). אותו רעיון של HIST ב-course.js, בתוספת זמן — כי המרווח כאן לא קבוע. */
+var LOG_STEP = 4 * 3600, LOG_TOL = 900, LOG_OLD = 45 * 86400, LOG_OLD_STEP = 12 * 3600;
+
+function readFleetLog(text) {
+  var out = {}, m = /var FLEET_LOG\s*=\s*"([\s\S]*?)";/.exec(text || '');
+  if (!m || !m[1]) return out;
+  m[1].split(';').forEach(function (row) {
+    var v = row.split(',').map(Number);
+    if (v.length < 5 || !isFinite(v[0])) return;
+    var t = v[1], la = v[2], lo = v[3], d = v[4], a = [{ at: t, lat: la / 100, lon: lo / 100, dtf: d }];
+    for (var j = 5; j + 3 < v.length; j += 4) {
+      t += v[j]; la += v[j + 1]; lo += v[j + 2]; d += v[j + 3];
+      a.push({ at: t, lat: la / 100, lon: lo / 100, dtf: d });
+    }
+    out[v[0]] = a;
+  });
+  return out;
+}
+
+/* מיזוג של מה שנשמר עם מה שיש עכשיו במעקב. הרווח המזערי הוא ארבע שעות, ומעל 45 יום — 12 שעות,
+   כדי שהקובץ לא יגדל בלי גבול לאורך מרוץ של שמונה חודשים. */
+function mergeFleetLog(log, tracks, opt) {
+  opt = opt || {};
+  var now = opt.now || Math.floor(Date.now() / 1000), out = {}, ids = {};
+  Object.keys(log).forEach(function (k) { ids[k] = 1; });
+  Object.keys(tracks).forEach(function (k) { ids[k] = 1; });
+  Object.keys(ids).forEach(function (k) {
+    var all = (log[k] || []).concat((tracks[k] || []).map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf }; }));
+    all.sort(function (a, b) { return a.at - b.at; });
+    var keep = [];
+    for (var i = 0; i < all.length; i++) {
+      var p = all[i];
+      if (!isFinite(p.at) || !isFinite(p.lat) || !isFinite(p.lon) || !isFinite(p.dtf)) continue;
+      if (Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180) continue;
+      var gap = (now - p.at > LOG_OLD ? LOG_OLD_STEP : LOG_STEP) - LOG_TOL;
+      if (!keep.length || p.at - keep[keep.length - 1].at >= gap) keep.push(p);
+    }
+    if (keep.length) out[k] = keep;
+  });
+  return out;
+}
+
+function renderFleetLog(log) {
+  var rows = Object.keys(log).map(Number).sort(function (a, b) { return a - b; }).map(function (id) {
+    var a = log[id], t = Math.round(a[0].at), la = Math.round(a[0].lat * 100), lo = Math.round(a[0].lon * 100), d = Math.round(a[0].dtf);
+    var parts = [id, t, la, lo, d];
+    for (var i = 1; i < a.length; i++) {
+      var T = Math.round(a[i].at), LA = Math.round(a[i].lat * 100), LO = Math.round(a[i].lon * 100), D = Math.round(a[i].dtf);
+      parts.push(T - t, LA - la, LO - lo, D - d); t = T; la = LA; lo = LO; d = D;
+    }
+    return parts.join(',');
+  });
+  return '/* ===== fleet-log.js — היסטוריית הצי, נצברת בכל ריצה של scripts/update-data.mjs =====\n'
+    + '   המקור: קובץ המעקב של YB. רווח מזערי של ארבע שעות בין נקודה לנקודה, ומעל 45 יום — 12 שעות,\n'
+    + '   כדי שהקובץ לא יגדל בלי גבול. הזרע הראשון הוא ההיסטוריה שנאפתה ב-course.js, כל 12 שעות.\n'
+    + '   נטען רק כשנפתח הגלובוס, ורק הוא משתמש בו: בלעדיו המסלולים חוזרים להיות קו ישר מסוף\n'
+    + '   ההיסטוריה שב-course.js אל המצב הנוכחי. לא עורכים ביד. */\n'
+    + 'var FLEET_LOG = "' + rows.join(';') + '";\n';
+}
+
 var api = { parseYB: parseYB, compute: compute, meteoUrls: meteoUrls, buildCond: buildCond, render: render, validate: validate,
-            readData: readData, decodeLand: decodeLand, nearestLand: nearestLand, diff: diff, dist: dist, ME: ME };
+            readData: readData, decodeLand: decodeLand, nearestLand: nearestLand, diff: diff, dist: dist, ME: ME,
+            tracksFrom: tracksFrom, readFleetLog: readFleetLog, mergeFleetLog: mergeFleetLog, renderFleetLog: renderFleetLog };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else (typeof globalThis !== 'undefined' ? globalThis : window).ExoCore = api;
 })();

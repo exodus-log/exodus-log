@@ -45,6 +45,29 @@ async function weather(samples) {
 }
 
 const iso = t => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+
+/* היסטוריית הצי (assets/fleet-log.js): נקודה לכל סירה כל ארבע שעות, בקובץ שגדל.
+   בלעדיה כל מה שאחרי סוף האפייה ב-course.js (19.9.2026) הוא קו ישר, ורצועת הימים בגלובוס
+   מראה מסלולים מלאכותיים. הקובץ נבנה מחדש בכל ריצה מהמיזוג של מה שכבר בו עם מה שיש במעקב עכשיו,
+   ולכן הריצה הראשונה ממלאת אותו אחורה, והוא לא מאבד נקודות כשהמעקב מקצר את ההיסטוריה שלו.
+   נכתב בשני המצבים — הוא לא נוגע ב-data.js, ולכן גם ריצת השוואה יכולה לצבור. */
+const LOG = 'assets/fleet-log.js';
+function fleetLog(parsed) {
+  let was = '';
+  try { was = readFileSync(LOG, 'utf8'); } catch {}
+  const before = C.readFleetLog(was);
+  const merged = C.mergeFleetLog(before, C.tracksFrom(parsed, now + 1800), { now });
+  const text = C.renderFleetLog(merged);
+  const n = k => Object.keys(k).reduce((a, i) => a + k[i].length, 0);
+  const back = C.readFleetLog(text);
+  if (n(back) !== n(merged) || Object.keys(back).length !== Object.keys(merged).length)
+    { say('> ⚠ היסטוריית הצי לא נקראה חזרה כמו שנכתבה — לא נכתב כלום.'); return; }
+  if (text === was) { say(`היסטוריית הצי: ${n(merged)} נקודות, אין חדשה.`); return; }
+  writeFileSync(LOG, text);
+  setOut('logged', 'true');
+  const last = Math.max(...Object.keys(merged).map(k => merged[k][merged[k].length - 1].at));
+  say(`היסטוריית הצי: ${n(merged)} נקודות ב-${Object.keys(merged).length} סירות (${n(merged) - n(before)} חדשות), עד ${iso(last)}. ${Math.round(text.length / 1024)}KB.`);
+}
 const table = rows => ['| שדה | הסקריפט | data.js הנוכחי |', '|---|---|---|', ...rows.map(r => `| ${r[0]} | ${r[1] ?? ''} | ${r[2] ?? ''} |`)].join('\n');
 
 async function main() {
@@ -64,6 +87,7 @@ async function main() {
   say(`נקודת הציון החדשה ביותר של אקסודוס: **${iso(F.at)}** (לפני ${((now - F.at) / 3600).toFixed(1)} שעות). ב-data.js הנוכחי: ${iso(prev.FIX.at)}.`);
   if (live.check) say(`מול הלוח הרשמי: DTF ${F.dtf} מול ${live.check.dtfLb.toFixed(1)} (הפרש ${live.check.dtfDiff.toFixed(1)}), מקום ${F.rank} מול ${live.check.rankLb}, 24 שעות ${F.dmg24} מול ${live.check.d24Lb.toFixed(1)}.`);
   for (const w of live.warn) say(`> ⚠ ${w}`);
+  fleetLog(parsed);
 
   const hardFail = live.check && (Math.abs(live.check.dtfDiff) > 3 || !live.check.rankOk);
 
