@@ -4,6 +4,7 @@ name: update-data
 #   compare (the default while it is unset) - writes nothing to the site; the run summary compares
 #                                             the script's numbers with the live data.js
 #   publish                                 - commits assets/data.js when there is a new position fix
+# assets/fleet-log.js (the growing fleet history) is committed in BOTH modes, at most once every four hours.
 # STORY is never touched: the story sentence stays with the Claude refresh.
 on:
   schedule:
@@ -48,13 +49,15 @@ jobs:
           path: out/
           retention-days: 5
           if-no-files-found: ignore
+      # assets/fleet-log.js grows by one point per boat every four hours, in both modes: it is what keeps
+      # the globe's day strip honest once the baked history in course.js runs out. It never touches data.js.
       - name: Publish
-        if: steps.run.outputs.changed == 'true'
+        if: steps.run.outputs.changed == 'true' || steps.run.outputs.logged == 'true'
         env:
-          MSG: ${{ steps.run.outputs.message }}
+          MSG: "${{ steps.run.outputs.message || 'היסטוריית הצי: נקודות חדשות' }}"
         run: |
           git config user.name "exodus-log data bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data.js
-          git commit -m "$MSG"
+          git add assets/data.js assets/fleet-log.js
+          git diff --cached --quiet || git commit -m "$MSG"
           git push origin HEAD:main || (git pull --rebase origin main && git push origin HEAD:main)
