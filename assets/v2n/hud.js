@@ -67,7 +67,14 @@ function renderHud(s){
 /* ================= תוויות על הסצנה: מעלות הטבעת, רוח, גל, זרם, היעד ================= */
 var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
 function measureTop(){ var a=document.querySelector('.topr'), b=document.querySelector('.clocks'); safeTop=Math.max(a?a.getBoundingClientRect().bottom:0,b?b.getBoundingClientRect().bottom:0)+6;
-  document.documentElement.style.setProperty('--top',Math.round(safeTop)+'px'); }
+  document.documentElement.style.setProperty('--top',Math.round(safeTop)+'px'); measureBot(); }
+/* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
+   הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
+   והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
+function measureBot(){ var v=document.querySelector('.hud.vit'); if(!v) return;
+  var r=v.getBoundingClientRect(), h=window.innerHeight||document.documentElement.clientHeight;
+  var band=Math.max(0,Math.round(h-r.top))+4;
+  document.documentElement.style.setProperty('--bot',band+'px'); }
 var DEG12=['N','030','060','E','120','150','S','210','240','W','300','330'];
 DEG12.map(function(tx,i){ return ['g'+i,tx,'deg'+(i===0?' north':(i%3===0?' cardinal':''))]; }).concat([
  ['wind','','dat wind'],['wave','','dat wave'],['cur','','dat cur'],['gate','','dat gate'],['beacon','','beacon']])

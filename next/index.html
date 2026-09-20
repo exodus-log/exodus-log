@@ -42,7 +42,20 @@
   --ms:clamp(104px,11vw,150px);   /* קוטר מפת המיקומים */
   --ls:clamp(116px,11vw,150px);   /* קוטר כפתור השכבות: לא פחות מ-116, אחרת אין אזור מגע סביר לכל שליש */
   --top:70px;                     /* התחתית של שורת הנתונים והשעונים; hud.js מודד ומעדכן */
+  /* מערכת השוליים. עד כאן היו בקוד שבעה ערכים שונים לאותו תפקיד — 4, 6, 8, 10, 12, 14 ו-16 —
+     ולכן השעונים, שורת הנתונים, המפה הקטנה וטור הבקרות ישבו כל אחד במרחק אחר מקצה המסך,
+     ובטלפון טור הבקרות ישב 4 פיקסל מהקצה בזמן שהשעונים ישבו 16. עכשיו שני ערכים, והכול נגזר מהם. */
+  --edge:14px;                    /* מרחק מקצה המסך */
+  --gut:10px;                     /* מרווח בין בלוק לבלוק */
+  --bot:44px;                     /* הראש של שורת מספרי המרוץ; hud.js מודד ומעדכן */
+  --e-t:calc(var(--edge) + env(safe-area-inset-top,0px));
+  --e-r:calc(var(--edge) + env(safe-area-inset-right,0px));
+  --e-b:calc(var(--edge) + env(safe-area-inset-bottom,0px));
+  --e-l:calc(var(--edge) + env(safe-area-inset-left,0px));
+  --row2:calc(var(--bot) + var(--gut) + env(safe-area-inset-bottom,0px));   /* השורה שמעל מספרי המרוץ */
 }
+@media (min-width:701px){ :root{ --edge:18px; --gut:12px } }
+@media (min-width:1441px){ :root{ --edge:22px; --gut:14px } }
 *{box-sizing:border-box}
 html,body{height:100%}
 html{background:var(--ground);-webkit-text-size-adjust:100%}
@@ -65,7 +78,7 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .hud b{font-weight:400}
 
 /* שורת הנתונים: שם היומן, תאריך, נ״צ, תנאים. בלי מסגרת ובלי כותרת */
-.topr{top:calc(12px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));
+.topr{top:var(--e-t);right:var(--e-r);
   max-width:min(76%,960px);display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .topr .row{display:flex;flex-wrap:wrap;gap:1px 0;align-items:baseline}
 .topr .row>span{white-space:nowrap}
@@ -93,7 +106,7 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
   color:#06121b;background:#8fe3de;border:0;border-radius:2px;padding:2px 7px;cursor:pointer;pointer-events:auto}
 
 /* שלושה שעונים, בלי אייקונים */
-.clocks{top:calc(12px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));
+.clocks{top:var(--e-t);left:var(--e-l);
   display:grid;grid-template-columns:auto auto;gap:1px 9px;direction:ltr;align-items:baseline;font-size:12px}
 .clocks b{font-size:13px}
 .clocks span{color:var(--ink3);font-size:11px;direction:rtl}
@@ -101,8 +114,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .clocks .lead span{color:var(--ink2)}
 
 /* מספרי המרוץ: שורה אחת בתחתית */
-.vit{left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;justify-content:center;gap:2px 0;
-  padding:0 calc(16px + env(safe-area-inset-right,0px)) 0 calc(16px + env(safe-area-inset-left,0px));font-size:12.5px}
+.vit{left:0;right:0;bottom:var(--e-b);display:flex;flex-wrap:wrap;justify-content:center;gap:2px 0;
+  padding:0 var(--e-r) 0 var(--e-l);font-size:12.5px}
 .vit>span{white-space:nowrap}
 .vit>span+span::before{content:"";display:inline-block;width:1px;height:.85em;background:var(--hair);margin:0 .9em;vertical-align:-.08em}
 .vit b{font-size:14px}
@@ -122,7 +135,7 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .lb .n{font-size:.95em}
 
 /* מפת מיקומים קטנה: מובילה אל "המסע" */
-.mini{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(44px + env(safe-area-inset-bottom,0px));
+.mini{position:absolute;left:var(--e-l);bottom:var(--row2);
   width:var(--ms);padding:0;border:0;background:none;color:var(--ink2);cursor:pointer;font:inherit;display:grid;gap:4px;justify-items:center}
 .mini canvas{width:100%;aspect-ratio:1;display:block;border-radius:50%;opacity:.86;transition:opacity .2s, transform .2s}
 .mini:hover canvas,.mini:focus-visible canvas{opacity:1;transform:scale(1.03)}
@@ -130,13 +143,15 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .mini:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:12px}
 
 /* כפתור השכבות: עיגול אחד, שלושה שלישים (רוח, גל, זרם), והתפריט בטבור. קווי מתאר דקים, בלי רקע */
-#sndBtn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(63px + env(safe-area-inset-bottom,0px) + var(--ls) + 10px);
-  width:34px;height:34px;margin:0;padding:0;border:1px solid rgba(225,236,243,.38);border-radius:50%;background:rgba(7,17,26,.30);color:var(--ink);
-  cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 3px rgba(3,10,16,.8));transition:opacity .2s,border-color .2s}
-#sndBtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-#sndBtn .mute{display:none} #sndBtn.off .wv{display:none} #sndBtn.off .mute{display:block} #sndBtn.off{opacity:.62;border-color:rgba(225,236,243,.22)}
+/* אזור המגע 44x44 (מתחת לזה אצבע מחטיאה), והטבעת הנראית נשארת 34 — דרך ::before */
+#sndBtn{position:absolute;right:var(--e-r);bottom:calc(var(--row2) + var(--ls) + var(--gut));
+  width:44px;height:44px;margin:0;padding:0;border:0;border-radius:50%;background:none;color:var(--ink);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 3px rgba(3,10,16,.8));transition:opacity .2s}
+#sndBtn::before{content:"";position:absolute;inset:5px;border:1px solid rgba(225,236,243,.38);border-radius:50%;background:rgba(7,17,26,.30);transition:border-color .2s}
+#sndBtn svg{position:relative;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#sndBtn .mute{display:none} #sndBtn.off .wv{display:none} #sndBtn.off .mute{display:block} #sndBtn.off{opacity:.62} #sndBtn.off::before{border-color:rgba(225,236,243,.22)}
 body.g-open #sndBtn,body.j-open #sndBtn{display:none}
-.lay{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(63px + env(safe-area-inset-bottom,0px));width:var(--ls);height:var(--ls);
+.lay{position:absolute;right:var(--e-r);bottom:var(--row2);width:var(--ls);height:var(--ls);
   color:var(--ink);text-shadow:var(--sh);-webkit-user-select:none;user-select:none}
 .lay-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 3px rgba(3,10,16,.8))}
 .lay-ring *{fill:none;stroke:rgba(225,236,243,.55);stroke-width:1;vector-effect:non-scaling-stroke}
@@ -158,7 +173,7 @@ body.g-open #sndBtn,body.j-open #sndBtn{display:none}
 .lnm{position:absolute;font-size:10.5px;color:var(--ink2);white-space:nowrap;pointer-events:none;transform:translateX(-50%)}
 .lnm-wind{left:50%;bottom:calc(100% + 3px)} .lnm-wave{left:77%;top:calc(100% + 1px)} .lnm-cur{left:23%;top:calc(100% + 1px)}
 /* התפריט: שלושה קווים בטבור העיגול */
-#menuBtn{position:absolute;left:50%;top:50%;width:max(30%,40px);height:max(30%,40px);transform:translate(-50%,-50%);margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;
+#menuBtn{position:absolute;left:50%;top:50%;width:max(30%,44px);height:max(30%,44px);transform:translate(-50%,-50%);margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;
   display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
 #menuBtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
 #menuBtn:hover,#menuBtn[aria-expanded=true]{background:rgba(255,255,255,.12)}
@@ -179,7 +194,7 @@ body.g-open #sndBtn,body.j-open #sndBtn{display:none}
 #menu .grp button:disabled{opacity:.4;cursor:default}
 #menu .fine{margin:9px 0 0;color:var(--ink3);font-size:11.5px;line-height:1.45}
 
-#toast{position:absolute;left:50%;bottom:calc(74px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:min(560px,calc(100% - 40px));
+#toast{position:absolute;left:50%;bottom:calc(var(--row2) + 22px);transform:translateX(-50%);max-width:min(560px,calc(100% - 2 * var(--edge) - 12px));
   text-align:center;font-size:13px;color:var(--ink);text-shadow:var(--sh);pointer-events:none;transition:opacity .6s}
 #toast.off{opacity:0}
 
@@ -194,7 +209,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 /* ההצללה העליונה נגזרת מ---top, גובה שורות הנתונים בפועל: בטלפון הן שלוש שורות, ובאחוז
    קבוע הרקע נגמר באמצען והקנבס של המפה — מסלול, קו חוף, אריחים — התערבב באותיות. */
 .g-vig{position:absolute;inset:0;pointer-events:none;z-index:2;background:linear-gradient(to bottom,rgba(2,6,11,.74) 0,rgba(2,6,11,.62) calc(var(--top) * .8),rgba(2,6,11,.12) calc(var(--top) + 30px),rgba(2,6,11,0) calc(var(--top) + 74px)),linear-gradient(to top,rgba(2,6,11,.55),rgba(2,6,11,0) 24%)}
-.g-ui{position:absolute;z-index:3;top:calc(var(--top) + 8px);left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 14px}
+.g-ui{position:absolute;z-index:3;top:calc(var(--top) + var(--gut));left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 var(--edge)}
 .g-ui button{pointer-events:auto;border:0;background:none;color:var(--ink2);font:400 12.5px var(--ui);padding:9px 9px 7px;cursor:pointer;border-bottom:1px solid transparent;text-shadow:var(--sh)}
 .g-ui button:hover{color:#fff} .g-ui button[aria-pressed=true]{color:#fff;border-bottom-color:rgba(255,255,255,.85)}
 .g-ui #gBack{border:1px solid var(--hair);border-radius:3px;color:var(--ink);padding:7px 12px;background:rgba(7,17,26,.35)}
@@ -205,7 +220,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-leg i{display:inline-block;width:16px;height:0;border-top:2px solid #fff}
 .g-leg .l-todo{border-top:1.5px dashed rgba(255,255,255,.7)} .g-leg .l-fleet{width:7px;height:7px;border:0;border-radius:50%;background:rgba(240,246,249,.9)}
 .g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
-.g-scrub{position:absolute;z-index:3;left:calc(var(--ms) + 46px + env(safe-area-inset-left,0px));right:calc(var(--ls) + 46px + env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));
+.g-scrub{position:absolute;z-index:3;left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));bottom:calc(var(--row2) + var(--gut));
   display:flex;align-items:center;gap:12px;text-shadow:var(--sh)}
 .g-scrub button{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
 .g-scrub button:hover{background:rgba(7,17,26,.7)} .g-scrub button svg{width:16px;height:16px}
@@ -243,9 +258,9 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 
 @media (max-width:700px), (max-height:520px){
   .topr em{display:none}
-  .mini{bottom:calc(62px + env(safe-area-inset-bottom,0px))} .lay{bottom:calc(81px + env(safe-area-inset-bottom,0px))}
+  /* המרחק מהתחתית נמדד עכשיו משורת מספרי המרוץ (--bot), ולכן אין יותר קבועים לכל רוחב */
   #menu{right:0;left:0;bottom:0;width:auto;max-height:72%;border-radius:10px 10px 0 0;border-bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-  #toast{bottom:calc(206px + env(safe-area-inset-bottom,0px));font-size:12px}
+  #toast{bottom:calc(var(--row2) + var(--ms) + 46px);font-size:12px}
   .hud{font-size:11px} .topr .r1{font-size:11.5px} .vit{font-size:11px} .vit b{font-size:12.5px}
   .topr{max-width:calc(100% - 132px)}
   .clocks b{font-size:12px} .clocks .lead b{font-size:13px} .clocks span{font-size:10px}
@@ -261,15 +276,15 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 }
 @media (max-height:520px){
   :root{--ms:84px;--ls:112px}
-  #toast{bottom:calc(30px + env(safe-area-inset-bottom,0px))}
-  .mini{bottom:calc(34px + env(safe-area-inset-bottom,0px))} .mini span{display:none}
-  .lay{bottom:calc(46px + env(safe-area-inset-bottom,0px))} .ly .n{font-size:9.5px} .lnm{font-size:9.5px}
+  #toast{bottom:calc(var(--row2) - 6px)}
+  .mini span{display:none}
+  .ly .n{font-size:9.5px} .lnm{font-size:9.5px}
   #menu{left:auto;right:0;top:0;bottom:0;width:min(330px,56%);max-height:none;border-radius:0}
-  .g-scrub{bottom:calc(38px + env(safe-area-inset-bottom,0px))} .g-leg{display:none}
+  .g-scrub{bottom:calc(var(--row2) - 8px)} .g-leg{display:none}
 }
 /* טלפון לאורך: שלושה כפתורים עגולים נפרדים בטור בשוליים הימניים, בגובה האגודל, והתפריט קטן מתחתם */
 @media (max-width:700px) and (min-height:521px){
-  .lay{width:48px;height:auto;right:calc(4px + env(safe-area-inset-right,0px));bottom:calc(62px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center}
+  .lay{width:48px;height:auto;right:var(--e-r);bottom:var(--row2);display:flex;flex-direction:column;align-items:center}
   .lay-ring{display:none}
   .lnm{position:static;transform:none;font-size:10px;line-height:1;margin-top:7px}
   .ly{position:relative;inset:auto;width:48px;height:auto;min-height:48px;display:grid;justify-items:center;align-content:start;gap:1px;padding:3px 0 0;clip-path:none;-webkit-mask-image:none;mask-image:none;background:none!important}
@@ -281,7 +296,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   #menuBtn{position:relative;left:auto;top:auto;transform:none;width:44px;height:44px;margin-top:8px}
   #menuBtn::before{content:"";position:absolute;inset:7px;border:1px solid rgba(225,236,243,.55);border-radius:50%}
   #menuBtn svg{width:13px;height:13px}
-  .g-scrub{left:calc(14px + env(safe-area-inset-left,0px));right:calc(58px + env(safe-area-inset-right,0px));bottom:calc(62px + 19px + var(--ms) + 12px + env(safe-area-inset-bottom,0px));gap:8px}
+  .g-scrub{left:var(--e-l);right:calc(var(--e-r) + 48px + var(--gut));bottom:calc(var(--row2) + var(--ms) + 30px);gap:8px}
   /* בטלפון התאריך עולה מעל הרצועה, אחרת הוא נדחס אל השנתות */
   .g-scrub{padding-top:15px}
   .g-scrub output{position:absolute;right:0;bottom:calc(100% - 15px);min-width:0;max-width:none;white-space:nowrap;padding:0;font-size:11px}
@@ -289,10 +304,10 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   .g-leg{display:none}
   /* כפתור הקול היה ממוקם לפי --ls, גובה קבוע. מרגע שהטור הימני נעשה טור זורם בגובה משתנה,
      הוא נחת בדיוק על מד הגל ושבר את העמודה. עכשיו הוא יושב מתחת לשורות הנתונים, מעל הטור. */
-  #sndBtn{top:calc(var(--top) + 44px);bottom:auto;right:calc(8px + env(safe-area-inset-right,0px))}
+  #sndBtn{top:calc(var(--top) + var(--gut) + 22px);bottom:auto;right:var(--e-r)}
   /* הטור הימני תופס כ-56 פיקסל; הודעה שממורכזת על כל הרוחב נכנסה לתוכו */
-  #toast{left:calc(14px + env(safe-area-inset-left,0px));right:calc(62px + env(safe-area-inset-right,0px));transform:none;max-width:none;text-align:start}
-  body.g-open .lay{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+  #toast{left:var(--e-l);right:calc(var(--e-r) + 48px + var(--gut));transform:none;max-width:none;text-align:start}
+  body.g-open .lay{bottom:var(--row2)}
 }
 </style>
 </head>
