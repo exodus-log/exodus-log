@@ -418,7 +418,7 @@ function nameTexture(){
   for(i=0;i<txt.length;i++){ x.fillText(txt[i], cx+cw[i]/2, h*0.52); cx+=cw[i]+sp; }
   return texFromCanvas(cv);
 }
-var TEX_FLAG=flagTexture(), TEX_NUM=numberTexture(), TEX_NAME=nameTexture(), TEX_PLAIN=plainTexture();
+var TEX_FLAG=flagTexture(), TEX_NUM=mainTexture(), TEX_NAME=nameTexture(), TEX_PLAIN=plainTexture();
 
 /* ===== geometry ===== */
 function normalsFor(pos,idx){ var n=new Float32Array(pos.length),i;
@@ -529,11 +529,12 @@ function sphMesh(r,ox,oy,oz,sy,sz){ var NU=10,NV=7,p=[],idx=[],i,j;
     p.push(ox+r*(sz||1)*Math.sin(b)*Math.cos(a), oy+r*(sy||1)*Math.cos(b), oz+r*Math.sin(b)*Math.sin(a)); }
   for(i=0;i<NU;i++) for(j=0;j<NV;j++){ var q=i*(NV+1)+j, s2=q+NV+1; idx.push(q,s2,q+1,q+1,s2,s2+1); }
   return mesh(p,idx); }
-function sailMesh(foot,luff,camber){
+function sailMesh(foot,luff,camber,rake){
   var NU=12,NV=16,p=[],idx=[],uv=[],i,j;
+  var rkS=Math.sin(rake||0), rkC=Math.cos(rake||0);
   for(i=0;i<=NU;i++) for(j=0;j<=NV;j++){
     var u=i/NU,v=j/NV, chord=foot*(1-v)*(1+0.24*Math.sin(Math.PI*v));
-    p.push(-chord*u, v*luff, Math.sin(Math.PI*Math.min(1,u+0.001))*Math.sin(Math.PI*v*0.88+0.16)*camber);
+    p.push(-chord*u-v*luff*rkS, v*luff*rkC, Math.sin(Math.PI*Math.min(1,u+0.001))*Math.sin(Math.PI*v*0.88+0.16)*camber);
     uv.push(u, v);
   }
   for(i=0;i<NU;i++) for(j=0;j<NV;j++){ var q=i*(NV+1)+j,r=q+NV+1; idx.push(q,r,q+1,q+1,r,r+1); }
@@ -554,22 +555,22 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
     M_KEEL=foilMesh([[1.95,-0.72],[0.55,-1.59],[-1.35,-1.68],[-2.30,-1.53],[-2.30,-0.86]],
                     function(y){return 0.115+0.145*Math.max(0,(y+1.72)/1.1);}),
     M_RUD=foilMesh([[-2.32,-1.60],[-3.02,-1.36],[-3.08,-0.56],[-2.32,-0.60]],function(){return 0.075;}),
-    M_MAST=cylMesh(0.082,0.112,13.4,0.35,FREE+6.7,0),
-    M_SPRIT=cylMesh(0.075,0.062,1.85,0,0,0), M_BOOM=cylMesh(0.058,0.058,4.4,0,0,0),
+    M_MAST=cylMesh(0.086,0.118,14.95,0.35,FREE+7.40,0),
+    M_SPRIT=cylMesh(0.075,0.062,1.85,0,0,0), M_BOOM=cylMesh(0.062,0.058,4.80,0,0,0),
     M_HATCH=boxMesh(0.80,0.42,0.88,-2.75,FREE+0.26,0),
     M_COAM1=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,-0.76),
     M_COAM2=boxMesh(2.0,0.24,0.09,-3.35,FREE+0.17,0.76),
     M_VANEP=boxMesh(0.06,0.95,0.06,-5.45,FREE+0.45,0),
-    M_VANE=boxMesh(0.42,0.80,0.035,-5.62,FREE+1.05,0),
+    M_VANE=boxMesh(0.38,1.30,0.030,0,0.65,0),
     M_PADL=boxMesh(0.12,1.00,0.30,-5.48,-0.42,0),
     M_GEN=cylMesh(0.16,0.16,0.22,-4.95,FREE+1.95,-0.62),
     M_GENP=cylMesh(0.05,0.05,1.9,-4.95,FREE+1.0,-0.62),
     M_DECK=deckMesh(), M_DECKO=deckMesh(0.905,0.006,0.085,0.955), M_SOLE=boxMesh(2.22,0.07,1.46,-3.41,FREE-0.44,0),
     M_STEP=boxMesh(0.52,0.13,1.04,-2.58,FREE-0.15,0),
     M_DECS=decalMesh(1), M_DECP=decalMesh(-1),
-    M_MAIN=sailMesh(4.3,9.9,0.55), M_MAINR=sailMesh(4.0,7.4,0.46),
-    M_YANK=sailMesh(3.7,9.0,0.58), M_STAY=sailMesh(2.5,6.7,0.5),
-    M_SPIN=sailMesh(6.1,11.2,1.10), M_JIB=sailMesh(2.5,6.4,0.40),
+    M_MAIN=sailMesh(4.72,13.26,0.55), M_MAINR=sailMesh(4.30,9.60,0.44),
+    M_YANK=sailMesh(4.55,13.70,0.58,0.430), M_STAY=sailMesh(3.25,10.35,0.50,0.246),
+    M_SPIN=sailMesh(6.60,14.20,1.10,0.410), M_JIB=sailMesh(2.95,8.60,0.40,0.300),
     D_LEG=cylMesh(0.075,0.062,0.86,0,0.43,0), D_HIP=boxMesh(0.30,0.24,0.36,0,0.97,0),
     D_TOR=cylMesh(0.175,0.190,0.56,0,1.22,0), D_SHO=boxMesh(0.20,0.14,0.44,0,1.52,0),
     D_COAT=boxMesh(0.26,0.50,0.09,0,1.24,0), D_ARM=cylMesh(0.052,0.046,0.60,0,0,0),
@@ -581,7 +582,9 @@ var M_TOPS=hullMesh(0.30,1.0), M_BOTT=hullMesh(0.0,0.30), M_RAIL=caprailMesh(), 
 var COL={ tops:[0.940,0.950,0.960], bott:[0.105,0.125,0.155], boot:[0.40,0.13,0.11],   /* boot: הצבע האמיתי לא ודאי עד שתהיה תמונת יום של קו המים */
           rail:[0.445,0.430,0.400], deck:[0.885,0.395,0.105], deckEdge:[0.915,0.920,0.920], trunk:[0.865,0.875,0.875], teak:[0.470,0.455,0.425],
           hatch:[0.62,0.63,0.64], vane:[0.80,0.81,0.82],
-          dodge:[0.93,0.40,0.11], spar:[0.86,0.84,0.79], sail:[1,1,1],
+          dodge:[0.93,0.40,0.11], spar:[0.86,0.84,0.79], sail:[1,1,1], wire:[0.30,0.31,0.33],
+          seam:[0.855,0.862,0.870], steel:[0.78,0.80,0.83], jack:[0.95,0.80,0.12], timber:[0.46,0.25,0.13],
+          solar:[0.125,0.135,0.165], bronze:[0.31,0.34,0.24], glass:[0.10,0.13,0.15], ring:[0.86,0.15,0.12],
           wind:[1.0,0.45,0.10], cur:[0.31,0.76,0.91],
           skin:[0.80,0.60,0.45], tee:[0.94,0.94,0.93], coat:[0.34,0.16,0.15],
           pant:[0.55,0.57,0.61], hair:[0.14,0.10,0.07] };
@@ -1036,12 +1039,18 @@ function sst(a,b,x){ var q=Math.max(0,Math.min(1,(x-a)/(b-a))); return q*q*(3-2*
    הסוול (שני צעדי ניוטון), כך שהקו והגבנון הם אותו דבר, והעיקול הקל שלו הוא העיקול האמיתי של הפסגה. */
 var CREST_MAX=4, PHIT=[], hitAcc=0, foamHold=0, NHIT=LOWP?16:30;
 (function(){ for(var i=0;i<NHIT;i++) PHIT.push({x:0,y:-999,z:0,vx:0,vy:0,vz:0,l:0,L:1}); })();
-function crestShift(x,z,t,d0){ var it,i,s=0;
-  for(it=0;it<2;it++){ var g=0,h=0, px=x+d0[0]*s, pz=z+d0[1]*s;
-    for(i=0;i<3;i++){ var k=6.2831853/Math.max(wLen[i],0.5), dd=wDir[i][0]*d0[0]+wDir[i][1]*d0[1], ph=k*(wDir[i][0]*px+wDir[i][1]*pz)-wSpd[i]*k*t;
-      g+=wAmp[i]*k*dd*Math.cos(ph); h-=wAmp[i]*k*k*dd*dd*Math.sin(ph); }
-    if(h>-1e-7) break; var ds=-g/h, lim=wLen[0]*0.07; s+=Math.max(-lim,Math.min(lim,ds)); }
-  return s; }
+function crestH(x,z,t,d0,s){ var i,y=0, px=x+d0[0]*s, pz=z+d0[1]*s;
+  for(i=0;i<3;i++){ var k=6.2831853/Math.max(wLen[i],0.5);
+    y+=wAmp[i]*Math.sin(k*(wDir[i][0]*px+wDir[i][1]*pz)-wSpd[i]*k*t); }
+  return y; }
+/* התיקון אל השיא: סריקה חסומה במקום ניוטון. ניוטון קפץ לפעמים עשרה מטרים בנקודה אחת ויצר משולש ענק על המים;
+   כאן ההיסט לעולם לא עובר את ±8% מאורך הגל, והוא רציף לאורך הקו. */
+function crestShift(x,z,t,d0){
+  var W=Math.max(wLen[0],9)*0.08, N=8, i, best=-1e9, bs=0, y;
+  for(i=0;i<=N;i++){ var s=-W+2*W*i/N; y=crestH(x,z,t,d0,s); if(y>best){ best=y; bs=s; } }
+  var h=2*W/N, y0=crestH(x,z,t,d0,bs-h), y2=crestH(x,z,t,d0,bs+h), den=y0-2*best+y2;   /* עידון פרבולי בין שלוש הדגימות */
+  if(den<-1e-9){ var dd=0.5*(y0-y2)/den*h; bs+=Math.max(-h,Math.min(h,dd)); }
+  return Math.max(-W,Math.min(W,bs)); }
 function hullHalfBeam(a){ var q=1-(a/(LOA*0.485))*(a/(LOA*0.485)); return q<=0?0:BEAM*0.45*Math.pow(q,0.6); }
 function crestLines(c,t,dt,eye){
   var d0=wDir[0], L=Math.max(wLen[0],9), cph=wSpd[0], k0=6.2831853/L, nx=-d0[1], nz=d0[0];
@@ -1071,7 +1080,7 @@ function crestLines(c,t,dt,eye){
       if(Math.abs(u)<du*0.6){ var e=Math.exp(-((sN+sh)/2.4)*((sN+sh)/2.4))*Math.min(1,a0/0.5); if(e>burst) burst=e; }
       var cur=[x,z,a];
       if(prev&&(prev[2]>0.004||a>0.004)){
-        var wl=0.22, wt=1.25+0.65*hs;                                  /* קצה מוביל חד ובהיר, זנב שנמוג אחורה */
+        var wl=0.22, wt=0.95+0.50*hs;                                  /* קצה מוביל חד ובהיר, זנב שנמוג אחורה */
         var q1x=prev[0]+d0[0]*wl, q1z=prev[1]+d0[1]*wl, q2x=prev[0]-d0[0]*wt, q2z=prev[1]-d0[1]*wt;
         var q3x=x+d0[0]*wl, q3z=z+d0[1]*wl, q4x=x-d0[0]*wt, q4z=z-d0[1]*wt;
         var y1=waveY(q1x,q1z,t)+0.09, y2=waveY(q2x,q2z,t)+0.09, y3=waveY(q3x,q3z,t)+0.09, y4=waveY(q4x,q4z,t)+0.09;
@@ -1178,6 +1187,306 @@ function buildCurrent(c,t,dt,eye){
     curStroke(hx,hy,hz,tx,hy,tz,eye,hw,a,sh);
     curStroke(tx-fxd*HL+ox,hy+oy,tz-fzd*HL+oz,tx,hy,tz,eye,hw*0.92,a,sh);
     curStroke(tx-fxd*HL-ox,hy-oy,tz-fzd*HL-oz,tx,hy,tz,eye,hw*0.92,a,sh); }
+}
+
+/* ======================= מנה ד׳, סעיף 9ד׳: תורן, חיבל, מפרשים ודגל =======================
+   המידות מאומתות: הבאבא 35 (Ta Shing, תכנון Perry) — I 14.60 מ׳, J 5.36 מ׳, P 13.26 מ׳, E 4.72 מ׳,
+   ושטח מפרשים מדווח 70.42 מ״ר, שהוא בדיוק P·E/2 + I·J/2. זה תואם את השלט שעל הרציף (70.48).
+   מה שהיה כאן קודם: מוביל ראשי 9.9 מ׳ ושטח כולל של כ-53 מ״ר, נמוך מדי בכל המקורות.
+   הערה לבדיקה מול תמונת צד: בסיס המשולש הקדמי במנוע הוא 6.45 מ׳ (תורן ב-x=0.35, נקודת החלוץ ב-6.80)
+   מול J=5.36 שבמפרט. או שהתורן צריך לזוז קדימה או שהחרטומית ארוכה מדי; לא נוגעים עד שתהיה תמונה. */
+function wireMesh(segs,r){                       /* חיבל: מוטות משולשים דקים, זולים ונקראים היטב מול שמיים */
+  var p=[],idx=[],i,k;
+  for(i=0;i<segs.length;i++){
+    var a=segs[i][0], b=segs[i][1], rr=segs[i][2]||r;
+    var dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], L=Math.sqrt(dx*dx+dy*dy+dz*dz); if(L<1e-4) continue;
+    dx/=L; dy/=L; dz/=L;
+    var ux=-dy, uy=dx, uz=0, ul=Math.sqrt(ux*ux+uy*uy+uz*uz);
+    if(ul<1e-4){ ux=1; uy=0; uz=0; ul=1; }
+    ux/=ul; uy/=ul; uz/=ul;
+    var vx=dy*uz-dz*uy, vy=dz*ux-dx*uz, vz=dx*uy-dy*ux;
+    var b0=p.length/3;
+    for(k=0;k<3;k++){ var an=k/3*6.2831853, cx=Math.cos(an)*rr, cy=Math.sin(an)*rr;
+      p.push(a[0]+ux*cx+vx*cy, a[1]+uy*cx+vy*cy, a[2]+uz*cx+vz*cy);
+      p.push(b[0]+ux*cx+vx*cy, b[1]+uy*cx+vy*cy, b[2]+uz*cx+vz*cy); }
+    for(k=0;k<3;k++){ var q=b0+k*2, s=b0+((k+1)%3)*2; idx.push(q,q+1,s, q+1,s+1,s); }
+  }
+  return mesh(p,idx); }
+
+var MAST_X=0.35, MAST_TOP=FREE+14.60, HOUNDS=FREE+11.10, SPR_TIP=7.00, TACK_X=6.80, STAY_X=3.10;
+var SPR_Y=FREE+0.42, STERN_X=-5.20;
+/* מספר המשטחים וצורת האחורן לא נראים בתמונות שהיו: נבחר משטח אחד בכל צד, כמקובל בבאבא 35, ואחורן יחיד. לבדיקה. */
+var SPREAD_Y=FREE+7.60, SPREAD_Z=1.52;
+var M_RIG=wireMesh([
+  [[MAST_X,MAST_TOP,0],[TACK_X,FREE+0.52,0],0.016],                                  /* חלוץ */
+  [[MAST_X,HOUNDS,0],[STAY_X,FREE+0.18,0],0.014],                                    /* חלוץ פנימי */
+  [[MAST_X,MAST_TOP,0],[STERN_X,FREE+0.30,0],0.015],                                 /* אחורן */
+  [[MAST_X,MAST_TOP,0],[MAST_X,SPREAD_Y,SPREAD_Z],0.013],
+  [[MAST_X,MAST_TOP,0],[MAST_X,SPREAD_Y,-SPREAD_Z],0.013],
+  [[MAST_X,SPREAD_Y,SPREAD_Z],[MAST_X,FREE+0.16,1.42],0.013],                   /* וונטה עליונה, מעל המשטח */
+  [[MAST_X,SPREAD_Y,-SPREAD_Z],[MAST_X,FREE+0.16,-1.42],0.013],
+  [[MAST_X,SPREAD_Y-0.25,0.10],[MAST_X+0.85,FREE+0.16,1.34],0.012],                  /* וונטות תחתונות, קדמית ואחורית */
+  [[MAST_X,SPREAD_Y-0.25,-0.10],[MAST_X+0.85,FREE+0.16,-1.34],0.012],
+  [[MAST_X,SPREAD_Y-0.25,0.10],[MAST_X-0.85,FREE+0.16,1.34],0.012],
+  [[MAST_X,SPREAD_Y-0.25,-0.10],[MAST_X-0.85,FREE+0.16,-1.34],0.012],
+  [[SPR_TIP,SPR_Y,0],[5.22,0.08,0],0.014],                                           /* מיתר החרטומית */
+  [[SPR_TIP,SPR_Y,0],[5.00,FREE+0.10,1.02],0.011],                                   /* מיתרי צד לחרטומית */
+  [[SPR_TIP,SPR_Y,0],[5.00,FREE+0.10,-1.02],0.011]
+],0.014);
+var M_SPREAD=wireMesh([[[MAST_X,SPREAD_Y,0.06],[MAST_X,SPREAD_Y+0.16,SPREAD_Z]],
+                       [[MAST_X,SPREAD_Y,-0.06],[MAST_X,SPREAD_Y+0.16,-SPREAD_Z]]],0.035);
+/* המפרש שהורד, קשור כגליל לבן על החרטומית (כך בתמונת הלילה) */
+var M_FURL=cylMesh(0.115,0.085,2.30,0,0,0);
+
+/* ---------- המפרש הראשי: לוח כתום בראש, "7" שחור, טלאי המרוץ, ושורות נקודות צמצום ----------
+   מחליף את numberTexture ("07" כחול ו-ISR), שלא תואם את התמונות. v=1 (ראש המפרש) הוא ראש הקנבס. */
+function mainTexture(){
+  /* המפרש נמתח על משולש של 4.72 מ׳ תחתית ו-13.26 מ׳ מוביל, ולכן ריבוע בקנבס יוצא מלבן גבוה פי שלושה על המפרש.
+     כל צורה כאן נמדדת במטרים ומומרת לקואורדינטות קנבס לפי המיתר באותו גובה. */
+  var s=1024, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  var x=cv.getContext('2d'), k, FOOT=4.72, LUFF=13.26;
+  function chordAt(v){ return FOOT*(1-v)*(1+0.24*Math.sin(Math.PI*v)); }
+  function box(mW,mH,cxU,cV){                                      /* מלבן במטרים, ממורכז ב-(u,v) */
+    var w=mW/Math.max(0.6,chordAt(cV)), h=mH/LUFF;
+    return [ (cxU-w/2)*s, (1-cV-h/2)*s, w*s, h*s ]; }
+  x.fillStyle='#f4f1e8'; x.fillRect(0,0,s,s);                      /* דקרון לבן־שמנת */
+  x.strokeStyle='rgba(40,46,58,0.10)'; x.lineWidth=Math.max(1,s*0.0026);
+  for(k=1;k<14;k++){ x.beginPath(); x.moveTo(0,s*k/14); x.lineTo(s,s*k/14); x.stroke(); }   /* תפרי לוחות אופקיים, כל מטר בערך */
+  x.fillStyle='#e8681c'; x.fillRect(0,0,s,s*0.150);                /* לוח כתום ב-15% העליונים */
+  x.fillStyle='rgba(255,255,255,0.14)'; x.fillRect(0,s*0.126,s,s*0.024);
+  var b=box(1.55,1.85,0.50,0.615);                                 /* "7" שחור גדול מתחת ללוח הכתום */
+  x.save(); x.fillStyle='#14181d';
+  x.font='700 100px Georgia, "Times New Roman", serif';
+  x.textAlign='center'; x.textBaseline='middle';
+  var m=x.measureText('7'), gw=m.width||55;
+  x.translate(b[0]+b[2]/2, b[1]+b[3]/2); x.scale(b[2]/gw, b[3]/72); x.fillText('7',0,0); x.restore();
+  b=box(0.58,0.58,0.24,0.135);                                     /* טלאי המרוץ: ריבוע שחור וטבעת זהובה, לא קריא */
+  x.fillStyle='#1b1f24'; x.fillRect(b[0],b[1],b[2],b[3]);
+  x.save(); x.translate(b[0]+b[2]/2,b[1]+b[3]/2); x.scale(b[2],b[3]);
+  x.strokeStyle='#c9a648'; x.lineWidth=0.17; x.beginPath(); x.arc(0,0,0.31,0,6.283); x.stroke(); x.restore();
+  x.fillStyle='rgba(40,46,58,0.32)';                               /* שתי שורות נקודות צמצום */
+  for(var r=0;r<2;r++){ var vv=0.115+r*0.105;
+    for(k=1;k<9;k++){ var d=box(0.07,0.07,k/9,vv); x.fillRect(d[0],d[1],Math.max(1,d[2]),Math.max(1,d[3])); } }
+  return texFromCanvas(cv);
+}
+/* הדגל: כ-45×30 ס״מ, על האחורן בערך בשליש גובהו, מתנופף עם הרוח המדומה */
+function ensignMesh(){
+  var NU=7,NV=4,p=[],idx=[],uv=[],i,j, W=0.45, H=0.30;
+  for(i=0;i<=NU;i++) for(j=0;j<=NV;j++){ var u=i/NU, v=j/NV;
+    p.push(-u*W, (v-0.5)*H, Math.sin(u*5.4)*0.055*u); uv.push(u,v); }
+  for(i=0;i<NU;i++) for(j=0;j<NV;j++){ var q=i*(NV+1)+j, r2=q+NV+1; idx.push(q,r2,q+1,q+1,r2,r2+1); }
+  return mesh(p,idx,uv); }
+var M_ENSIGN=ensignMesh();
+
+/* ======================= מנה ד׳, סעיפים 9ג׳ ו-9ב׳: הסיפון, הקוקפיט והגוף =======================
+   הכול בקוד, בלי קובצי מודל, כך שזה יעבור אחר כך ל-three.js כ-BufferGeometry. הפרטים הקטנים מצוירים
+   רק כשהמצלמה קרובה (ראו LOD ב-frame), ובמצב קל בכלל לא.
+   מקור המידות: ההזמנה מ-20.9, שנכתבה מול צילומי הגלריה. מה שלא נראה בתמונות מסומן כהנחה. */
+function G(){ return {p:[],i:[]}; }
+function gPush(g,pts,faces){ var b=g.p.length/3,k;
+  for(k=0;k<pts.length;k++) g.p.push(pts[k][0],pts[k][1],pts[k][2]);
+  for(k=0;k<faces.length;k++) g.i.push(b+faces[k][0],b+faces[k][1],b+faces[k][2]); }
+function gBox(g,sx,sy,sz,ox,oy,oz){
+  var x=sx/2,y=sy/2,z=sz/2;
+  var v=[[-x,-y,-z],[x,-y,-z],[x,y,-z],[-x,y,-z],[-x,-y,z],[x,-y,z],[x,y,z],[-x,y,z]].map(function(q){return [q[0]+ox,q[1]+oy,q[2]+oz];});
+  gPush(g,v,[[0,1,2],[0,2,3],[5,4,7],[5,7,6],[4,0,3],[4,3,7],[1,5,6],[1,6,2],[3,2,6],[3,6,7],[4,5,1],[4,1,0]]); }
+function gTube(g,a,b,r,N){ N=N||4;
+  var dx=b[0]-a[0], dy=b[1]-a[1], dz=b[2]-a[2], L=Math.sqrt(dx*dx+dy*dy+dz*dz); if(L<1e-5) return;
+  dx/=L; dy/=L; dz/=L;
+  var ux=-dy, uy=dx, uz=0, ul=Math.sqrt(ux*ux+uy*uy); if(ul<1e-5){ ux=1; uy=0; ul=1; }
+  ux/=ul; uy/=ul;
+  var vx=dy*uz-dz*uy, vy=dz*ux-dx*uz, vz=dx*uy-dy*ux, k, pts=[], faces=[];
+  for(k=0;k<N;k++){ var an=k/N*6.2831853, cc=Math.cos(an)*r, ss=Math.sin(an)*r;
+    pts.push([a[0]+ux*cc+vx*ss, a[1]+uy*cc+vy*ss, a[2]+uz*cc+vz*ss]);
+    pts.push([b[0]+ux*cc+vx*ss, b[1]+uy*cc+vy*ss, b[2]+uz*cc+vz*ss]); }
+  for(k=0;k<N;k++){ var q=k*2, s2=((k+1)%N)*2; faces.push([q,q+1,s2],[q+1,s2+1,s2]); }
+  gPush(g,pts,faces); }
+function gArc(g,cx,cy,cz,r,a0,a1,N,tr,plane){       /* קשת עגולה מצינור, במישור xy או xz */
+  var k,pv=null;
+  for(k=0;k<=N;k++){ var a=a0+(a1-a0)*k/N, c=Math.cos(a), s=Math.sin(a);
+    var pnt=plane==='xz'?[cx+c*r,cy,cz+s*r]:[cx+c*r,cy+s*r,cz];
+    if(pv) gTube(g,pv,pnt,tr); pv=pnt; } }
+function gMesh(g){ return mesh(g.p,g.i); }
+
+function dY(x){ return sheer(x/LOA+0.5)-0.03; }                       /* גובה הסיפון ב-x */
+function dW(x){ return hb(x/LOA+0.5)*0.985; }                         /* חצי רוחב הסיפון ב-x */
+function trunkW(x){ var st=[[-2.05,0.94],[-1.0,0.98],[0.4,0.96],[1.5,0.87],[2.35,0.67],[2.75,0.43]],i;
+  if(x<=st[0][0]) return st[0][1]; if(x>=st[st.length-1][0]) return st[st.length-1][1];
+  for(i=0;i<st.length-1;i++) if(x<=st[i+1][0]){ var f=(x-st[i][0])/(st[i+1][0]-st[i][0]); return st[i][1]+(st[i+1][1]-st[i][1])*f; }
+  return 0.43; }
+function trunkTop(x){ return sheer(x/LOA+0.5)-0.02+0.58; }
+
+/* ---------- נירוסטה: מעקים, עמודים, מאחזי יד, מסגרת התורן, אוורורים, כננות ---------- */
+var STAN_X=[4.05,2.75,1.45,0.10,-1.25,-2.60,-3.85];
+var gS=G();
+(function(){ var i,k;
+  for(i=0;i<STAN_X.length;i++){ var x=STAN_X[i], z=dW(x)-0.05, y=dY(x);
+    for(k=-1;k<=1;k+=2) gTube(gS,[x,y,k*z],[x,y+0.62,k*z],0.022,4); }
+  for(k=-1;k<=1;k+=2){                                                /* מעקה חבלים כפול, עם שער בין העמוד השלישי לרביעי */
+    for(i=0;i<STAN_X.length-1;i++){ var xa=STAN_X[i], xb=STAN_X[i+1];
+      gTube(gS,[xa,dY(xa)+0.62,k*(dW(xa)-0.05)],[xb,dY(xb)+0.62,k*(dW(xb)-0.05)],0.012,3);
+      if(i!==3) gTube(gS,[xa,dY(xa)+0.31,k*(dW(xa)-0.05)],[xb,dY(xb)+0.31,k*(dW(xb)-0.05)],0.012,3); }
+    gArc(gS,4.62,dY(4.62)+0.60,0,0.68,k>0?0:-1.62,k>0?1.62:0,6,0.024,'xz');   /* מעקה החרטום, כפול */
+    gArc(gS,4.62,dY(4.62)+0.30,0,0.60,k>0?0:-1.62,k>0?1.62:0,6,0.020,'xz');
+    gTube(gS,[4.05,dY(4.05)+0.62,k*(dW(4.05)-0.05)],[4.62,dY(4.62)+0.60,k*0.68],0.020,4);
+    gArc(gS,-4.62,dY(-4.62)+0.60,0,0.60,k>0?1.52:1.62,k>0?3.14:4.76,6,0.024,'xz');  /* מעקה הירכתיים */
+    gTube(gS,[-3.85,dY(-3.85)+0.62,k*(dW(-3.85)-0.05)],[-4.62,dY(-4.62)+0.60,k*0.60],0.020,4);
+    gTube(gS,[2.20,trunkTop(2.20)+0.04,k*0.70],[-1.85,trunkTop(-1.85)+0.04,k*0.74],0.020,4);   /* מאחזי יד על גג התא */
+    gTube(gS,[0.95,trunkTop(0.95),k*0.46],[0.95,trunkTop(0.95)+0.22,k*0.46],0.055,6); }        /* שני אוורורי נירוסטה ליד התורן */
+  gArc(gS,0.35,dY(0.35)+0.52,0,0.62,0,3.1416,7,0.020,'xz');                                    /* מסגרת נירוסטה סביב התורן */
+  for(k=-1;k<=1;k+=2) gTube(gS,[0.35+0.62*Math.cos(k>0?0:3.1416),dY(0.35),k*0.0],[0.35,dY(0.35)+0.52,k*0.62],0.018,4);
+  for(k=-1;k<=1;k+=2){ gTube(gS,[-3.25,dY(-3.25)+0.30,k*0.86],[-3.25,dY(-3.25)+0.52,k*0.86],0.095,7);   /* כננות */
+                       gTube(gS,[-2.45,dY(-2.45)+0.30,k*0.86],[-2.45,dY(-2.45)+0.50,k*0.86],0.082,7); }
+  gTube(gS,[-5.05,dY(-5.05),0.34],[-5.05,dY(-5.05)+1.45,0.34],0.018,4);                        /* מוט אנטנות */
+  gTube(gS,[-5.05,dY(-5.05),-0.34],[-5.05,dY(-5.05)+0.95,-0.34],0.016,4);
+})();
+var M_STEEL=gMesh(gS);
+/* חבל כתום מלופף על הכננות */
+var gR=G(); (function(){ var k;
+  for(k=-1;k<=1;k+=2){ gTube(gR,[-3.25,dY(-3.25)+0.355,k*0.86],[-3.25,dY(-3.25)+0.475,k*0.86],0.104,7);
+                       gTube(gR,[-2.45,dY(-2.45)+0.345,k*0.86],[-2.45,dY(-2.45)+0.455,k*0.86],0.090,7); } })();
+var M_ROPE=gMesh(gR);
+
+/* ---------- שתי רצועות הביטחון הצהובות: הפרט הצבעוני הבולט ביותר מלמעלה ---------- */
+var gJ=G(); (function(){ var k,i,N=9;
+  for(k=-1;k<=1;k+=2){ var pv=null;
+    for(i=0;i<=N;i++){ var x=4.20-(4.20+2.70)*i/N, z=k*(dW(x)-0.30), pnt=[x,dY(x)+0.035,z];
+      if(pv) gTube(gJ,pv,pnt,0.028,3); pv=pnt; } } })();
+var M_JACK=gMesh(gJ);
+
+/* ---------- עץ: החרטומית, עמוד הקשירה, מסגרת הפתח הקדמי, הטילר ---------- */
+var gT=G(); (function(){ var i;
+  gBox(gT,1.30,0.06,0.78,4.95,dY(4.95)+0.02,0);                       /* משטח טיק על החרטומית */
+  gBox(gT,0.16,0.42,0.16,4.30,dY(4.30)+0.21,0);                       /* עמוד קשירה */
+  gBox(gT,0.86,0.05,0.86,2.05,trunkTop(2.05)+0.015,0);                /* מסגרת הפתח הקדמי */
+})();
+var M_TEAKD=gMesh(gT);
+/* הטילר: קשת למינציה מלוכה, מראש ההגה קדימה אל הקוקפיט */
+var gTi=G(); (function(){ var i,pv=null,N=8;
+  for(i=0;i<=N;i++){ var f=i/N, x=-4.62+1.55*f, y=dY(-4.0)+0.18+0.30*f*f, pnt=[x,y,0];
+    if(pv) gTube(gTi,pv,pnt,0.032-0.008*f,5); pv=pnt; } })();
+var M_TILLER=gMesh(gTi);
+
+/* ---------- כהה: פאנלים סולאריים, כננת עוגן, מנגנון הגה הרוח ---------- */
+var gD=G(); (function(){
+  gBox(gD,1.15,0.035,1.15,1.35,trunkTop(1.35)+0.05,0);                /* פאנל גמיש מאחורי הפתח הקדמי */
+  gBox(gD,1.45,0.035,1.55,-0.75,trunkTop(-0.75)+0.05,0);              /* הפאנל הגדול, בין התורן לדודג׳ר */
+  gBox(gD,0.34,0.26,0.30,4.62,dY(4.62)+0.18,0);                       /* כננת עוגן ידנית */
+  gTube(gD,[5.25,dY(5.25)+0.10,0],[5.62,dY(5.25)+0.02,0],0.075,6);    /* גלגלת עוגן */
+})();
+var M_DARK=gMesh(gD);
+
+/* ---------- אשנבי ברונזה: חמישה בכל צד, עם פטינה ירקרקה ---------- */
+function gDisc(g,cx,cy,cz,rx,ry,side){          /* אליפסה שפונה החוצה, במישור xy */
+  var N=12,k,pts=[[cx,cy,cz]],faces=[];
+  for(k=0;k<=N;k++){ var a=k/N*6.2831853; pts.push([cx+Math.cos(a)*rx, cy+Math.sin(a)*ry, cz]); }
+  for(k=1;k<=N;k++) faces.push(side>0?[0,k,k+1]:[0,k+1,k]);
+  gPush(g,pts,faces); }
+var gB=G(), gGl=G(); (function(){ var i,k, xs=[-1.55,-0.75,0.10,0.95,1.80];
+  for(i=0;i<xs.length;i++) for(k=-1;k<=1;k+=2){ var x=xs[i], w=trunkW(x)*0.99, y=trunkTop(x)-0.29;
+    gDisc(gB,x,y,k*(w+0.010),0.185,0.105,k);                       /* טבעת ברונזה */
+    gDisc(gGl,x,y,k*(w+0.026),0.135,0.070,k); } })();              /* זכוכית כהה */
+var M_PORTS=gMesh(gB), M_PORTG=gMesh(gGl);
+
+/* ---------- ירכתיים: גלגל הצלה, שק Lifesling, ומוט הספינקר על סיפון שמאל ---------- */
+var gRing=G(); gArc(gRing,-5.02,dY(-5.02)+0.62,0.0,0.34,0.5,5.78,9,0.055,'xy');
+var M_RING=gMesh(gRing);
+var gW=G(); gBox(gW,0.34,0.30,0.22,-4.88,dY(-4.88)+0.58,-0.58);
+var M_SLING=gMesh(gW);
+var M_POLE=cylMesh(0.055,0.048,3.70,0,0,0);
+
+/* ---------- בדי החסות: בד לבן עם עיגולים ומלבנים כהים לא קריאים. לא משחזרים סמלים מסחריים. ---------- */
+function sponTexture(){
+  var w=512,h=160, cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  var x=cv.getContext('2d'), i;
+  x.fillStyle='#f2f2f0'; x.fillRect(0,0,w,h);
+  var rnd=function(n){ var s=Math.sin(n*91.7+13.1)*43758.5453; return s-Math.floor(s); };
+  for(i=0;i<22;i++){ var cx=w*(0.06+0.88*rnd(i*1.7)), cy=h*(0.22+0.56*rnd(i*3.1+5)), sz=h*(0.10+0.16*rnd(i*5.3));
+    x.fillStyle='rgba(38,44,56,'+(0.42+0.38*rnd(i*7.9))+')';
+    if(rnd(i*11.3)<0.45){ x.beginPath(); x.arc(cx,cy,sz*0.5,0,6.283); x.fill(); }
+    else x.fillRect(cx-sz*0.9,cy-sz*0.28,sz*1.8,sz*0.56); }
+  return texFromCanvas(cv);
+}
+var TEX_SPON=sponTexture();
+function clothMesh(x0,x1,y0,h,z,flip){
+  var p=[],uv=[],idx=[],N=6,i;
+  for(i=0;i<=N;i++){ var f=i/N, x=x0+(x1-x0)*f;
+    p.push(x,y0,z, x,y0+h,z); uv.push(flip?1-f:f,0, flip?1-f:f,1); }
+  for(i=0;i<N;i++){ var b=i*2; if(flip) idx.push(b,b+2,b+1,b+1,b+2,b+3); else idx.push(b,b+1,b+2,b+1,b+3,b+2); }
+  return mesh(p,idx,uv); }
+var M_CLOTHS=clothMesh(-4.20,-2.45,dY(-3.3)+0.14,0.44, dW(-3.3)-0.04,false),
+    M_CLOTHP=clothMesh(-4.20,-2.45,dY(-3.3)+0.14,0.44,-(dW(-3.3)-0.04),true),
+    M_CLOTHT=clothMesh(-0.48,0.48,dY(-5.05)+0.26,0.28,-5.15,false);
+
+/* ---------- הגוף: תפרי לוחות, פס שפשוף, והמדבקה של המספר ---------- */
+function hullPt(t,sv){ var x=(t-0.5)*LOA, w=hb(t), sh2=sheer(t), dp=dep(t);
+  return [x,-dp+sv*(sh2+dp), w*Math.pow(Math.sin(sv*Math.PI/2),0.72)]; }
+var gSe=G(); (function(){ var L,i,k,N=22, lv=[0.60,0.665,0.73,0.795,0.86];
+  for(L=0;L<lv.length;L++) for(k=-1;k<=1;k+=2){ var pv=null;
+    for(i=0;i<=N;i++){ var t=0.045+0.91*i/N, q=hullPt(t,lv[L]), pnt=[q[0],q[1],k*q[2]];
+      if(pv) gTube(gSe,pv,pnt,0.009,3); pv=pnt; } } })();
+var M_SEAMS=gMesh(gSe);
+var gRb=G(); (function(){ var i,k,N=22;
+  for(k=-1;k<=1;k+=2){ var pv=null;
+    for(i=0;i<=N;i++){ var t=0.035+0.93*i/N, q=hullPt(t,0.905), pnt=[q[0],q[1],k*(q[2]+0.012)];
+      if(pv) gTube(gRb,pv,pnt,0.035,4); pv=pnt; } } })();
+var M_RUB=gMesh(gRb);
+function panelOnHull(side,t0,t1,v0,v1,off){
+  var NS=18,p=[],uv=[],idx=[],i,j;
+  function pt(t,sv){ var q=hullPt(t,sv); return [q[0],q[1],side*q[2]]; }
+  for(i=0;i<NS;i++){ var t=t0+(t1-t0)*(i/(NS-1));
+    var a=pt(Math.max(0.001,t-0.004),(v0+v1)/2), b=pt(Math.min(0.999,t+0.004),(v0+v1)/2);
+    var dx=b[0]-a[0], dz=b[2]-a[2], L=Math.hypot(dx,dz)||1, nx=(-dz/L)*side, nz=(dx/L)*side;
+    for(j=0;j<2;j++){ var sv=j?v1:v0, q=pt(t,sv);
+      p.push(q[0]+nx*off,q[1],q[2]+nz*off); var u=i/(NS-1); uv.push(side>0?u:1-u, j?1:0); } }
+  for(i=0;i<NS-1;i++){ var a2=i*2;
+    if(side>0) idx.push(a2,a2+2,a2+1,a2+1,a2+2,a2+3); else idx.push(a2,a2+1,a2+2,a2+1,a2+3,a2+2); }
+  return mesh(p,idx,uv); }
+function sevenTexture(){
+  var s=256, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  var x=cv.getContext('2d');
+  x.clearRect(0,0,s,s);
+  x.strokeStyle='#14181d'; x.lineWidth=s*0.035;
+  x.beginPath(); x.arc(s/2,s/2,s*0.40,0,6.283); x.stroke();
+  x.fillStyle='#14181d'; x.textAlign='center'; x.textBaseline='middle';
+  x.font='700 '+Math.round(s*0.56)+'px Georgia, "Times New Roman", serif';
+  x.fillText('7',s*0.50,s*0.54);
+  return texFromCanvas(cv);
+}
+var TEX_SEVEN=sevenTexture();
+var M_SEV7=panelOnHull(1,0.503,0.552,0.585,0.900,0.055), M_SEV7P=panelOnHull(-1,0.503,0.552,0.585,0.900,0.055);
+
+/* ---------- לילה (9ה׳): זוהר חם מהאשנבים ונקודה אדומה בקוקפיט מתחת לדודג׳ר ---------- */
+function cabinGlow(boatM,eye,right,upv,nightF){
+  if(nightF<0.06) return;
+  var xs=[-1.55,-0.75,0.10,0.95,1.80], i,k,L,q;
+  var start=flowN;
+  for(i=0;i<xs.length;i++) for(k=-1;k<=1;k+=2){
+    var lx=xs[i], ly=trunkTop(lx)-0.30, lz=k*trunkW(lx)*1.02;
+    var px=boatM[0]*lx+boatM[4]*ly+boatM[8]*lz+boatM[12],
+        py=boatM[1]*lx+boatM[5]*ly+boatM[9]*lz+boatM[13],
+        pz=boatM[2]*lx+boatM[6]*ly+boatM[10]*lz+boatM[14];
+    var d=Math.hypot(eye[0]-px,eye[1]-py,eye[2]-pz); if(d>90) continue;
+    var lay=[[0.13,0.85],[0.40,0.30]];
+    for(L=0;L<lay.length;L++){ var sz=lay[L][0], a=lay[L][1]*nightF*Math.max(0,Math.min(1,1.6-d/60));
+      for(q=0;q<8;q++){ var a0=q/8*6.2831853, a1=(q+1)/8*6.2831853;
+        fv(px,py,pz,a,3);
+        fv(px+(right[0]*Math.cos(a0)+upv[0]*Math.sin(a0))*sz, py+(right[1]*Math.cos(a0)+upv[1]*Math.sin(a0))*sz, pz+(right[2]*Math.cos(a0)+upv[2]*Math.sin(a0))*sz,0,3);
+        fv(px+(right[0]*Math.cos(a1)+upv[0]*Math.sin(a1))*sz, py+(right[1]*Math.cos(a1)+upv[1]*Math.sin(a1))*sz, pz+(right[2]*Math.cos(a1)+upv[2]*Math.sin(a1))*sz,0,3); } } }
+  /* אור אדום קטן בקוקפיט, מתחת לדודג׳ר */
+  var rx=-2.05, ry=dY(-2.05)+0.42, rz=0.22;
+  var px2=boatM[0]*rx+boatM[4]*ry+boatM[8]*rz+boatM[12],
+      py2=boatM[1]*rx+boatM[5]*ry+boatM[9]*rz+boatM[13],
+      pz2=boatM[2]*rx+boatM[6]*ry+boatM[10]*rz+boatM[14];
+  var lay2=[[0.10,0.95],[0.34,0.26]];
+  for(L=0;L<lay2.length;L++){ var s3=lay2[L][0], a3=lay2[L][1]*nightF;
+    for(q=0;q<8;q++){ var b0=q/8*6.2831853, b1=(q+1)/8*6.2831853;
+      fv(px2,py2,pz2,a3,8);
+      fv(px2+(right[0]*Math.cos(b0)+upv[0]*Math.sin(b0))*s3, py2+(right[1]*Math.cos(b0)+upv[1]*Math.sin(b0))*s3, pz2+(right[2]*Math.cos(b0)+upv[2]*Math.sin(b0))*s3,0,8);
+      fv(px2+(right[0]*Math.cos(b1)+upv[0]*Math.sin(b1))*s3, py2+(right[1]*Math.cos(b1)+upv[1]*Math.sin(b1))*s3, pz2+(right[2]*Math.cos(b1)+upv[2]*Math.sin(b1))*s3,0,8); } }
+  gl.bindBuffer(gl.ARRAY_BUFFER,flowBuf);
+  gl.bufferSubData(gl.ARRAY_BUFFER,start*20,flowArr.subarray(start*5,flowN*5));
+  rngAir=[rngAir[0],flowN-rngAir[0]];
 }
 
 function buildFlow(c,t,dt,eye,bodyY){
@@ -1441,7 +1750,11 @@ function frameBody(){
   var hRad=FIX.cog*D2R;
   var fx=Math.sin(hRad),fz=-Math.cos(hRad),sx=Math.cos(hRad),sz=Math.sin(hRad);
   var yB=waveY(fx*LOA/2,fz*LOA/2,t), yS=waveY(-fx*LOA/2,-fz*LOA/2,t), yP=waveY(sx*BEAM/2,sz*BEAM/2,t);
-  var pitch=Math.atan2(yB-yS,LOA)*0.85, roll=-Math.atan2(yP-(yB+yS)/2,BEAM/2)*0.75;
+  var pTgt=Math.atan2(yB-yS,LOA)*0.74, rTgt=-Math.atan2(yP-(yB+yS)/2,BEAM/2)*0.60;
+  var kLag=1-Math.exp(-dtF/0.85);
+  LAB._pit=(LAB._pit===undefined)?pTgt:LAB._pit+(pTgt-LAB._pit)*kLag;
+  LAB._rol=(LAB._rol===undefined)?rTgt:LAB._rol+(rTgt-LAB._rol)*kLag;
+  var pitch=LAB._pit, roll=LAB._rol;
   var boatM=mMul(mMul(mMul(mTrans(0,(yB+yS)/2-0.12,0),mRotY(Math.PI/2-hRad)),mRotZ(pitch)),mRotX(roll));
 
   var rel=((c.windDir-FIX.cog+540)%360)-180, twa=Math.abs(rel), sgn=rel>=0?1:-1;
@@ -1451,6 +1764,7 @@ function frameBody(){
   var mainM=mMul(mMul(boatM,mTrans(0.35,FREE+1.15,0)),mRotY(boomA));
   var yankM=mMul(mMul(boatM,mTrans(6.80,FREE+0.52,0)),mRotY(jibA));
   var stayM=mMul(mMul(boatM,mTrans(3.10,FREE+0.18,0)),mRotY(jibA));
+  var jibM2=mMul(mMul(boatM,mTrans(4.90,FREE+0.34,0)),mRotY(jibA));
   var spinM=mMul(mMul(boatM,mTrans(7.30,FREE+0.26,0)),mRotY(jibA*0.78));
   var jibM =mMul(mMul(boatM,mTrans(5.70,FREE+0.46,0)),mRotY(jibA));
   /* what she is most likely carrying, from wind strength and angle */
@@ -1603,12 +1917,31 @@ function frameBody(){
   drawMesh(M_COAM2,boatM, COL.rail);
   drawMesh(M_MAST, boatM, COL.spar);
   drawMesh(M_SPRIT,mMul(mMul(boatM,mTrans(6.08,FREE+0.42,0)),mRotZ(Math.PI/2)),COL.spar);
+  drawMesh(M_RIG,  boatM, COL.wire);
+  drawMesh(M_SPREAD,boatM, COL.spar);
+  if(plan==='spin'||plan==='heavy') drawMesh(M_FURL, mMul(mMul(boatM,mTrans(6.05,FREE+0.56,0)),mRotZ(Math.PI/2)), COL.tops);
   drawMesh(M_VANEP,boatM, COL.spar);
-  drawMesh(M_VANE, boatM, COL.vane);
+  drawMesh(M_VANE, mMul(mMul(mMul(boatM,mTrans(-5.62,FREE+0.62,0)),mRotZ(-0.16)),mRotY(Math.sin(t*0.37)*0.20+((c.windDir-FIX.cog+540)%360-180)*D2R*0.10)), COL.vane);
   drawMesh(M_PADL, boatM, COL.bott);
   drawMesh(M_GENP, boatM, COL.spar);
   drawMesh(M_GEN,  boatM, COL.vane);
-  drawMesh(M_BOOM, mMul(mMul(mainM,mTrans(-2.20,0,0)),mRotZ(Math.PI/2)),COL.spar);
+  drawMesh(M_BOOM, mMul(mMul(mainM,mTrans(-2.40,0,0)),mRotZ(Math.PI/2)),COL.spar);
+  var detail=(EXO.quality!=='lite') && (cam.r<46 || sD<0.55);
+  drawMesh(M_SEAMS,boatM, COL.seam);
+  drawMesh(M_RUB,  boatM, COL.rail);
+  if(detail){
+    drawMesh(M_STEEL, boatM, COL.steel);
+    drawMesh(M_JACK,  boatM, COL.jack);
+    drawMesh(M_TEAKD, boatM, COL.rail);
+    drawMesh(M_TILLER,boatM, COL.timber);
+    drawMesh(M_DARK,  boatM, COL.solar);
+    drawMesh(M_PORTS, boatM, COL.bronze);
+    drawMesh(M_PORTG, boatM, COL.glass);
+    drawMesh(M_RING,  boatM, COL.ring);
+    drawMesh(M_SLING, boatM, COL.tops);
+    drawMesh(M_ROPE,  boatM, COL.dodge);
+    if(plan!=='poled') drawMesh(M_POLE, mMul(mMul(boatM,mTrans(1.35,dY(1.35)+0.14,0.92)),mRotZ(Math.PI/2)), COL.spar);
+  }
 
   /* Daniel: 1.78 m, standing at the helm */
   if(sD<0.22){
@@ -1643,25 +1976,34 @@ function frameBody(){
   gl.enableVertexAttribArray(SAILP.a('aUV'));
   if(plan==='spin'){
     drawSail(M_MAIN, mainM, TEX_NUM, flatS);
-    drawSail(M_SPIN, spinM, TEX_FLAG, flatS);
+    drawSail(M_SPIN, spinM, TEX_PLAIN, flatS);
   } else if(plan==='heavy'){
     drawSail(M_MAINR, mainM, TEX_NUM, flatS);
-    drawSail(M_JIB, jibM, TEX_FLAG, flatS);
+    drawSail(M_JIB, jibM2, TEX_PLAIN, flatS);
   } else {
     drawSail(M_MAIN, mainM, TEX_NUM, flatS);
     drawSail(M_STAY, stayM, TEX_PLAIN, flatS);
-    drawSail(M_YANK, yankM, TEX_FLAG, flatS);
+    drawSail(M_YANK, yankM, TEX_PLAIN, flatS);
   }
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  var enR=(((c.windDir+180)-FIX.cog+540)%360-180)*D2R, enW=Math.min(1,c.wind/16);
+  var enM=mMul(mMul(mMul(boatM,mTrans(-3.45,FREE+5.15,0)),mRotY(-enR+Math.sin(t*1.7)*0.09*enW)),mRotZ(-0.13+Math.sin(t*2.3+1.1)*0.05*enW));
+  gl.uniform1f(SAILP.u('uTwo'),1); drawSail(M_ENSIGN, enM, TEX_FLAG, 1);
   gl.uniform1f(SAILP.u('uTwo'),0);
   drawSail(M_DECS, boatM, TEX_NAME, 1);
   drawSail(M_DECP, boatM, TEX_NAME, 1);
+  drawSail(M_SEV7, boatM, TEX_SEVEN, 1);
+  drawSail(M_SEV7P,boatM, TEX_SEVEN, 1);
+  if(detail){ gl.uniform1f(SAILP.u('uTwo'),1);
+    drawSail(M_CLOTHS,boatM, TEX_SPON, 1); drawSail(M_CLOTHP,boatM, TEX_SPON, 1); drawSail(M_CLOTHT,boatM, TEX_SPON, 1);
+    gl.uniform1f(SAILP.u('uTwo'),0); }
   gl.depthMask(true); gl.disable(gl.BLEND);
   gl.disableVertexAttribArray(SAILP.a('aP')); gl.disableVertexAttribArray(SAILP.a('aN'));
   gl.disableVertexAttribArray(SAILP.a('aUV'));
 
   if(under) drawRange(rngCur,'curU',VP,eye,fogCol,fogD,nightF);
   drawRange(rngSurf,'surf',VP,eye,fogCol,fogD,nightF);
+  cabinGlow(boatM,eye,right,upv,nightF);
   navLight(boatM,eye,right,upv,nightF,hRad);
   drawRange(rngAir,'air',VP,eye,fogCol,fogD,nightF,navCol);
 
@@ -1681,7 +2023,7 @@ function frameBody(){
 var navCol=[1,1,1];
 function navLight(boatM,eye,right,upv,nightF,hRad){
   if(nightF<0.04) return;
-  var lx=0.35, ly=FREE+13.55, lz=0;
+  var lx=0.35, ly=FREE+15.05, lz=0;
   var px=boatM[0]*lx+boatM[4]*ly+boatM[8]*lz+boatM[12],
       py=boatM[1]*lx+boatM[5]*ly+boatM[9]*lz+boatM[13],
       pz=boatM[2]*lx+boatM[6]*ly+boatM[10]*lz+boatM[14];
