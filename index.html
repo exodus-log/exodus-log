@@ -38,6 +38,9 @@
   --ui:'Heebo','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
   --inst:'B612 Mono','IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --sh:0 0 2px rgba(3,10,16,.9),0 0 7px rgba(3,10,16,.95),0 1px 2px rgba(3,10,16,.85);
+  --ms:clamp(104px,11vw,150px);   /* קוטר מפת המיקומים */
+  --ls:clamp(116px,11vw,150px);   /* קוטר כפתור השכבות: לא פחות מ-116, אחרת אין אזור מגע סביר לכל שליש */
+  --top:70px;                     /* התחתית של שורת הנתונים והשעונים; hud.js מודד ומעדכן */
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -72,6 +75,22 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .topr .stale{color:#ffb3a8}
 .topr .brk{display:none}
 
+/* רצועת הזמן: דקה, קבועה, וממש מתחת לשורות. מראה את הרוח, הגל, הלחץ ואור היום לאורך כל היממות
+   שיש עליהן נתונים, ומאפשרת לגרור אחורה וקדימה. השדה range שמעליה הוא גם המגע וגם הנגישות. */
+.tstrip{position:relative;align-self:stretch;width:100%;min-width:min(340px,58vw);height:30px;margin-top:4px;
+  pointer-events:auto;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
+  background:rgba(4,12,19,.34);border-radius:2px;overflow:hidden;touch-action:pan-y}
+.tstrip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tstrip input[type=range]{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none;background:none;direction:ltr}
+.tstrip input[type=range]:focus-visible{opacity:1;outline:2px solid #8fe3de;outline-offset:-2px}
+.tstrip input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:30px;background:transparent}
+.tstrip input[type=range]::-moz-range-thumb{width:26px;height:30px;border:0;background:transparent}
+#tsRead{position:absolute;top:50%;transform:translateY(-50%);right:7px;font-size:10px;color:var(--ink);
+  background:rgba(4,12,19,.72);padding:1px 5px;border-radius:2px;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
+.tstrip.scrub #tsRead{opacity:1}
+#tsNow{position:absolute;top:50%;transform:translateY(-50%);left:4px;font:400 10px var(--ui);
+  color:#06121b;background:#8fe3de;border:0;border-radius:2px;padding:2px 7px;cursor:pointer;pointer-events:auto}
+
 /* שלושה שעונים, בלי אייקונים */
 .clocks{top:calc(12px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));
   display:grid;grid-template-columns:auto auto;gap:1px 9px;direction:ltr;align-items:baseline;font-size:12px}
@@ -103,23 +122,51 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 
 /* מפת מיקומים קטנה: מובילה אל "המסע" */
 .mini{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(44px + env(safe-area-inset-bottom,0px));
-  width:clamp(104px,11vw,150px);padding:0;border:0;background:none;color:var(--ink2);cursor:pointer;font:inherit;display:grid;gap:4px;justify-items:center}
+  width:var(--ms);padding:0;border:0;background:none;color:var(--ink2);cursor:pointer;font:inherit;display:grid;gap:4px;justify-items:center}
 .mini canvas{width:100%;aspect-ratio:1;display:block;border-radius:50%;opacity:.86;transition:opacity .2s, transform .2s}
 .mini:hover canvas,.mini:focus-visible canvas{opacity:1;transform:scale(1.03)}
 .mini span{font-size:11px;text-shadow:var(--sh)}
 .mini:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:12px}
 
-/* התפריט */
-#menuBtn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(44px + env(safe-area-inset-bottom,0px));
-  border:1px solid var(--hair);border-radius:3px;background:rgba(7,17,26,.42);color:var(--ink);font:500 13px var(--ui);padding:8px 14px;cursor:pointer;
-  text-shadow:var(--sh);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-#menuBtn:hover{background:rgba(7,17,26,.7)}
+/* כפתור השכבות: עיגול אחד, שלושה שלישים (רוח, גל, זרם), והתפריט בטבור. קווי מתאר דקים, בלי רקע */
+#sndBtn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(63px + env(safe-area-inset-bottom,0px) + var(--ls) + 10px);
+  width:34px;height:34px;margin:0;padding:0;border:1px solid rgba(225,236,243,.38);border-radius:50%;background:rgba(7,17,26,.30);color:var(--ink);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 3px rgba(3,10,16,.8));transition:opacity .2s,border-color .2s}
+#sndBtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#sndBtn .mute{display:none} #sndBtn.off .wv{display:none} #sndBtn.off .mute{display:block} #sndBtn.off{opacity:.62;border-color:rgba(225,236,243,.22)}
+body.g-open #sndBtn,body.j-open #sndBtn{display:none}
+.lay{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(63px + env(safe-area-inset-bottom,0px));width:var(--ls);height:var(--ls);
+  color:var(--ink);text-shadow:var(--sh);-webkit-user-select:none;user-select:none}
+.lay-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 3px rgba(3,10,16,.8))}
+.lay-ring *{fill:none;stroke:rgba(225,236,243,.55);stroke-width:1;vector-effect:non-scaling-stroke}
+.ly{position:absolute;inset:0;margin:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 30%,#000 31% 99%,transparent 100%);
+          mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 30%,#000 31% 99%,transparent 100%);transition:background .2s}
+.ly-wind{clip-path:polygon(50% 50%,5.4% 24.2%,13.6% 13.6%,24.3% 5.4%,36.7% 0.3%,50.0% -1.5%,63.3% 0.3%,75.8% 5.4%,86.4% 13.6%,94.6% 24.2%);--ix:50%;--iy:16.5%;--nx:50%;--ny:28.5%;--dx:50%;--dy:5%}
+.ly-wave{clip-path:polygon(50% 50%,94.6% 24.2%,99.7% 36.7%,101.5% 50.0%,99.7% 63.3%,94.6% 75.7%,86.4% 86.4%,75.8% 94.6%,63.3% 99.7%,50.0% 101.5%);--ix:76%;--iy:57%;--nx:73.5%;--ny:72.5%;--dx:93.6%;--dy:56%}
+.ly-cur{clip-path:polygon(50% 50%,50.0% 101.5%,36.7% 99.7%,24.2% 94.6%,13.6% 86.4%,5.4% 75.8%,0.3% 63.3%,-1.5% 50.0%,0.3% 36.7%,5.4% 24.2%);--ix:24%;--iy:57%;--nx:26.5%;--ny:72.5%;--dx:6.4%;--dy:56%}
+.ly[aria-pressed=true]{background:rgba(255,255,255,.10)}
+.ly:hover{background:rgba(255,255,255,.06)} .ly[aria-pressed=true]:hover{background:rgba(255,255,255,.15)}
+.ly .ic,.ly .n,.ly .dot{position:absolute;transform:translate(-50%,-50%);transition:opacity .2s}
+.ly .ic{left:var(--ix);top:var(--iy);width:17.5%;height:17.5%;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;overflow:visible;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+.ly .n{left:var(--nx);top:var(--ny);font-size:10px;font-weight:400;letter-spacing:0}
+.ly .dot{left:var(--dx);top:var(--dy);width:5px;height:5px;border-radius:50%;border:1px solid var(--ink);background:var(--ink);box-shadow:0 0 5px rgba(255,255,255,.55)}
+.ly[aria-pressed=false] .ic,.ly[aria-pressed=false] .n{opacity:.4}
+.ly[aria-pressed=false] .dot{background:transparent;box-shadow:none;opacity:.7}
+.ly:focus-visible{outline:none;background:rgba(255,255,255,.22)}
+.lnm{position:absolute;font-size:10.5px;color:var(--ink2);white-space:nowrap;pointer-events:none;transform:translateX(-50%)}
+.lnm-wind{left:50%;bottom:calc(100% + 3px)} .lnm-wave{left:77%;top:calc(100% + 1px)} .lnm-cur{left:23%;top:calc(100% + 1px)}
+/* התפריט: שלושה קווים בטבור העיגול */
+#menuBtn{position:absolute;left:50%;top:50%;width:max(30%,40px);height:max(30%,40px);transform:translate(-50%,-50%);margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);cursor:pointer;
+  display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+#menuBtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+#menuBtn:hover,#menuBtn[aria-expanded=true]{background:rgba(255,255,255,.12)}
 #menuBtn:focus-visible,#menu :focus-visible{outline:2px solid #fff;outline-offset:2px}
-#menu{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(88px + env(safe-area-inset-bottom,0px));width:min(330px,calc(100% - 28px));max-height:calc(100% - 170px);overflow:auto;
+#menu{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(63px + var(--ls) + 24px + env(safe-area-inset-bottom,0px));width:min(330px,calc(100% - 28px));max-height:calc(100% - 170px);overflow:auto;
   background:var(--panel);border:1px solid var(--hair);border-radius:6px;padding:6px 16px 12px;font-size:13.5px;line-height:1.45;
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 #menu .x{position:absolute;top:4px;left:4px;z-index:2;border:0;background:none;color:var(--ink2);font-size:22px;cursor:pointer;line-height:1;padding:6px 10px}
-#menu .big:first-of-type{padding-inline-end:34px}
+#menu .grp:first-of-type{padding-inline-end:34px}
 #menu .big{display:block;width:100%;padding:11px 0 10px;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);text-decoration:none;text-align:start;font:500 15px var(--ui);cursor:pointer}
 #menu .big small{display:block;font-weight:400;font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.4}
 #menu .big:hover{color:#fff}
@@ -135,7 +182,47 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
   text-align:center;font-size:13px;color:var(--ink);text-shadow:var(--sh);pointer-events:none;transition:opacity .6s}
 #toast.off{opacity:0}
 
-/* "המסע": נפתח מעל החלון, וגולל בתוך עצמו */
+/* הגלובוס: שכבה קבועה על כל המסך, אחות של ההדמיה. שורת הנתונים, השעונים ושורת המספרים נשארים מעליו */
+#globeLayer{position:absolute;inset:0;background:#02060b;visibility:hidden;pointer-events:none}   /* מוסתר אבל בגודל מלא: כך MapLibre נבנה ברקע ומוכן כשמתרחקים */
+body.g-open #globeLayer{visibility:visible;pointer-events:auto}
+body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כבר נראה, אבל המגע עדיין שייך להדמיה */
+#globe{position:absolute;inset:0} #globe .maplibregl-canvas{outline:none}
+.g-vig{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(2,6,11,.62),rgba(2,6,11,.18) 15%,rgba(2,6,11,0) 27%),linear-gradient(to top,rgba(2,6,11,.55),rgba(2,6,11,0) 24%)}
+.g-ui{position:absolute;top:calc(var(--top) + 8px);left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 14px}
+.g-ui button{pointer-events:auto;border:0;background:none;color:var(--ink2);font:400 12.5px var(--ui);padding:9px 9px 7px;cursor:pointer;border-bottom:1px solid transparent;text-shadow:var(--sh)}
+.g-ui button:hover{color:#fff} .g-ui button[aria-pressed=true]{color:#fff;border-bottom-color:rgba(255,255,255,.85)}
+.g-ui #gBack{border:1px solid var(--hair);border-radius:3px;color:var(--ink);padding:7px 12px;background:rgba(7,17,26,.35)}
+.g-ui #gBack:hover{background:rgba(7,17,26,.7)}
+.g-chips{display:flex;gap:2px}
+.g-leg{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:11px;color:var(--ink3)}
+.g-leg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.g-leg i{display:inline-block;width:16px;height:0;border-top:2px solid #fff}
+.g-leg .l-todo{border-top:1.5px dashed rgba(255,255,255,.7)} .g-leg .l-fleet{width:7px;height:7px;border:0;border-radius:50%;background:rgba(240,246,249,.9)}
+.g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
+.g-scrub{position:absolute;left:calc(var(--ms) + 46px + env(safe-area-inset-left,0px));right:calc(var(--ls) + 46px + env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:12px;text-shadow:var(--sh)}
+.g-scrub button{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.g-scrub button:hover{background:rgba(7,17,26,.7)} .g-scrub button svg{width:16px;height:16px}
+.g-scrub .sc-track{position:relative;flex:1;min-width:0;padding-bottom:13px}
+.g-scrub input[type=range]{-webkit-appearance:none;appearance:none;width:100%;margin:0;height:22px;background:transparent;direction:ltr;cursor:pointer}
+.g-scrub input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(225,236,243,.6)}
+.g-scrub input[type=range]::-moz-range-track{height:1px;background:rgba(225,236,243,.6)}
+.g-scrub input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;margin-top:-6px;border-radius:50%;background:#f2f6f8;border:0;box-shadow:0 0 4px rgba(3,10,16,.9)}
+.g-scrub input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#f2f6f8;border:0}
+.g-scrub .sc-ticks{position:absolute;left:8px;right:8px;bottom:0;height:12px;direction:ltr;pointer-events:none}
+.g-scrub .sc-ticks span{position:absolute;transform:translateX(-50%);font-size:9.5px;color:var(--ink3);white-space:nowrap;direction:rtl}
+.g-scrub output{flex:none;min-width:11em;text-align:end;font-size:12px;color:var(--ink);direction:rtl;padding-bottom:13px}
+.g-scrub output .num{font-family:var(--inst);direction:ltr;unicode-bidi:isolate;display:inline-block}
+#globeLayer .maplibregl-ctrl-top-left{top:calc(var(--top) + 2px);left:calc(6px + env(safe-area-inset-left,0px))}
+#globeLayer .maplibregl-ctrl-attrib{background:rgba(7,17,26,.6);color:var(--ink2);font:11px var(--ui)} #globeLayer .maplibregl-ctrl-attrib a{color:var(--ink2)}
+#globeLayer .maplibregl-popup-content{background:rgba(7,17,26,.94);color:#eef4f7;border:1px solid var(--hair);border-radius:4px;padding:7px 11px;font:12.5px/1.4 var(--ui);box-shadow:none}
+#globeLayer .maplibregl-popup-tip{display:none} .gl-pop b{display:block;font-weight:500;font-size:13.5px}
+.gl-fail{position:absolute;inset:40% 16px auto;text-align:center;color:var(--ink2);font-size:.95rem}
+body.g-open #labels,body.g-open .ly,body.g-open .lnm,body.g-open .lay-ring{display:none}
+body.g-open .mini canvas{opacity:.95}
+body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35)}
+
+/* "המסע והניתוח": נפתח מעל החלון, וגולל בתוך עצמו */
 #journey{position:fixed;inset:0;z-index:20;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#06121b;color:#eef4f7}
 .j-bar{position:sticky;top:0;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:calc(10px + env(safe-area-inset-top,0px)) calc(clamp(16px,4vw,44px) + env(safe-area-inset-right,0px)) 10px calc(clamp(16px,4vw,44px) + env(safe-area-inset-left,0px));
@@ -143,10 +230,14 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .j-bar b{font-weight:500;font-size:15px}
 .j-bar button{border:1px solid var(--hair);border-radius:3px;background:none;color:var(--ink);font:500 13px var(--ui);padding:8px 14px;cursor:pointer}
 .j-bar button:hover{background:rgba(255,255,255,.08)}
+#fleetTbl{margin-top:18px;overflow-x:auto} #fleetTbl table{width:100%;border-collapse:collapse;font-size:.95rem}
+#fleetTbl th{font-weight:400;color:#7f95a3;font-size:.8rem;text-align:start;padding:6px 10px;border-bottom:1px solid rgba(190,220,240,.26)}
+#fleetTbl td{padding:7px 10px;border-bottom:1px solid rgba(190,220,240,.12);white-space:nowrap} #fleetTbl td.nu,#fleetTbl th.nu{text-align:end;font-variant-numeric:tabular-nums;direction:ltr}
+#fleetTbl tr.me td{color:#fff;font-weight:500;border-bottom-color:#43d6cf}
 
 @media (max-width:700px), (max-height:520px){
   .topr em{display:none}
-  .mini,#menuBtn{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+  .mini{bottom:calc(62px + env(safe-area-inset-bottom,0px))} .lay{bottom:calc(81px + env(safe-area-inset-bottom,0px))}
   #menu{right:0;left:0;bottom:0;width:auto;max-height:72%;border-radius:10px 10px 0 0;border-bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   #toast{bottom:calc(206px + env(safe-area-inset-bottom,0px));font-size:12px}
   .hud{font-size:11px} .topr .r1{font-size:11.5px} .vit{font-size:11px} .vit b{font-size:12.5px}
@@ -159,13 +250,35 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
   .topr .row{display:contents}
   .topr .row>span+span::before,.vit>span+span::before{display:none}
   .topr .brk{display:block;flex-basis:100%;height:0}
+  .tstrip{flex-basis:100%;height:26px;margin-top:3px}
   .vit{gap:2px 1.2em}
 }
 @media (max-height:520px){
+  :root{--ms:84px;--ls:112px}
   #toast{bottom:calc(30px + env(safe-area-inset-bottom,0px))}
-  .mini{width:84px;bottom:calc(34px + env(safe-area-inset-bottom,0px))} .mini span{display:none}
-  #menuBtn{bottom:calc(34px + env(safe-area-inset-bottom,0px));padding:6px 12px}
+  .mini{bottom:calc(34px + env(safe-area-inset-bottom,0px))} .mini span{display:none}
+  .lay{bottom:calc(46px + env(safe-area-inset-bottom,0px))} .ly .n{font-size:9.5px} .lnm{font-size:9.5px}
   #menu{left:auto;right:0;top:0;bottom:0;width:min(330px,56%);max-height:none;border-radius:0}
+  .g-scrub{bottom:calc(38px + env(safe-area-inset-bottom,0px))} .g-leg{display:none}
+}
+/* טלפון לאורך: שלושה כפתורים עגולים נפרדים בטור בשוליים הימניים, בגובה האגודל, והתפריט קטן מתחתם */
+@media (max-width:700px) and (min-height:521px){
+  .lay{width:48px;height:auto;right:calc(4px + env(safe-area-inset-right,0px));bottom:calc(62px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center}
+  .lay-ring{display:none}
+  .lnm{position:static;transform:none;font-size:10px;line-height:1;margin-top:7px}
+  .ly{position:relative;inset:auto;width:48px;height:auto;min-height:48px;display:grid;justify-items:center;align-content:start;gap:1px;padding:3px 0 0;clip-path:none;-webkit-mask-image:none;mask-image:none;background:none!important}
+  .ly .ic,.ly .n,.ly .dot{position:static;transform:none}
+  .ly .ic{box-sizing:border-box;width:34px;height:34px;padding:7px;border:1px solid rgba(225,236,243,.55);border-radius:50%;filter:drop-shadow(0 0 2px rgba(3,10,16,.8))}
+  .ly[aria-pressed=true] .ic{background:rgba(255,255,255,.10)}
+  .ly .n{font-size:9.5px;line-height:1.1}
+  .ly .dot{position:absolute;right:3px;top:3px;width:5px;height:5px}
+  #menuBtn{position:relative;left:auto;top:auto;transform:none;width:44px;height:44px;margin-top:8px}
+  #menuBtn::before{content:"";position:absolute;inset:7px;border:1px solid rgba(225,236,243,.55);border-radius:50%}
+  #menuBtn svg{width:13px;height:13px}
+  .g-scrub{left:calc(14px + env(safe-area-inset-left,0px));right:calc(58px + env(safe-area-inset-right,0px));bottom:calc(62px + 19px + var(--ms) + 12px + env(safe-area-inset-bottom,0px));gap:8px}
+  .g-scrub output{min-width:0;max-width:7.2em;white-space:normal;line-height:1.2;font-size:11px}
+  .g-leg{display:none}
+  body.g-open .lay{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
 }
 </style>
 </head>
@@ -175,6 +288,25 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 <main id="stage">
   <canvas id="sea" aria-label="אקסודוס בים, בתנאים של הרגע הזה"></canvas>
   <div class="vig"></div>
+
+  <!-- הגלובוס: שכבה קבועה על כל המסך. MapLibre נטען והגלובוס נבנה ברקע, מוסתר, כמה שניות אחרי הפריים הראשון -->
+  <section id="globeLayer" aria-hidden="true" aria-label="הגלובוס: המסלול, הצי ונקודות החובה">
+    <div id="globe"></div>
+    <div class="g-vig"></div>
+    <div class="g-ui">
+      <button type="button" id="gBack">חזרה אל הסירה</button>
+      <!-- תפריט המבטים (אקסודוס / הצי / כל העולם) הוסר ב-21.9: הזום לבדו מוביל מהסירה אל החלל -->
+      <div class="g-leg"><span><i></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span></div>
+    </div>
+    <div class="g-scrub" id="scrub">
+      <button type="button" id="scPlay" aria-label="נגן את המסע מהזינוק"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="scIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+      <div class="sc-track">
+        <input type="range" id="scRange" min="0" max="1000" value="1000" step="1" aria-label="פס זמן: מהזינוק ועד עכשיו">
+        <div class="sc-ticks" id="scTicks"></div>
+      </div>
+      <output id="scOut" class="num">—</output>
+    </div>
+  </section>
 
   <header class="hud topr" aria-label="נתוני הרגע">
     <div class="row r1">
@@ -197,6 +329,12 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
       <span id="hRainW" hidden><i>גשם</i><b class="n" id="hRain">—</b></span>
       <span id="hTempW"><i>אוויר / מים</i><b class="n" id="hTemp">—</b></span>
     </div>
+    <div class="tstrip" id="tstrip">
+      <canvas id="tsCv" aria-hidden="true"></canvas>
+      <input type="range" id="tsRange" min="0" max="1000" value="1000" step="1" aria-label="רצועת הזמן: רוח, גל, לחץ ואור היום לאורך היממות. שמאלה לאחור, ימינה קדימה">
+      <b class="n" id="tsRead" aria-hidden="true"></b>
+      <button type="button" id="tsNow" hidden>עכשיו</button>
+    </div>
   </header>
 
   <div class="hud clocks" aria-label="שלושה שעונים">
@@ -207,8 +345,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 
   <div id="labels" aria-hidden="true"></div>
 
-  <button type="button" class="mini" id="mini" aria-label="מפת המיקומים: הקשה פותחת את המסע על הגלובוס">
-    <canvas id="miniCv" width="300" height="300"></canvas><span>הצי מסביב · 900 מייל</span>
+  <button type="button" class="mini" id="mini" aria-label="מפת המיקומים, הצי מסביב ב-900 מייל. הקשה פותחת את המסע והניתוח: הסיפור, הצי, התחזית, הסקסטנט והניתוח המלא">
+    <canvas id="miniCv" width="300" height="300"></canvas><span>המסע והניתוח</span>
   </button>
 
   <div class="hud vit" aria-label="מספרי המרוץ">
@@ -220,19 +358,22 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 
   <div id="toast" class="off" role="status"></div>
 
-  <button type="button" id="menuBtn" aria-expanded="false" aria-controls="menu">תפריט</button>
+  <!-- רוח, גל, זרם: שלושה שלישים של עיגול אחד (בטלפון לאורך: שלושה עיגולים בטור). התפריט בטבור -->
+  <button type="button" id="sndBtn" aria-pressed="true" aria-label="קול פועל, להשתקה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z"/><path class="wv" d="M15.4 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4"/><path class="mute" d="M15.6 9.8l4.6 4.6M20.2 9.8l-4.6 4.6"/></svg></button>
+  <div class="lay" id="lay" role="group" aria-label="מה מסומן על המים ובאוויר">
+    <svg class="lay-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="49.5"/><circle cx="50" cy="50" r="15"/>
+      <line x1="62.99" y1="42.5" x2="92.87" y2="25.25"/><line x1="50" y1="65" x2="50" y2="99.5"/><line x1="37.01" y1="42.5" x2="7.13" y2="25.25"/></svg>
+    <span class="lnm lnm-wind" aria-hidden="true">רוח</span>
+    <button type="button" class="ly ly-wind" data-layer="wind" aria-pressed="true" aria-label="רוח"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M12,20 H26 A6.5,6.5 0 1 0 19.6,14.8 M4,27 H40 A7.5,7.5 0 1 0 32.6,21 M12,34 H30 A6,6 0 1 1 24.1,38.8"/></svg><b class="n" id="lyWind">—</b><i class="dot"></i></button>
+    <span class="lnm lnm-wave" aria-hidden="true">גל</span>
+    <button type="button" class="ly ly-wave" data-layer="wave" aria-pressed="true" aria-label="גל"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M3,31 C6,34 10,34 14,31.5 C20,27.5 23,14 30,13 C35,12.5 37.5,17.5 35.5,22 C35,20 33.5,19.5 32,20.5 C28.5,23 29.5,31.5 34.5,32.5 C38,33.2 41,32.5 45,32"/></svg><b class="n" id="lyWave">—</b><i class="dot"></i></button>
+    <span class="lnm lnm-cur" aria-hidden="true">זרם</span>
+    <button type="button" class="ly ly-cur" data-layer="cur" aria-pressed="true" aria-label="זרם"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M4,24 C7,17 11,17 14,24 C17,31 21,31 24,24 C26,19.5 29,19 32,21.5 C34,23.2 36,24 41,24 M38,19.3 L42,24 L38,28.7"/></svg><b class="n" id="lyCur">—</b><i class="dot"></i></button>
+    <button type="button" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-label="תפריט"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button>
+  </div>
+
   <nav id="menu" hidden aria-label="תפריט">
     <button type="button" class="x" id="menuX" aria-label="סגירת התפריט">×</button>
-    <button type="button" class="big" id="mJourney">המסע, הצי והתחזית<small>הגלובוס, המרוץ כרגע, 24 השעות הקרובות והסקסטנט</small></button>
-    <a class="big" href="deep-dive.html">הניתוח המלא<small id="mStory">היממה האחרונה, ההחלטות, הפער, התחזיות ומבחן התחזיות הקודמות</small></a>
-    <div class="grp"><span>מבט</span>
-      <button type="button" data-cam="orbit" aria-pressed="true">מסביב לסירה</button>
-      <button type="button" data-cam="deck" aria-pressed="false">מהסיפון</button>
-      <button type="button" data-cam="dive" aria-pressed="false">מתחת למים</button></div>
-    <div class="grp"><span>מה מסומן על המים ובאוויר</span>
-      <button type="button" data-layer="wind" aria-pressed="true">רוח</button>
-      <button type="button" data-layer="wave" aria-pressed="true">גל</button>
-      <button type="button" data-layer="cur" aria-pressed="true">זרם</button></div>
     <div class="grp"><span>עוד</span>
       <button type="button" id="bSound" aria-pressed="false">קול</button>
       <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
@@ -245,46 +386,21 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
   <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>
 </main>
 
-<!-- ============ "המסע": כל מה שהיה מתחת לקפל בדף הקודם. נפתח מעל החלון, והקבצים שלו נטענים רק אז ============ -->
-<section id="journey" hidden aria-label="המסע, הצי והתחזית">
+<!-- ============ "המסע והניתוח": הסיפור, הצי, קנה המידה, התחזית, הסקסטנט והקישור לניתוח המלא. נפתח מכפתור מפת המיקומים,
+     והקבצים שלו נטענים רק אז. הגלובוס כבר לא כאן: הוא שכבה קבועה משלו. ============ -->
+<section id="journey" hidden aria-label="המסע והניתוח">
   <div class="j-bar"><b>יומן אקסודוס</b><button type="button" id="jBack">חזרה אל הסירה</button></div>
 
   <div class="band j-lead">
     <p class="j-story" id="jLead"></p>
+    <p class="j-more" id="voyLine" style="display:block;text-decoration:none"></p>
     <a class="j-more" href="deep-dive.html">לניתוח המלא</a>
   </div>
-
-  <section id="voyage" class="band">
-    <header class="sec">
-      <h2>המסע</h2>
-      <p id="voyLine"></p>
-    </header>
-    <div class="globebox">
-      <div id="globe" aria-label="גלובוס: המסלול שנעשה, המסלול שנותר, הצי ונקודות החובה"></div>
-      <div class="globe-ui">
-        <div class="chips" id="globeChips">
-          <button type="button" data-fly="boat" aria-pressed="true">אקסודוס</button>
-          <button type="button" data-fly="fleet">הצי</button>
-          <button type="button" data-fly="world">כל העולם</button>
-        </div>
-        <div class="gl-legend">
-          <span><i class="l-done"></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span>
-        </div>
-      </div>
-      <div class="scrub" id="scrub">
-        <button type="button" id="scPlay" aria-label="נגן את המסע מהזינוק"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="scIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
-        <div class="sc-track">
-          <input type="range" id="scRange" min="0" max="1000" value="1000" step="1" aria-label="פס זמן: מהזינוק ועד עכשיו">
-          <div class="sc-ticks" id="scTicks"></div>
-        </div>
-        <output id="scOut" class="num">—</output>
-      </div>
-    </div>
-  </section>
 
   <section id="race" class="band">
     <header class="sec"><h2>המרוץ כרגע</h2><p id="raceLine"></p></header>
     <div class="racebox"><svg id="raceSvg" role="img" aria-label="הצי לפי המרחק שנותר לכל סירה עד קו הסיום"></svg><div class="tip" id="raceTip" hidden></div></div>
+    <div id="fleetTbl"></div>
   </section>
 
   <section id="scale" class="band">
@@ -318,7 +434,7 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
         <li><b>מודל.</b> הרוח, הגלים, הזרם, הלחץ, העננות, הראות והטמפרטורות, ממודל אטמוספרי ואוקיינוגרפי ולא ממדידה בסירה. כיוון: ‎±20–30 מעלות. הגל בים פועם בזמן המחזור האמיתי שלו, ונחשי הזרם נעים במהירות האמיתית שלו.</li>
         <li><b>סימנים.</b> על טבעת המצפן: נוצת רוח כמו במפות מזג אוויר (נוצה מלאה 10 קשר, חצי נוצה 5), חץ גלי לזרם כמו במפות ימיות, קשתות לגל, מעוין ליעד הבא וקו כפול לכיוון ההתקדמות.</li>
         <li><b>מוסק.</b> מצב המפרשים: אין עליו שום נתון. הוא נגזר מזווית הרוח ומעוצמתה. כרגע: <span id="pvSail">—</span>, רוח ב־<span class="num" id="pvTwa">—</span>°.</li>
-        <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, מעקה הטיק, הסוכך הכתום, דגל ישראל על מפרשי החרטום והמספר 07.</li>
+        <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, הסיפון הכתום, מעקה הטיק האפור, הסוכך הכתום, דגל ישראל על מפרשי החרטום והמספר 07. המידות: באבא 35, לפי השלט שעל הרציף.</li>
         <li><b>סכמטי.</b> המסלול שנותר על הגלובוס הוא קו בין נקודות החובה, לא תחזית ניווט.</li>
       </ul>
     </details>

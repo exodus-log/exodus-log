@@ -211,11 +211,7 @@ function lazy(target,fn,margin){ if(!target) return; var done=false;
   function go(){ if(done) return; done=true; fn(); }
   if(!('IntersectionObserver' in window)){ setTimeout(go,1500); return; }
   var io=new IntersectionObserver(function(en){ if(en[0].isIntersecting){ io.disconnect(); go(); } },{rootMargin:margin||'700px 0px'}); io.observe(target); }
-var landP=null; function needLand(){ return landP||(landP=loadScript('assets/geo/land50.js')); }
-lazy($('voyage'),function(){
-  loadCss('assets/vendor/maplibre-gl.css');
-  Promise.all([loadScript('assets/vendor/maplibre-gl.js'),needLand()]).then(function(){ return loadScript('assets/v2/globe.js'); })
-    .catch(function(){ $('globe').innerHTML='<div class="gl-fail">הגלובוס לא נטען. רענון הדף בדרך כלל פותר את זה.</div>'; }); },'900px 0px');
+var landP=null; function needLand(){ return landP||(landP=(typeof LAND50!=='undefined')?Promise.resolve():loadScript('assets/geo/land50.js')); }
 lazy($('sextant'),function(){ needLand().then(function(){ return loadScript('assets/v2/sextant.js'); }).catch(function(){ $('sextant').style.display='none'; }); },'500px 0px');
 
 /* ================= הפעלה ================= */
