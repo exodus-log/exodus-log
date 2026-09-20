@@ -1,0 +1,60 @@
+name: update-data
+# Refreshes assets/data.js from the race tracker (pro.yb.tl) and Open-Meteo, with no Claude involved.
+# The mode comes from the repository variable EXO_MODE:
+#   compare (the default while it is unset) - writes nothing to the site; the run summary compares
+#                                             the script's numbers with the live data.js
+#   publish                                 - commits assets/data.js when there is a new position fix
+# STORY is never touched: the story sentence stays with the Claude refresh.
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'compare or publish (empty = the EXO_MODE variable)'
+        required: false
+        default: ''
+      weather:
+        description: 'compare mode: fetch weather on this run too'
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Compute
+        id: run
+        env:
+          EXO_MODE: ${{ inputs.mode || vars.EXO_MODE || 'compare' }}
+          EXO_WEATHER: ${{ inputs.weather && '1' || '' }}
+        run: node scripts/update-data.mjs
+      - name: Keep the files for comparison
+        if: always() && (failure() || (inputs.mode || vars.EXO_MODE || 'compare') == 'compare')
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-${{ github.run_id }}
+          path: out/
+          retention-days: 5
+          if-no-files-found: ignore
+      - name: Publish
+        if: steps.run.outputs.changed == 'true'
+        env:
+          MSG: ${{ steps.run.outputs.message }}
+        run: |
+          git config user.name "exodus-log data bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data.js
+          git commit -m "$MSG"
+          git push origin HEAD:main || (git pull --rebase origin main && git push origin HEAD:main)
