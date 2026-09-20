@@ -380,9 +380,13 @@ function fleetTable(){ var host=$('fleetTbl'); if(!host||host.firstChild||typeof
   var h='<table><thead><tr><th>מקום</th><th>סירה</th><th class="nu">עד קו הסיום</th><th class="nu">פער מהמוביל</th><th class="nu">24 שעות</th></tr></thead><tbody>';
   FLEET.forEach(function(b){ var gap=Math.round(b[5]-lead); h+='<tr'+(b[1]===4?' class="me"':'')+'><td>'+b[0]+'</td><td>'+String(b[4]).replace(/&/g,'&amp;').replace(/</g,'&lt;')+(b[1]===4?' · אקסודוס':'')+'</td><td class="nu">'+thou(b[5])+'</td><td class="nu">'+(gap<=0?'—':thou(gap))+'</td><td class="nu">'+(b[6]!=null?Math.round(b[6]):'—')+'</td></tr>'; });
   host.innerHTML=h+'</tbody></table>'; }
+/* מי פתח את המסע: אחרי הסגירה הפוקוס חוזר אליו. עד כה הוא נפל אל body, ומשתמש מקלדת
+   או קורא מסך התחיל שוב מראש הדף בכל פעם. */
+var jOpener=null;
 function openJourney(section){
   if(gOpen) closeGlobe(false);
-  if(!jOpen){ jOpen=true; J.hidden=false; document.body.classList.add('j-open'); if(LIVE) EXO.pause(true);
+  if(!jOpen){ jOpener=(document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
+    jOpen=true; J.hidden=false; document.body.classList.add('j-open'); if(LIVE) EXO.pause(true);
     if(AU&&auOn) AU.master.gain.setTargetAtTime(0.05,AU.ac.currentTime,0.3);
     try{ history.pushState({exoJourney:1},''); jPushed=true; }catch(e){ jPushed=false; }
     fleetTable();
@@ -394,11 +398,25 @@ function openJourney(section){
 }
 function closeJourney(fromPop){ if(!jOpen) return; jOpen=false; J.hidden=true; document.body.classList.remove('j-open'); if(LIVE&&!gOpen) EXO.pause(false);
   if(AU&&auOn) AU.master.gain.setTargetAtTime(0.9,AU.ac.currentTime,0.3);
-  if(!fromPop&&jPushed){ jPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
+  if(!fromPop&&jPushed){ jPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } }
+  var back=jOpener||document.querySelector('.mini'); jOpener=null; if(back&&back.focus) try{ back.focus({preventScroll:true}); }catch(e){} }
 window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return; } if(jOpen){ jPushed=false; closeJourney(true); } else if(gOpen){ gPushed=false; closeGlobe(true); } });
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); menuBtn.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+/* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
+   מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
+   במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
+   המאיץ, המסירה אל הגלובוס והחזרה ממנו. Ctrl/Cmd עם +/− הם זום הדפדפן ונשארים שלו. */
+document.addEventListener('keydown',function(ev){
+  if(ev.ctrlKey||ev.metaKey||ev.altKey||jOpen||menuOpen) return;
+  var t=ev.target; if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  var k=ev.key, dir=(k==='-'||k==='_'||k==='Subtract')?1:(k==='+'||k==='='||k==='Add')?-1:0; if(!dir) return;
+  var surf=gOpen?document.getElementById('globe'):document.getElementById('sea'); if(!surf) return;
+  ev.preventDefault();
+  var r=surf.getBoundingClientRect();
+  surf.dispatchEvent(new WheelEvent('wheel',{deltaY:dir*120,deltaMode:0,clientX:r.left+r.width/2,clientY:r.top+r.height/2,bubbles:true,cancelable:true}));
+});
 /* קישורים ישנים אל מקטעי הדף הקודם ממשיכים לעבוד; "המסע" הישן היה הגלובוס */
 (function(){ var h=(location.hash||'').replace('#','');
   if(h==='voyage'||h==='globe') setTimeout(function(){ openGlobe('boat'); },400);
