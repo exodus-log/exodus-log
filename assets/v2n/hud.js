@@ -352,6 +352,91 @@ document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menu
   if(h==='voyage'||h==='globe') setTimeout(function(){ openGlobe('boat'); },400);
   else if(['journey','race','scale','ahead','sextant','more'].indexOf(h)>=0) setTimeout(function(){ openJourney(h==='journey'?null:h); },400); })();
 
+/* ================= רצועת הזמן: תנאי הסביבה לאורך כל היממות שיש עליהן נתונים =================
+   דקה וקבועה, ממש מתחת לשורות הנתונים. הרקע הוא אור היום, מחושב מגובה השמש בנקודה של דניאל:
+   לילה כהה, דמדומים חמימים, יום בהיר. מעליו שטח הרוח, קו הגל וקו הלחץ. קו אנכי מפריד בין
+   מה שנמדד למה שחזוי. גרירה מזיזה את השעון של כל הדף — השמיים, הים, המפרשים והשורות שלמעלה. */
+var TS={cv:$('tsCv'), rng:$('tsRange'), read:$('tsRead'), now:$('tsNow'), box:$('tstrip')};
+var TS_T0=0, TS_T1=0, TS_OBS=0, tsScrub=false, tsW=0, tsH=0, tsPaint=0;
+function tsReady(){ return !!(TS.cv&&TS.rng&&typeof COND!=='undefined'&&COND.length>2); }
+function tsSpan(){ TS_T0=Date.parse(COND[0][0]+'Z'); TS_T1=Date.parse(COND[COND.length-1][0]+'Z');
+  TS_OBS=(typeof OBS_UNTIL!=='undefined')?OBS_UNTIL:TS_T1; }
+function tsTimeOf(v){ return TS_T0+(TS_T1-TS_T0)*(v/1000); }
+function tsValOf(t){ return clamp(Math.round((t-TS_T0)/(TS_T1-TS_T0)*1000),0,1000); }
+function tsLive(){ return LIVE?(Date.now()+(EXO.clockOff?EXO.clockOff():0)):Date.now(); }
+/* גובה השמש לאורך הרצועה. מחושב פעם אחת לכל עמודה ונשמר, כי הוא לא משתנה בין ציור לציור. */
+var tsSun=null;
+function tsSunAt(t){ if(LIVE&&EXO.astro&&EXO.astro.sunPos) return EXO.astro.sunPos(t,FIX.lat,FIX.lon).alt*R2D;
+  return 20*Math.sin((t/3600000+FIX.lon/15-6)/12*Math.PI); }
+function tsDraw(){
+  if(!tsReady()) return;
+  var cv=TS.cv, r=TS.box.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+  var W=Math.max(80,Math.round(r.width)), H=Math.max(18,Math.round(r.height));
+  if(W!==tsW||H!==tsH||cv.width!==Math.round(W*dpr)){ tsW=W; tsH=H; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); tsSun=null; }
+  var x=cv.getContext('2d'); if(!x) return;
+  x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  var span=TS_T1-TS_T0, i, px, t;
+  /* הרקע: אור היום. עמודה אחת לכל פיקסל, בלי מעבר חד בין לילה ליום */
+  if(!tsSun||tsSun.length!==W){ tsSun=new Float32Array(W); for(i=0;i<W;i++) tsSun[i]=tsSunAt(TS_T0+span*(i+0.5)/W); }
+  for(i=0;i<W;i++){ var a=tsSun[i], day=clamp((a+4)/10,0,1), dusk=Math.max(0,1-Math.abs(a+1)/8);
+    var R=Math.round(5+day*36+dusk*54), G=Math.round(11+day*64+dusk*24), B=Math.round(20+day*92+dusk*3);
+    x.fillStyle='rgb('+R+','+G+','+B+')'; x.fillRect(i,0,1.02,H); }
+  /* הגבול בין מה שנמדד למה שחזוי: קו מקווקו, והצד החזוי מעומעם קלות */
+  var obsX=(TS_OBS-TS_T0)/span*W;
+  if(obsX>0&&obsX<W){ x.fillStyle='rgba(2,8,14,.13)'; x.fillRect(obsX,0,W-obsX,H);
+    x.fillStyle='rgba(205,225,238,.50)'; for(i=0;i<H;i+=4) x.fillRect(obsX-0.5,i,1,2.4); }
+  /* חצות ואמצע היום, לפי השעון של דניאל */
+  x.fillStyle='rgba(205,225,238,.16)';
+  var h0=Math.ceil((TS_T0+FIX.lon/15*3600000)/3600000), h1=Math.floor((TS_T1+FIX.lon/15*3600000)/3600000);
+  for(i=h0;i<=h1;i++){ var hh=((i%24)+24)%24; if(hh!==0&&hh!==12) continue;
+    px=(i*3600000-FIX.lon/15*3600000-TS_T0)/span*W; x.fillRect(px-0.5,hh===0?0:H-4,1,hh===0?H:4); }
+  /* שלושה גדלים, כל אחד מנורמל לטווח שלו: רוח כשטח, גל וֹלחץ כקווים */
+  function series(col,cap,wid,fill){
+    var lo=1e9, hi=-1e9, v=[]; for(i=0;i<COND.length;i++){ var q=col(COND[i]); v.push(q); if(q!=null){ if(q<lo) lo=q; if(q>hi) hi=q; } }
+    if(hi<=-1e8) return; if(hi-lo<1e-6) hi=lo+1;
+    var pad2=(hi-lo)*0.18; lo-=pad2; hi+=pad2;
+    x.beginPath();
+    for(i=0;i<COND.length;i++){ if(v[i]==null) continue;
+      px=(Date.parse(COND[i][0]+'Z')-TS_T0)/span*W; var py=H-2-(v[i]-lo)/(hi-lo)*(H-5);
+      if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+    if(fill){ x.lineTo(W,H); x.lineTo(0,H); x.closePath(); x.fillStyle=fill; x.fill(); }
+    else { x.strokeStyle=cap; x.lineWidth=wid; x.lineJoin='round'; x.stroke(); } }
+  series(function(c){ return c.length>=15?c[9]:null; },'rgba(207,230,255,.34)',1,null);   /* לחץ, מאחור */
+  series(function(c){ return c[1]; },null,0,'rgba(231,241,248,.13)');            /* רוח: שטח */
+  series(function(c){ return c[1]; },'rgba(244,249,252,.90)',1.1,null);          /* רוח: קו */
+  series(function(c){ return c[4]; },'rgba(143,227,222,.95)',1.25,null);         /* גל */
+  /* הסמן: איפה השעון של הדף עומד */
+  var tn=tsLive(); px=clamp((tn-TS_T0)/span*W,0,W);
+  x.fillStyle=tsScrub?'#8fe3de':'rgba(255,255,255,.92)'; x.fillRect(px-1,0,2,H);
+  x.beginPath(); x.arc(px,H-2.5,2.4,0,6.283); x.fill();
+  /* עכשיו האמיתי, כשמעיינים בעבר או בעתיד */
+  if(tsScrub){ var pr=clamp((Date.now()-TS_T0)/span*W,0,W);
+    x.fillStyle='rgba(255,255,255,.34)'; x.fillRect(pr-0.5,0,1,H); } }
+function tsLabel(t){ var d=new Date(t+FIX.lon/15*3600000);
+  return pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'  '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()); }
+function tsSet(off,fromUser){
+  if(!LIVE||!EXO.setClock) return;
+  EXO.setClock(off);
+  tsScrub=(off!==0);
+  TS.box.classList.toggle('scrub',tsScrub);
+  if(TS.now) TS.now.hidden=!tsScrub;
+  if(TS.read) TS.read.textContent=tsScrub?tsLabel(Date.now()+off):'';
+  if(!fromUser) TS.rng.value=tsValOf(tsLive());
+  tsDraw(); }
+function tsInit(){
+  if(!tsReady()){ if(TS.box) TS.box.hidden=true; return; }
+  tsSpan();
+  if(!LIVE||!EXO.setClock){ TS.rng.disabled=true; TS.rng.tabIndex=-1; }
+  TS.rng.value=tsValOf(tsLive());
+  TS.rng.addEventListener('input',function(){ tsSet(tsTimeOf(+TS.rng.value)-Date.now(),true); });
+  TS.rng.addEventListener('dblclick',function(){ tsSet(0); });
+  if(TS.now) TS.now.addEventListener('click',function(){ tsSet(0); TS.rng.focus(); });
+  tsDraw();
+  /* בזמן אמת הסמן זוחל לבד; פעם בדקה די והותר */
+  setInterval(function(){ if(!tsScrub&&!document.hidden){ TS.rng.value=tsValOf(tsLive()); tsDraw(); } },60000);
+  window.addEventListener('resize',function(){ clearTimeout(tsPaint); tsPaint=setTimeout(function(){ tsSun=null; tsDraw(); },160); });
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(tsDraw); }
+
 /* ================= הפעלה ================= */
 function staticState(){ var now=Date.now(), best=null, bd=1e18, i; if(typeof COND!=='undefined') for(i=0;i<COND.length;i++){ var t=Date.parse(COND[i][0]+'Z'), dd=Math.abs(t-now); if(dd<bd){ bd=dd; best=COND[i]; } }
   var c=best?{wind:best[1],gust:best[2],windDir:best[3],waveH:best[4],waveT:best[5],waveDir:best[6],cur:best[7],curDir:best[8],
@@ -361,7 +446,7 @@ measure(); frameScene(); drawMini();
 if(LIVE){ EXO.on(function(s){ renderHud(s); drawMini(); if(s.qualityAuto) paintLite(true); }); }
 else { renderHud(staticState()); setInterval(function(){ renderHud(staticState()); },30000); }
 window.addEventListener('resize',function(){ measure(); frameScene(); SZ={}; if(LIVE&&EXO.state) renderHud(EXO.state); measureTop(); });
-setTimeout(measureTop,300); setTimeout(measureTop,2500);
+tsInit(); setTimeout(measureTop,300); setTimeout(measureTop,2500);
 /* קטלוג הכוכבים: רק אחרי שהסצנה כבר רצה. המנוע מזהה אותו לבד בפריים הבא; בלעדיו נשארים כוכבי הרעש */
 if(LIVE) idle(function(){ loadScript('assets/v2n/stars.js').then(function(){ if(EXO.kick) EXO.kick(); }).catch(function(){}); },2600);
 idle(function(){ loadScript('assets/v2n/coast.js').then(function(){ NEAR=null; drawMini(); }).catch(function(){}); },1800);

@@ -2274,6 +2274,13 @@ EXO.setLayer=function(name,on){ EXO.layers[name]=!!on; kick(); };
 EXO.setQuality=function(q,auto){ EXO.quality=q; if(!auto) EXO.qualityLocked=true; resize();
   if(EXO.state){ EXO.state.quality=q; EXO.state.qualityAuto=!!auto;
     for(var i=0;i<EXO._on.length;i++){ try{ EXO._on[i](EXO.state); }catch(e){} } } kick(); };
+/* צעד הגלגלת. הבסיס גדל מ-0.00135 ל-0.0019, ומעליו מאיץ שמזהה סיבוב רצוף.
+   אותו מאיץ משרת גם את הגלובוס, כך שסיבוב אחד עובר את כל הציר בלי לאבד את התאוצה בהצלבה. */
+var whT=0, whA=1;
+function wheelStep(){ var n=performance.now(), d=n-whT; whT=n;
+  if(d<90) whA=Math.min(3.2,whA*1.30); else if(d<230) whA=Math.min(3.2,whA*1.07); else whA=1;
+  return 0.0019*whA; }
+EXO.wheelStep=wheelStep;
 EXO.zoomBy=function(f){ cam.r=clamp(cam.r*f,9,150); kick(); };
 function homeR(){ return EXO.view.r||((C.clientWidth/Math.max(1,C.clientHeight))<0.8?27:23); }
 EXO.reframe=function(){ if(cam.u===undefined||(cam.u>=0&&cam.u<=U_MAX)) cam.r=homeR(); kick(); };
@@ -2288,6 +2295,10 @@ EXO.setCam=function(mode){ cam.auto=false; camFly=null; cam.tilt=0; cam.vaz=cam.
 EXO.dive=function(down){ LAB.cam='orbit'; EXO.lookToward((((-cam.az*R2D)%360)+360)%360,{el:down?-0.40:0.26,dur:1500}); };
 EXO.setZoom=function(r){ setU(uOfR(clamp(r,9,150)),true); camGlide=null; kick(); };
 EXO.setEl=function(v){ cam.el=v; kick(); };
+/* הזזת השעון: התנאים, השמש, הירח והמפרשים נגזרים ממנו, ולכן די בלחשב מחדש פעם אחת ולשדר. */
+EXO.setClock=function(off){ T_OFF=off||0; EXO.simulated=(T_OFF!==0);
+  var n=clockNow(); cond=pickCond(n); condAt=n; applyConditions(cond); emitState(cond,n); kick(); };
+EXO.clockOff=function(){ return T_OFF; };
 EXO.kick=function(){ kick(); };
 EXO.pause=function(on){ EXO.paused=!!on; if(!on) kick(); };
 cam.r=homeR();
@@ -2337,7 +2348,7 @@ C.addEventListener('wheel',function(e){
   if(cam.u===undefined) cam.u=uOfR(cam.r);
   if(uCeil()===U_MAX&&cam.u>=U_MAX-0.004&&e.deltaY>0&&EXO.onZoomOut) EXO.onZoomOut();
   var dz=e.deltaMode===1?e.deltaY*16:(e.deltaMode===2?e.deltaY*400:e.deltaY);
-  setU(cam.u+clamp(dz,-180,180)*0.00135);
+  setU(cam.u+clamp(dz,-180,180)*wheelStep());
   cam.auto=false; e.preventDefault(); kick();
 },{passive:false});
 

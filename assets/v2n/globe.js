@@ -230,8 +230,10 @@ function addGrid(){
      וקו החוף הווקטורי, בדיוק כמו קודם. הכתובת לא נבדקה מסביבת הבנייה (אין ממנה גישה לרשת); לבדוק בתצוגה המקדימה. */
   try{ if(navigator.onLine!==false){
     map.addSource('gibs',{type:'raster',tiles:['https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg'],tileSize:256,minzoom:4,maxzoom:8,attribution:'NASA GIBS'});
-    map.addLayer({id:'gibs',type:'raster',source:'gibs',minzoom:4,paint:{'raster-opacity':['interpolate',['linear'],['zoom'],4,0,4.8,1],'raster-fade-duration':0,'raster-saturation':-0.08}},'land-fill');
-    var gibsOk=false; map.on('sourcedata',function(e){ if(!gibsOk&&e.sourceId==='gibs'&&e.tile&&e.tile.state==='loaded'){ gibsOk=true; map.setPaintProperty('land-fill','fill-opacity',0); } });
+    map.addLayer({id:'gibs',type:'raster',source:'gibs',minzoom:4,paint:{'raster-opacity':['interpolate',['linear'],['zoom'],4,0,4.8,1],'raster-fade-duration':180,'raster-saturation':-0.08}},'land-fill');
+    var gibsOk=false; map.on('sourcedata',function(e){ if(!gibsOk&&e.sourceId==='gibs'&&e.tile&&e.tile.state==='loaded'){ gibsOk=true;
+      /* לא מכבים את היבשה בבת אחת: בזום 4 עד 5 האריחים עוד נטענים, וכיבוי מיידי גרם ליבשות להיעלם ולחזור */
+      map.setPaintProperty('land-fill','fill-opacity',['interpolate',['linear'],['zoom'],4.2,0,5.0,0.9,5.8,0]); } });
     map.on('error',function(){});      /* אריח שלא הגיע הוא לא שגיאה של האתר */
   } }catch(e){}
   map.addLayer({id:'grid10',type:'line',source:'grid',minzoom:3,filter:['==',['get','k'],'g10'],paint:{'line-color':GC,'line-width':0.6,'line-opacity':0.08}},'night');
@@ -264,7 +266,7 @@ function addNames(){
 function mppAt(z){ return 78271.517*Math.cos(here[1]*Math.PI/180)/Math.pow(2,z); }
 function zForWidth(w){ return Math.log(78271.517*Math.cos(here[1]*Math.PI/180)*Math.max(1,box.clientWidth)/Math.max(1,w))/Math.LN2; }
 function widthForZ(z){ return mppAt(z)*Math.max(1,box.clientWidth); }
-var armB=0, retArmed=false, pulling=false, tracking=false;
+var armB=0, retArmed=false, tracking=false;
 window.__exoGlobeArm=function(brg){ try{ map.resize(); stop(); range.value=1000; draw(T1,true); retArmed=false;
   armB=((brg+540)%360)-180; map.jumpTo({center:here,bearing:armB}); }catch(e){} };
 /* ההדמיה מדווחת בכל פריים כמה מטרים רוחב היא מראה; הגלובוס מתיישר לזה בדיוק, בלי אנימציה. */
@@ -274,14 +276,21 @@ window.__exoGlobeTrack=function(widthM,brg){ try{
   map.jumpTo({center:here,zoom:z,bearing:armB?armB*Math.max(0,Math.min(1,(z-5.4)/3.0)):map.getBearing()});
   tracking=false; }catch(e){ tracking=false; } };
 window.__exoGlobeSettle=function(){ armB=0; };
+/* כל כתיבה אל המפה נדחית לפריים הבא: setCenter או setBearing בתוך אירוע zoom של אותה מפה
+   מאלצים חישוב טרנספורם נוסף באמצע הציור, וזה היה מקור לחלק מהקפיצות בהתרחקות. */
+var pendC=null, pendB=null, pRaf=0;
+function applyPend(){ pRaf=0; try{
+  if(pendB!==null){ var b=pendB; pendB=null; map.setBearing(b); }
+  if(pendC){ var c=pendC; pendC=null; map.setCenter(c); } }catch(e){} }
+function queuePend(){ if(!pRaf) pRaf=requestAnimationFrame(applyPend); }
 map.on('zoom',function(){ if(tracking) return; var z=map.getZoom();
-  if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/3.0)); map.setBearing(armB*k); if(k===0) armB=0; }
+  if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/3.0)); pendB=armB*k; queuePend(); if(k===0) armB=0; }
   if(z<7.6) retArmed=true; if(!retArmed||!window.__exoGlobeReturn||!window.EXO||!EXO.zoomAxis) return;
   var p=map.project(here), w=box.clientWidth, h=box.clientHeight, mid=(p.x>-w*0.15&&p.x<w*1.15&&p.y>-h*0.15&&p.y<h*1.15);
   /* ברור שמתקרבים אל הסירה ולא אל הצי: המרכז נמשך אליה, חזק יותר ככל שמתקרבים */
   var pull=Math.max(0,Math.min(0.30,(z-6.2)*0.075));
-  if(pull>0.004&&!pulling&&!map.isEasing()){ pulling=true; var c=map.getCenter();
-    map.setCenter([c.lng+(here[0]-c.lng)*pull,c.lat+(here[1]-c.lat)*pull]); pulling=false; }
+  if(pull>0.004&&!map.isEasing()){ var c=map.getCenter();
+    pendC=[c.lng+(here[0]-c.lng)*pull,c.lat+(here[1]-c.lat)*pull]; queuePend(); }
   /* החזרה: אותו ציר, הפוך. רוחב השטח של הגלובוס מתורגם ל-u של ההדמיה. */
   var Z=EXO.zoomAxis, u=Z.uOfW(widthForZ(z));
   var X=(mid&&u<Z.GLOBE)?Math.max(0,Math.min(1,(Z.GLOBE-u)/(Z.GLOBE-Z.XF))):0;
@@ -334,6 +343,35 @@ function addSpace(){
   map.on('zoom',upd); upd();
 }
 
+/* ===================== זום רציף בגלובוס =====================
+   MapLibre מזיז את הזום בקפיצה קצרה ומרוככת לכל נקישת גלגלת, וכשנקישה חדשה מגיעה באמצע הקודמת היא
+   מתחילה מחדש. זה מה שהרגיש מדורג בכל הדרך מזום 8 ועד 3, בעוד ההדמיה שמעליו רציפה לגמרי.
+   כאן הגלגלת מזינה יעד בלבד, והזום נמשך אליו בכל פריים בקצב אקספוננציאלי — אותו חוק שמפעיל את ציר ההדמיה,
+   ובאותו גודל צעד (2.4 נפר ליחידת u, כלומר 2.4/ln2 רמות זום), כך שסיבוב אחד עובר את ההצלבה בלי לשנות תחושה. */
+function smoothZoom(){
+  try{ map.scrollZoom.disable(); }catch(e){}
+  var zT=map.getZoom(), raf=0, last=0;
+  function lim(z){ return Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),z)); }
+  function step(ts){
+    var dt=last?Math.min(0.05,(ts-last)/1000):0.0167; last=ts;
+    var z=map.getZoom(), d=zT-z;
+    if(Math.abs(d)<0.0015){ raf=0; last=0; if(d) map.jumpTo({zoom:zT}); return; }
+    map.jumpTo({zoom:z+d*(1-Math.exp(-dt/0.075))});
+    raf=requestAnimationFrame(step); }
+  function nudge(dz){
+    if(!raf){ try{ map.stop(); }catch(e){} zT=map.getZoom(); last=0; }
+    zT=lim(zT+dz);
+    if(!raf) raf=requestAnimationFrame(step); }
+  box.addEventListener('wheel',function(e){
+    if(e.ctrlKey) return;                                   /* צביטת משטח מגע נשארת של הדפדפן */
+    e.preventDefault(); e.stopPropagation();
+    var dy=e.deltaMode===1?e.deltaY*16:(e.deltaMode===2?e.deltaY*400:e.deltaY);
+    var st=(window.EXO&&EXO.wheelStep)?EXO.wheelStep():0.0019;
+    nudge(-Math.max(-180,Math.min(180,dy))*st*3.4614); },{passive:false,capture:true});
+  window.__exoGlobeZoomStop=function(){ if(raf){ cancelAnimationFrame(raf); raf=0; last=0; } };
+  window.__exoGlobeZoomState=function(){ return [zT,raf,map.getZoom()]; };   /* לבדיקות */
+}
+
 /* הקשה כפולה בכל מקום על הגלובוס: חזרה אל הסירה, למבט ברירת המחדל מעל המים. */
 (function(){ var tT=0,tX=0,tY=0;
   function back(){ if(window.__exoBackToBoat) window.__exoBackToBoat(); else if(typeof fly==='function') fly('boat'); }
@@ -346,7 +384,7 @@ function addSpace(){
 
 map.on('load',function(){
   draw(T1,true);
-  try{ addGrid(); addNames(); addSpace(); }catch(e){}
+  try{ addGrid(); addNames(); addSpace(); smoothZoom(); }catch(e){}
   var att=box.querySelector('.maplibregl-ctrl-attrib'); if(att){ att.classList.remove('maplibregl-compact-show'); att.removeAttribute('open'); }
   function night(){ map.getSource('night').setData(nightPolys((EXO&&EXO.state)?EXO.state.now:Date.now())); }
   night(); setInterval(night,5*60000);
