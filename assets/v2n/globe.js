@@ -119,8 +119,8 @@ var style={ version:8, projection:{type:'globe'},
 
 var map;
 try{
-  map=new maplibregl.Map({ container:box, style:style, center:here, zoom:5.6, minZoom:0.6, maxZoom:8.5, attributionControl:false,
-    cooperativeGestures:false, dragRotate:false, pitchWithRotate:false, touchPitch:false, renderWorldCopies:false, fadeDuration:150,
+  map=new maplibregl.Map({ container:box, style:style, center:here, zoom:5.6, minZoom:-1.6, maxZoom:16, attributionControl:false,
+    cooperativeGestures:false, dragRotate:false, pitchWithRotate:false, touchPitch:false, renderWorldCopies:false, fadeDuration:0,
     locale:{ 'CooperativeGesturesHandler.WindowsHelpText':'Ctrl + גלגלת כדי להתקרב ולהתרחק', 'CooperativeGesturesHandler.MacHelpText':'⌘ + גלגלת כדי להתקרב ולהתרחק',
              'CooperativeGesturesHandler.MobileHelpText':'שתי אצבעות כדי להזיז את הגלובוס' } });
 }catch(e){ box.innerHTML='<div class="gl-fail">הגלובוס צריך WebGL, והדפדפן הזה לא מריץ אותו.</div>'; return; }
@@ -230,7 +230,7 @@ function addGrid(){
      וקו החוף הווקטורי, בדיוק כמו קודם. הכתובת לא נבדקה מסביבת הבנייה (אין ממנה גישה לרשת); לבדוק בתצוגה המקדימה. */
   try{ if(navigator.onLine!==false){
     map.addSource('gibs',{type:'raster',tiles:['https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg'],tileSize:256,minzoom:4,maxzoom:8,attribution:'NASA GIBS'});
-    map.addLayer({id:'gibs',type:'raster',source:'gibs',minzoom:4,paint:{'raster-opacity':['interpolate',['linear'],['zoom'],4,0,4.8,1],'raster-fade-duration':300,'raster-saturation':-0.08}},'land-fill');
+    map.addLayer({id:'gibs',type:'raster',source:'gibs',minzoom:4,paint:{'raster-opacity':['interpolate',['linear'],['zoom'],4,0,4.8,1],'raster-fade-duration':0,'raster-saturation':-0.08}},'land-fill');
     var gibsOk=false; map.on('sourcedata',function(e){ if(!gibsOk&&e.sourceId==='gibs'&&e.tile&&e.tile.state==='loaded'){ gibsOk=true; map.setPaintProperty('land-fill','fill-opacity',0); } });
     map.on('error',function(){});      /* אריח שלא הגיע הוא לא שגיאה של האתר */
   } }catch(e){}
@@ -259,21 +259,35 @@ function addNames(){
 }
 /* מנה ב׳: הצלבה מההדמיה. arm = הגלובוס מתמקם מעל הסירה בזום המרבי, באותו כיוון מצפן שהיה למעלה בהדמיה; כשמתרחקים הצפון חוזר למעלה.
    settle = אחרי מסירה בלי אצבעות על המסך ממשיכים להתרחק לבד. return = מתקרבים חזרה אל הסירה: המרכז נמשך אליה, וההדמיה חוזרת. */
-var ZG=8.4, armB=0, retArmed=false, pulling=false;
-window.__exoGlobeArm=function(brg){ try{ map.resize(); stop(); range.value=1000; draw(T1,true); setChip(null); retArmed=false;
-  armB=((brg+540)%360)-180; map.jumpTo({center:here,zoom:ZG,bearing:armB}); }catch(e){} };
-window.__exoGlobeSettle=function(){ try{ map.easeTo({center:here,zoom:5.4,bearing:0,duration:reduce?0:2000,essential:true}); }catch(e){} };
-map.on('zoom',function(){ var z=map.getZoom();
-  if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/(ZG-5.4))); map.setBearing(armB*k); if(k===0) armB=0; }
-  if(z<6.6) retArmed=true; if(!retArmed||!window.__exoGlobeReturn) return;
+/* קנה מידה משותף להדמיה ולגלובוס: שתיהן מתוארות ברוחב השטח שנראה על המסך, במטרים.
+   כך המסירה קורית בלי קפיצה — הגלובוס נכנס בדיוק באותו קנה מידה שבו ההדמיה נעצרה, ולהפך. */
+function mppAt(z){ return 78271.517*Math.cos(here[1]*Math.PI/180)/Math.pow(2,z); }
+function zForWidth(w){ return Math.log(78271.517*Math.cos(here[1]*Math.PI/180)*Math.max(1,box.clientWidth)/Math.max(1,w))/Math.LN2; }
+function widthForZ(z){ return mppAt(z)*Math.max(1,box.clientWidth); }
+var armB=0, retArmed=false, pulling=false, tracking=false;
+window.__exoGlobeArm=function(brg){ try{ map.resize(); stop(); range.value=1000; draw(T1,true); retArmed=false;
+  armB=((brg+540)%360)-180; map.jumpTo({center:here,bearing:armB}); }catch(e){} };
+/* ההדמיה מדווחת בכל פריים כמה מטרים רוחב היא מראה; הגלובוס מתיישר לזה בדיוק, בלי אנימציה. */
+window.__exoGlobeTrack=function(widthM,brg){ try{
+  tracking=true;
+  var z=Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),zForWidth(widthM)));
+  map.jumpTo({center:here,zoom:z,bearing:armB?armB*Math.max(0,Math.min(1,(z-5.4)/3.0)):map.getBearing()});
+  tracking=false; }catch(e){ tracking=false; } };
+window.__exoGlobeSettle=function(){ armB=0; };
+map.on('zoom',function(){ if(tracking) return; var z=map.getZoom();
+  if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/3.0)); map.setBearing(armB*k); if(k===0) armB=0; }
+  if(z<7.6) retArmed=true; if(!retArmed||!window.__exoGlobeReturn||!window.EXO||!EXO.zoomAxis) return;
   var p=map.project(here), w=box.clientWidth, h=box.clientHeight, mid=(p.x>w/3&&p.x<2*w/3&&p.y>h/3&&p.y<2*h/3);
-  if(mid&&z>7.0&&!pulling&&!map.isEasing()){ pulling=true; var c=map.getCenter(); map.setCenter([c.lng+(here[0]-c.lng)*0.12,c.lat+(here[1]-c.lat)*0.12]); pulling=false; }
-  var X=(mid&&z>7.6)?Math.min(1,(z-7.6)/(ZG-7.6)):0; window.__exoGlobeReturn(X,map.getBearing()); if(X>=1) retArmed=false; });
-/* כניסה מתוך ההתרחקות מהסירה: מתחילים קרוב מעל הסירה וממשיכים להתרחק, כדי שהתנועה תמשיך באותו כיוון */
+  if(mid&&z>8.2&&!pulling&&!map.isEasing()){ pulling=true; var c=map.getCenter(); map.setCenter([c.lng+(here[0]-c.lng)*0.12,c.lat+(here[1]-c.lat)*0.12]); pulling=false; }
+  /* החזרה: אותו ציר, הפוך. רוחב השטח של הגלובוס מתורגם ל-u של ההדמיה. */
+  var Z=EXO.zoomAxis, u=Z.uOfW(widthForZ(z));
+  var X=(mid&&u<Z.GLOBE)?Math.max(0,Math.min(1,(Z.GLOBE-u)/(Z.GLOBE-Z.XF))):0;
+  window.__exoGlobeReturn(X,map.getBearing()); if(X>=1) retArmed=false; });
+/* כניסה מתוך ההתרחקות מהסירה */
 window.__exoGlobeEnter=function(how){ if(!window.__exoGlobeLoaded){ window.__exoGlobeWant=how; return; } try{ map.resize(); stop(); range.value=1000; draw(T1,true);
   if(how==='handoff'){ return; }
-  if(how==='out'){ setChip(null); armB=0; map.jumpTo({center:here,zoom:5.6}); map.easeTo({center:here,zoom:3.4,duration:reduce?0:1700,essential:true}); }
-  else fly(how||'boat'); }catch(e){} };
+  if(how==='out'){ armB=0; map.jumpTo({center:here,zoom:5.6}); map.easeTo({center:here,zoom:3.4,duration:reduce?0:1700,essential:true}); }
+  else if(typeof fly==='function') fly(how||'boat'); }catch(e){} };
 
 /* ===================== חלל: הכדור מתרחק אל תוך שדה כוכבים =====================
    עד היום ההתרחקות נעצרה בזום 0.6 והכדור נשאר ככדור קטן על רקע שחור ריק. עכשיו הזום יורד עד ‎−1.6,

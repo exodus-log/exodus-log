@@ -260,6 +260,7 @@ function globeX(f){ var X=f.gX||0;
   if(!gOpen){
     if(X>0&&!gxOn&&window.__exoGlobeArm){ gxOn=true; document.body.classList.add('g-x'); window.__exoGlobeArm(f.camBearing); }
     if(gxOn){ G.style.opacity=X.toFixed(3);
+      if(window.__exoGlobeTrack&&f.groundW) window.__exoGlobeTrack(f.groundW,f.camBearing);
       if(X>=0.999){ gxOn=false; document.body.classList.remove('g-x'); openGlobe('handoff'); G.style.opacity=''; if(!f.touching&&window.__exoGlobeSettle) window.__exoGlobeSettle(); }
       else if(X<=0){ gxOn=false; document.body.classList.remove('g-x'); G.style.opacity=''; } } }
   else if(gRet){ G.style.opacity=X.toFixed(3);

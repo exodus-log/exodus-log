@@ -223,9 +223,12 @@ var WAVE=[
  ' addWave(uW6,uSpB.z,uStB.z,p,dsp,n,j);',
  ' fold=1.0-j; nrm=normalize(vec3(n.x,1.0,n.z)); return dsp; }'].join('\n');
 
-var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP;',WAVE,
+var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; uniform float uWaveK;',WAVE,
   'varying vec3 vW,vN; varying float vH; varying float vJ;',
-  'void main(){ vec3 n; float fold; vec3 d=gerst(aP,n,fold);',
+  'void main(){ float rr=length(aP);',
+  ' float kf=(1.0-smoothstep(420.0,2600.0,rr))*uWaveK;',   /* רחוק מהסירה, או גבוה מעליה: משטח שטוח */
+  ' vec3 n=vec3(0.0,1.0,0.0); float fold=1.0; vec3 d=vec3(0.0);',
+  ' if(kf>0.002){ d=gerst(aP,n,fold)*kf; n=normalize(mix(vec3(0.0,1.0,0.0),n,kf)); fold=mix(1.0,fold,kf); }',
   ' vec3 p=vec3(aP.x+d.x,d.y,aP.y+d.z);',
   ' vW=p; vN=n; vH=d.y; vJ=fold; gl_Position=uVP*vec4(p,1.0);}'].join('\n'),
  ['precision highp float;',
@@ -288,10 +291,18 @@ var FLOW=prog(
   'void main(){ vec3 c=vC<0.5?uCw:(vC<1.5?mix(uCc,vec3(0.035,0.17,0.27),clamp((vC-1.0)*2.2,0.0,1.0)):(vC<2.5?uCs:(vC<3.5?uCh:(vC<4.5?uCv:(vC<5.5?uCl:(vC<6.5?uCr:(vC<7.5?uCg:uCp)))))));',
   ' float A=vA*(1.0-vF*0.85); gl_FragColor=vec4(mix(c,uFogCol,clamp(vF,0.0,1.0))*A,A*((vC>4.5&&vC<5.5)?0.0:uK));}'].join('\n'));
 
-var SEG=((C.clientWidth||400)<560?96:140),SPAN=340,seaPos=[],seaIdx=[];
-for(var gy=0;gy<=SEG;gy++) for(var gx=0;gx<=SEG;gx++) seaPos.push((gx/SEG-0.5)*SPAN,(gy/SEG-0.5)*SPAN);
-for(var iy=0;iy<SEG;iy++) for(var ix=0;ix<SEG;ix++){ var a0=iy*(SEG+1)+ix,b0=a0+SEG+1;
-  seaIdx.push(a0,b0,a0+1,a0+1,b0,b0+1); }
+var LOWSEA=((C.clientWidth||400)<560);
+/* רדיוסי הטבעות בשני אזורים: עד 2.6 ק"מ יש גלים ולכן המשולשים מאוזנים (אורך רדיאלי ~ אורך משיקי),
+   ומשם והלאה המשטח שטוח ואפשר לגדול מהר עד 400 ק"מ. סך הכול פחות משולשים מהריבוע שהיה כאן קודם. */
+var NANG=LOWSEA?96:128, R_IN=1.2, R_WAVE=2600.0, R_OUT=400000.0, seaPos=[0,0], seaIdx=[], seaR=[];
+(function(){ var i,j, step=6.2831853/NANG, gA=1+step, rr=R_IN;
+  while(rr<R_WAVE){ seaR.push(rr); rr*=gA; }
+  rr=R_WAVE; while(rr<R_OUT){ seaR.push(rr); rr*=1.55; } seaR.push(R_OUT);
+  for(i=0;i<seaR.length;i++) for(j=0;j<NANG;j++){ var a=j*step; seaPos.push(Math.cos(a)*seaR[i],Math.sin(a)*seaR[i]); }
+  for(j=0;j<NANG;j++) seaIdx.push(0,1+j,1+(j+1)%NANG);
+  for(i=0;i<seaR.length-1;i++) for(j=0;j<NANG;j++){
+    var a0=1+i*NANG+j, a1=1+i*NANG+(j+1)%NANG, b0=a0+NANG, b1=a1+NANG;
+    seaIdx.push(a0,b0,a1, a1,b0,b1); } })();
 var seaPB=buf(seaPos), seaIB=buf(seaIdx,gl.ELEMENT_ARRAY_BUFFER,Uint16Array), seaCount=seaIdx.length;
 
 /* ===== solid + textured-sail programs ===== */
@@ -728,7 +739,7 @@ function chevron(px,pz,dx,dz,size,a,t){
    u הוא המשתנה היחיד. 0 עד U_MAX: מסלול סביב הסירה, 9 עד 150 מטר (לוגריתמי, כמו קודם). 0 עד ‎−1: המצלמה מחליקה אל עמדת
    ההגאי. ‎−1 עד ‎−2: על הסיפון, הצביטה משנה רק את שדה הראייה (70° עד 38°). U_MAX עד U_TOP: המצלמה מתיישרת למבט מלמעלה
    ומתרחקת מהר. U_TOP עד U_GLOBE: הצלבה אל הגלובוס, שמונעת מהצביטה עצמה. cam.r נגזר מ-u; מי שכותב ל-cam.r ישירות מתורגם. */
-var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.55, U_GLOBE=U_MAX+0.95, zoomT=0, camGlide=null;
+var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_GLOBE=U_MAX+2.82, U_XF=U_GLOBE-1.1, zoomT=0, camGlide=null;
 function rOfU(u){ return u>=0?9*Math.exp(Math.min(u,U_MAX)+Math.max(0,u-U_MAX)*2.4):9*Math.max(0,1+u); }
 function uOfR(r){ return r>=9?Math.log(r/9):(r/9-1); }
 function uCeil(){ return (!reduce&&EXO.globeReady&&EXO.quality!=='lite')?U_GLOBE:U_MAX; }
@@ -1911,7 +1922,7 @@ function frameBody(){
   else { rigAdd(mainM,4.3,9.9); rigAdd(yankM,3.7,9.0); }
   /* ציר זום אחד: sD = כמה אנחנו על הסיפון (0 עד 1), gT = כמה התיישרנו למבט מלמעלה בדרך לגלובוס, gX = ההצלבה אל הגלובוס */
   var asp=C.width/C.height, sD=cam.u<0?smooth(0,1,-cam.u):0, gT=cam.u>U_MAX?smooth(0,1,(cam.u-U_MAX)/(U_TOP-U_MAX)):0;
-  var gX=cam.u>U_TOP?Math.min(1,(cam.u-U_TOP)/(U_GLOBE-U_TOP)):0, deck=sD>0.6;
+  var gX=cam.u>U_XF?Math.min(1,(cam.u-U_XF)/(U_GLOBE-U_XF)):0, deck=sD>0.6;
   LAB.cam=deck?'deck':'orbit'; LAB.fov=cam.u<U_DECK?70+(cam.u-U_DECK)*32:70; LAB.ringK=1-gT;
   var fovO=(asp<0.8?60:46), fovy=(fovO+(LAB.fov-fovO)*sD)*D2R;
   var elO=cam.el+(1.50-cam.el)*gT, ce=Math.cos(elO), se=Math.sin(elO);
@@ -1927,8 +1938,8 @@ function frameBody(){
     eye=mix3(eyeO,eyeD,sD); dir=norm3(mix3(dv,dirD,sD)); }
   var ctr=[eye[0]+dir[0]*10,eye[1]+dir[1]*10,eye[2]+dir[2]*10];
   var under=eye[1]<waveY(eye[0],eye[2],t)+0.04;
-  var VP=mMul(mTrans(EXO.view.ox,EXO.view.oy,0),mMul(mPersp(fovy,asp,sD>0.2?0.12:0.5,gT>0?4000:2000),mLook(eye,ctr,[0,1,0])));
-  var hfx=Math.atan(Math.tan(fovy/2)*asp);
+  var VP=mMul(mTrans(EXO.view.ox,EXO.view.oy,0),mMul(mPersp(fovy,asp,sD>0.2?0.12:0.5,Math.max(2000,cam.r*14)),mLook(eye,ctr,[0,1,0])));
+  var hfx=Math.atan(Math.tan(fovy/2)*asp); LAB._hfx=hfx;
   LAB._eye=eye; LAB._k=2*Math.tan(fovy/2)/Math.max(1,C.clientHeight); LAB._under=under; LAB._VP=VP;
   var rrT=ringFit(VP); rrT+=(14-rrT)*sD; if(!LAB._rrInit){ LAB.RR=rrT; LAB._rrInit=1; } else LAB.RR+=(rrT-LAB.RR)*0.2;
   var fwd=norm3([ctr[0]-eye[0],ctr[1]-eye[1],ctr[2]-eye[2]]);
@@ -2013,6 +2024,7 @@ function frameBody(){
   gl.uniform1f(SEA.u('uChop'),Math.min(1.15,0.30+c.wind/22));
   gl.uniform3fv(SEA.u('uSss'),mix3([0.03,0.09,0.10],[0.10,0.42,0.34],dayF));
   gl.uniform3fv(SEA.u('uDeep'),wDeep); gl.uniform1f(SEA.u('uUnder'),under?1:0);
+  gl.uniform1f(SEA.u('uWaveK'),Math.max(0,Math.min(1,1-(cam.r-140)/420)));
   gl.uniform3fv(SEA.u('uShal'),wShal);
   gl.uniform3fv(SEA.u('uHor'),hor); gl.uniform3fv(SEA.u('uFogCol'),fogCol);
   gl.uniform3fv(SEA.u('uDuskCol'),duskCol); gl.uniform1f(SEA.u('uDusk'),duskAmt); gl.uniform3fv(SEA.u('uGlowDir'),sunDir);
@@ -2145,6 +2157,7 @@ function frameBody(){
 
   /* מצב לפריים: לאן המצלמה מסתכלת (כיוון מצפן), כדי שהשושנה תצייר את הטריז */
   EXO.frame.camBearing=(((-cam.az*R2D)%360)+360)%360; EXO.frame.auto=cam.auto; EXO.frame.r=cam.r;
+  EXO.frame.groundW=2*cam.r*Math.tan(hfx);
   EXO.frame.u=cam.u; EXO.frame.sD=sD; EXO.frame.gT=gT; EXO.frame.gX=gX; EXO.frame.touching=Object.keys(pts).length>0;
   EXO.frame.under=under; EXO.frame.deck=deck; EXO.frame.el=cam.el; EXO.frame.pitch=pitch; EXO.frame.heave=bodyY;
   labAnchors(VP,t);
@@ -2252,7 +2265,11 @@ EXO.zoomBy=function(f){ cam.r=clamp(cam.r*f,9,150); kick(); };
 function homeR(){ return EXO.view.r||((C.clientWidth/Math.max(1,C.clientHeight))<0.8?27:23); }
 EXO.reframe=function(){ if(cam.u===undefined||(cam.u>=0&&cam.u<=U_MAX)) cam.r=homeR(); kick(); };
 EXO.glideTo=function(u,dur){ if(cam.u===undefined) cam.u=uOfR(cam.r); if(reduce||!dur){ setU(u,true); camGlide=null; } else camGlide={t0:performance.now(),dur:dur,from:cam.u,to:Math.max(U_FOV,Math.min(uCeil(),u))}; kick(); };
-EXO.setU=function(u){ setU(u); kick(); }; EXO.zoomAxis={DECK:U_DECK,MAX:U_MAX,TOP:U_TOP,GLOBE:U_GLOBE,uOfR:uOfR};
+EXO.setU=function(u){ setU(u); kick(); };
+/* ההמרה המלאה בין מרחק מצלמה ל-u, בשני חלקי הציר. הגלובוס משתמש בה כדי לחזור אל ההדמיה באותו קנה מידה. */
+function uOfRFull(r){ return r<=150?uOfR(r):(U_MAX+Math.log(r/150)/2.4); }
+EXO.zoomAxis={DECK:U_DECK,MAX:U_MAX,TOP:U_TOP,XF:U_XF,GLOBE:U_GLOBE,uOfR:uOfR,uOfRFull:uOfRFull,
+  uOfW:function(w){ return uOfRFull(Math.max(1,w/(2*Math.tan(LAB._hfx||0.30)))); }};
 EXO.setCam=function(mode){ cam.auto=false; camFly=null; cam.tilt=0; cam.vaz=cam.vel=0;
   if(mode==='deck'){ cam.az=-FIX.cog*D2R; cam.el=0.20; EXO.glideTo(U_DECK,1400); } else { cam.el=0.26; EXO.glideTo(uOfR(homeR()),1400); } kick(); };
 EXO.dive=function(down){ LAB.cam='orbit'; EXO.lookToward((((-cam.az*R2D)%360)+360)%360,{el:down?-0.40:0.26,dur:1500}); };
