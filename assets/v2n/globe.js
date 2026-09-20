@@ -237,15 +237,17 @@ function addGrid(){
   map.addLayer({id:'grid30',type:'line',source:'grid',filter:['==',['get','k'],'g30'],paint:{'line-color':GC,'line-width':0.7,'line-opacity':0.12}},'night');
   map.addLayer({id:'gridMain',type:'line',source:'grid',filter:['==',['get','k'],'main'],paint:{'line-color':GC,'line-width':0.8,'line-opacity':0.28}},'night');
 }
+/* הילה קרטוגרפית לשמות שעל המפה: טבעת כהה צמודה לאות ועוד זוהר רך מסביב. זוהר רך לבדו
+   לא מחזיק שם לבן מעל אריח מדברי בהיר — נמדד 2.6:1 מול רקע בבהירות 0.30. */
 function addNames(){
   var st=document.createElement('style'); st.textContent=
     /* --o היא האטימות של השם עצמו, --bk הדעיכה לפי הצד האחורי. המכפלה היא מה שנראה. */
-    '.gl-name{--o:.45;font:300 12px Heebo,sans-serif;letter-spacing:.16em;color:#e9f1f6;opacity:calc(var(--o)*var(--bk,1));white-space:nowrap;pointer-events:none;direction:rtl;text-shadow:0 0 3px rgba(2,8,14,.9),0 0 9px rgba(2,8,14,.8)}'
+    '.gl-name{--o:.45;font:300 12px Heebo,sans-serif;letter-spacing:.16em;color:#e9f1f6;opacity:calc(var(--o)*var(--bk,1));white-space:nowrap;pointer-events:none;direction:rtl;text-shadow:-1px -1px 0 rgba(2,8,14,.92),1px -1px 0 rgba(2,8,14,.92),-1px 1px 0 rgba(2,8,14,.92),1px 1px 0 rgba(2,8,14,.92),0 -1px 0 rgba(2,8,14,.92),0 1px 0 rgba(2,8,14,.92),-1px 0 0 rgba(2,8,14,.92),1px 0 0 rgba(2,8,14,.92),0 0 7px rgba(2,8,14,.85)}'
    +'.gl-name.ocean{font-size:13px;letter-spacing:.30em;--o:.55;color:#d3e6f2}.gl-name.cont{font-size:13px;letter-spacing:.24em;--o:.45}'
    +'.gl-name.sea{font-size:11.5px;color:#cfe3ef;--o:.45}.gl-name.land{font-size:11.5px;--o:.45}.gl-name.isle{font-size:11px;letter-spacing:.08em;--o:.5}'
    +'.gl-name.t1,.gl-name.t2,.gl-deg{display:none}.z25 .gl-name.t1{display:block}.z38 .gl-name.t2{display:block}.z2 .gl-deg{display:block}'
    +'.z38 .gl-name.cont,.z5 .gl-name.ocean{display:none}'
-   +'.gl-deg{--o:.34;font:400 9.5px "B612 Mono",monospace;color:#dfe9ef;opacity:calc(var(--o)*var(--bk,1));letter-spacing:.02em;white-space:nowrap;pointer-events:none;direction:ltr;text-shadow:0 0 3px rgba(2,8,14,.9)}'
+   +'.gl-deg{--o:.34;font:400 9.5px "B612 Mono",monospace;color:#dfe9ef;opacity:calc(var(--o)*var(--bk,1));letter-spacing:.02em;white-space:nowrap;pointer-events:none;direction:ltr;text-shadow:-1px -1px 0 rgba(2,8,14,.9),1px -1px 0 rgba(2,8,14,.9),-1px 1px 0 rgba(2,8,14,.9),1px 1px 0 rgba(2,8,14,.9),0 0 6px rgba(2,8,14,.8)}'
    +'.gl-back{display:none!important}'
    /* gl-hid: הסתרה מטעם פריסה (בתוך פס ממשק, חפיפה עם שם אחר, או חריגה משפת הכדור).
       נפרדת מ-gl-back כדי ששתי הסיבות לא ידרסו זו את זו. */

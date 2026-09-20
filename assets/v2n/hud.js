@@ -71,6 +71,26 @@ function measureTop(){ var a=document.querySelector('.topr'), b=document.querySe
 /* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
    הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
    והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
+/* עומק ההצללה מאחורי שורות הנתונים, לפי גובה השמש בנקודה של דניאל — אותו מדרג שמצייר את
+   רקע הרצועה השעתית, כדי ששניהם יספרו את אותו סיפור. נמדד: בלילה רקע בבהירות 0.006 וכל
+   הטקסט מעל 6.4:1; ביום הרקע מגיע ל-0.35 ואפילו הערכים הלבנים יורדים ל-2.4:1. */
+function vigTick(){
+  var a; try{ a=tsSunAt(tsLive()); }catch(e){ return; }
+  var d=Math.max(0,Math.min(1,(a+4)/10)), st=document.documentElement.style;
+  st.setProperty('--vg1',(0.55+0.19*d).toFixed(3));
+  st.setProperty('--vg2',(0.16+0.44*d).toFixed(3));
+  st.setProperty('--vg3',(0.03+0.24*d).toFixed(3));
+  st.setProperty('--vgb',(0.55+0.28*d).toFixed(3));
+  /* בין #879caa ל-#ccd8e1, ובין #bccad3 ל-#e2ebf1 */
+  st.setProperty('--ink3d',mixHex('#879caa','#ccd8e1',d));
+  st.setProperty('--ink2d',mixHex('#bccad3','#e2ebf1',d));
+  st.setProperty('--shd',d<0.15?'var(--sh)':
+    '0 0 2px rgba(3,10,16,'+(0.9+0.06*d).toFixed(2)+'),0 0 6px rgba(3,10,16,'+(0.70+0.28*d).toFixed(2)+'),0 1px 3px rgba(3,10,16,'+(0.6+0.35*d).toFixed(2)+')');
+}
+function mixHex(a,b,t){ function p(h){ return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)]; }
+  var x=p(a), y=p(b), o='#';
+  for(var i=0;i<3;i++){ var v=Math.round(x[i]+(y[i]-x[i])*t).toString(16); o+=(v.length<2?'0':'')+v; }
+  return o; }
 function measureBot(){ var v=document.querySelector('.hud.vit'); if(!v) return;
   var r=v.getBoundingClientRect(), h=window.innerHeight||document.documentElement.clientHeight;
   var band=Math.max(0,Math.round(h-r.top))+4;
@@ -432,6 +452,7 @@ function tsLabel(t){ var d=new Date(t+FIX.lon/15*3600000);
 function tsSet(off,fromUser){
   if(!LIVE||!EXO.setClock) return;
   EXO.setClock(off);
+  vigTick();                 /* גרירה אל שעות היום מבהירה את הים — ההצללה חייבת לעקוב מיד */
   tsScrub=(off!==0);
   TS.box.classList.toggle('scrub',tsScrub);
   if(TS.now) TS.now.hidden=!tsScrub;
@@ -462,6 +483,7 @@ if(LIVE){ EXO.on(function(s){ renderHud(s); drawMini(); if(s.qualityAuto) paintL
 else { renderHud(staticState()); setInterval(function(){ renderHud(staticState()); },30000); }
 window.addEventListener('resize',function(){ measure(); frameScene(); SZ={}; if(LIVE&&EXO.state) renderHud(EXO.state); measureTop(); });
 tsInit(); setTimeout(measureTop,300); setTimeout(measureTop,2500);
+vigTick(); setInterval(vigTick,60000); if(window.EXO) EXO.vigTick=vigTick;   /* נחשף לבדיקות: audit_contrast.py מזיז את השעון ישירות */
 /* קטלוג הכוכבים: רק אחרי שהסצנה כבר רצה. המנוע מזהה אותו לבד בפריים הבא; בלעדיו נשארים כוכבי הרעש */
 if(LIVE) idle(function(){ loadScript('assets/v2n/stars.js').then(function(){ if(EXO.kick) EXO.kick(); }).catch(function(){}); },2600);
 idle(function(){ loadScript('assets/v2n/coast.js').then(function(){ NEAR=null; drawMini(); }).catch(function(){}); },1800);
