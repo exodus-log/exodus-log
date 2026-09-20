@@ -277,8 +277,11 @@ window.__exoGlobeSettle=function(){ armB=0; };
 map.on('zoom',function(){ if(tracking) return; var z=map.getZoom();
   if(armB&&!map.isEasing()){ var k=Math.max(0,Math.min(1,(z-5.4)/3.0)); map.setBearing(armB*k); if(k===0) armB=0; }
   if(z<7.6) retArmed=true; if(!retArmed||!window.__exoGlobeReturn||!window.EXO||!EXO.zoomAxis) return;
-  var p=map.project(here), w=box.clientWidth, h=box.clientHeight, mid=(p.x>w/3&&p.x<2*w/3&&p.y>h/3&&p.y<2*h/3);
-  if(mid&&z>8.2&&!pulling&&!map.isEasing()){ pulling=true; var c=map.getCenter(); map.setCenter([c.lng+(here[0]-c.lng)*0.12,c.lat+(here[1]-c.lat)*0.12]); pulling=false; }
+  var p=map.project(here), w=box.clientWidth, h=box.clientHeight, mid=(p.x>-w*0.15&&p.x<w*1.15&&p.y>-h*0.15&&p.y<h*1.15);
+  /* ברור שמתקרבים אל הסירה ולא אל הצי: המרכז נמשך אליה, חזק יותר ככל שמתקרבים */
+  var pull=Math.max(0,Math.min(0.30,(z-6.2)*0.075));
+  if(pull>0.004&&!pulling&&!map.isEasing()){ pulling=true; var c=map.getCenter();
+    map.setCenter([c.lng+(here[0]-c.lng)*pull,c.lat+(here[1]-c.lat)*pull]); pulling=false; }
   /* החזרה: אותו ציר, הפוך. רוחב השטח של הגלובוס מתורגם ל-u של ההדמיה. */
   var Z=EXO.zoomAxis, u=Z.uOfW(widthForZ(z));
   var X=(mid&&u<Z.GLOBE)?Math.max(0,Math.min(1,(Z.GLOBE-u)/(Z.GLOBE-Z.XF))):0;
@@ -312,18 +315,34 @@ function addSpace(){
     var t=h(i*2.7), cx=t*1700-50, cy=150+t*640+(h(i*3.3)*2-1)*105*(0.4+0.6*Math.sin(t*3.14));
     x.fillStyle='rgba(176,196,226,'+(0.012+h(i*9.1)*0.030).toFixed(3)+')';
     x.beginPath(); x.arc(cx,cy,0.6+h(i*4.4)*1.5,0,6.283); x.fill(); }
-  sky.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s linear;pointer-events:none;z-index:0';
+  sky.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;z-index:0';
   box.style.zIndex='1';
   lay.insertBefore(sky,box);
   var st=document.createElement('style');
   st.textContent='.zspace .gl-name,.zspace .gl-deg,.zspace .gl-label{display:none!important}'
-   +'.zspace .gl-boat{transform:scale(.55)}';
+   +'.zspace .gl-boat{transform:scale(.55)}'
+   +'.zthin .gl-label,.zthin .gl-deg{display:none!important}';   /* בזום נמוך פחות סמנים ב-DOM: שם היו הקפיצות */
   document.head.appendChild(st);
+  var lastO=-1, lastC=null;
   function upd(){ var z=map.getZoom();
-    sky.style.opacity=Math.max(0,Math.min(1,(2.2-z)/1.7)).toFixed(3);
-    document.body.classList[z<1.0?'add':'remove']('zspace'); }
-  map.on('zoom',upd); map.on('move',upd); upd();
+    var o=Math.round(Math.max(0,Math.min(1,(2.2-z)/1.7))*25)/25;      /* מדרגות של 4%: לא כותבים סגנון בכל פריים */
+    if(o!==lastO){ lastO=o; sky.style.opacity=o?o.toFixed(2):'0'; }
+    var c=(z<1.0)?'space':(z<2.9?'thin':'full');
+    if(c!==lastC){ lastC=c;
+      document.body.classList.toggle('zspace',c==='space');
+      document.body.classList.toggle('zthin',c!=='full'); } }
+  map.on('zoom',upd); upd();
 }
+
+/* הקשה כפולה בכל מקום על הגלובוס: חזרה אל הסירה, למבט ברירת המחדל מעל המים. */
+(function(){ var tT=0,tX=0,tY=0;
+  function back(){ if(window.__exoBackToBoat) window.__exoBackToBoat(); else if(typeof fly==='function') fly('boat'); }
+  box.addEventListener('dblclick',function(e){ e.preventDefault(); e.stopPropagation(); back(); },true);
+  box.addEventListener('pointerup',function(e){
+    var n=performance.now();
+    if(n-tT<340&&Math.hypot(e.clientX-tX,e.clientY-tY)<34){ tT=0; back(); return; }
+    tT=n; tX=e.clientX; tY=e.clientY; },true);
+})();
 
 map.on('load',function(){
   draw(T1,true);

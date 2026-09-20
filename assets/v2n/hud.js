@@ -154,32 +154,78 @@ function loadCss(href){ return new Promise(function(ok){ var l=document.createEl
 function idle(fn,ms){ if('requestIdleCallback' in window) requestIdleCallback(fn,{timeout:ms||2500}); else setTimeout(fn,ms||1200); }
 
 /* ================= קול: רוח ומים, מסונתזים. משתנים עם המרחק, ומתעמעמים מתחת למים ================= */
-var AU=null, auOn=false, auT=0, prevPitch=0, slam=0;
+var AU=null, auOn=false, auT=0, prevPitch=0, slam=0, auWanted=(store('exo.sound')!=='0'), auTried=false;
+/* שש שכבות מסונתזות: סוול עמוק, שבירת גלים, שטיפת הגוף לפי המהירות, רוח בחיבל, שריקה בפסגות הרוח,
+   וחבטה כשגל פוגע. כולן נגזרות מהתנאים האמיתיים; עוצמתן יורדת עם המרחק מהסירה ונחנקת מתחת למים. */
 function audioStart(){
   var Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return false;
-  var ac=new Ctx(), len=ac.sampleRate*3, wb=ac.createBuffer(1,len,ac.sampleRate), bb=ac.createBuffer(1,len,ac.sampleRate), w=wb.getChannelData(0), b=bb.getChannelData(0), last=0, i;
-  for(i=0;i<len;i++){ var r=Math.random()*2-1; w[i]=r; last=(last+0.02*r)/1.02; b[i]=last*3.5; }
-  function src(buf){ var s=ac.createBufferSource(); s.buffer=buf; s.loop=true; s.start(); return s; }
-  var master=ac.createGain(); master.gain.value=0; var mlp=ac.createBiquadFilter(); mlp.type='lowpass'; mlp.frequency.value=18000; master.connect(mlp); mlp.connect(ac.destination);
-  var wbp=ac.createBiquadFilter(); wbp.type='bandpass'; wbp.frequency.value=480; wbp.Q.value=0.55; var wg=ac.createGain(); wg.gain.value=0; src(wb).connect(wbp); wbp.connect(wg); wg.connect(master);
-  var hbp=ac.createBiquadFilter(); hbp.type='bandpass'; hbp.frequency.value=2300; hbp.Q.value=7; var hg=ac.createGain(); hg.gain.value=0; src(wb).connect(hbp); hbp.connect(hg); hg.connect(master);
-  var slp=ac.createBiquadFilter(); slp.type='lowpass'; slp.frequency.value=620; var sg=ac.createGain(); sg.gain.value=0; src(bb).connect(slp); slp.connect(sg); sg.connect(master);
-  var bbp=ac.createBiquadFilter(); bbp.type='bandpass'; bbp.frequency.value=1500; bbp.Q.value=0.7; var bg=ac.createGain(); bg.gain.value=0; src(wb).connect(bbp); bbp.connect(bg); bg.connect(master);
-  AU={ac:ac,master:master,mlp:mlp,wbp:wbp,wg:wg,hg:hg,sg:sg,bg:bg}; return true; }
-function audioFrame(f){ if(!AU||!auOn) return; var now=performance.now(); if(now-auT<90) return; var dt=(now-auT)/1000; auT=now;
+  var ac=new Ctx(), len=Math.floor(ac.sampleRate*7), i;
+  var wb=ac.createBuffer(2,len,ac.sampleRate), bb=ac.createBuffer(2,len,ac.sampleRate);
+  for(var ch=0;ch<2;ch++){ var w=wb.getChannelData(ch), b=bb.getChannelData(ch), last=0, l2=0;
+    for(i=0;i<len;i++){ var r=Math.random()*2-1; w[i]=r*0.9;
+      last=(last+0.020*r)/1.020; l2=(l2+0.09*last)/1.09; b[i]=l2*26; }        /* רעש חום, לסוול */
+    /* חפיפה קצרה בקצה כדי שהלולאה לא תקליק */
+    var xf=Math.floor(ac.sampleRate*0.25);
+    for(i=0;i<xf;i++){ var k=i/xf; w[i]=w[i]*k+w[len-xf+i]*(1-k); b[i]=b[i]*k+b[len-xf+i]*(1-k); } }
+  function src(buf,rate){ var s=ac.createBufferSource(); s.buffer=buf; s.loop=true; if(rate) s.playbackRate.value=rate; s.start(Math.random()*0.1); return s; }
+  var comp=ac.createDynamicsCompressor();
+  comp.threshold.value=-18; comp.knee.value=18; comp.ratio.value=3.2; comp.attack.value=0.02; comp.release.value=0.35;
+  var master=ac.createGain(); master.gain.value=0;
+  var mlp=ac.createBiquadFilter(); mlp.type='lowpass'; mlp.frequency.value=19000;
+  master.connect(mlp); mlp.connect(comp); comp.connect(ac.destination);
+  function layer(node,g0){ var g=ac.createGain(); g.gain.value=g0||0; node.connect(g); g.connect(master); return g; }
+  /* סוול: רעש חום נמוך מאוד */
+  var slf=ac.createBiquadFilter(); slf.type='lowpass'; slf.frequency.value=150; slf.Q.value=0.6;
+  src(bb,0.85).connect(slf); var swg=layer(slf);
+  /* שבירת גלים: פס רחב סביב 400 הרץ */
+  var wbp=ac.createBiquadFilter(); wbp.type='bandpass'; wbp.frequency.value=430; wbp.Q.value=0.5;
+  src(wb).connect(wbp); var wg=layer(wbp);
+  /* שטיפת הגוף: רעש בהיר יותר, תלוי מהירות */
+  var hp=ac.createBiquadFilter(); hp.type='bandpass'; hp.frequency.value=1150; hp.Q.value=0.55;
+  src(wb,1.07).connect(hp); var hwg=layer(hp);
+  /* רוח בחיבל: פס בינוני שמשתנה עם המהירות */
+  var wnd=ac.createBiquadFilter(); wnd.type='bandpass'; wnd.frequency.value=700; wnd.Q.value=0.8;
+  src(wb,0.93).connect(wnd); var wng=layer(wnd);
+  /* שריקה: פס צר, רק ברוח חזקה */
+  var hbp=ac.createBiquadFilter(); hbp.type='bandpass'; hbp.frequency.value=2300; hbp.Q.value=8;
+  src(wb,1.13).connect(hbp); var hg=layer(hbp);
+  /* חבטה: נמוך ורחב, נפתח ברגע הפגיעה */
+  var bbp=ac.createBiquadFilter(); bbp.type='bandpass'; bbp.frequency.value=260; bbp.Q.value=0.8;
+  src(bb,1.4).connect(bbp); var bg=layer(bbp);
+  AU={ac:ac,master:master,mlp:mlp,wbp:wbp,wnd:wnd,hbp:hbp,slf:slf,hp:hp,
+      swg:swg,wg:wg,hwg:hwg,wng:wng,hg:hg,bg:bg}; return true; }
+function audioFrame(f){ if(!AU||!auOn) return; var now=performance.now(); if(now-auT<80) return; var dt=(now-auT)/1000; auT=now;
   var s=EXO.state; if(!s) return; var c=s.cond, T=AU.ac.currentTime, under=!!f.under;
-  var z=f.deck?1:clamp(1-(f.r-12)/150,0.10,1), gust=1+0.22*Math.sin(now*0.0011)+0.12*Math.sin(now*0.0037+1.3);
-  var dp=Math.abs((f.pitch||0)-prevPitch)/Math.max(0.03,dt); prevPitch=f.pitch||0; slam+=(Math.min(1,dp*9)-slam)*0.35;
-  function set(p,v){ p.setTargetAtTime(v,T,0.18); }
-  set(AU.wbp.frequency,(300+c.wind*24)*(0.75+0.25*z));
-  set(AU.wg.gain,(0.10+c.wind/40*0.55)*(0.50+0.50*z)*gust*(under?0.06:1));
-  set(AU.hg.gain,Math.max(0,(c.wind-11)/26)*0.10*z*(under?0:1));
-  set(AU.sg.gain,(0.22+FIX.sog/7*0.40)*z*z*(f.deck?1.25:1)*(under?1.6:1));
-  set(AU.bg.gain,(0.03+0.30*slam)*z*z*(under?0.2:1));
-  set(AU.mlp.frequency,under?330:18000); }
-function audioSet(on){ if(on&&!AU){ if(!audioStart()){ toast('הדפדפן הזה לא תומך בקול מסונתז'); return false; } }
-  auOn=!!on; if(!AU) return false; if(auOn) AU.ac.resume(); AU.master.gain.setTargetAtTime(auOn?0.9:0,AU.ac.currentTime,0.25);
-  var b=$('bSound'); if(b){ b.setAttribute('aria-pressed',auOn?'true':'false'); b.textContent=auOn?'קול: פועל':'קול'; } return auOn; }
+  /* מרחק: על הסיפון מלא, ומשם דועך עד שקט מוחלט בערך ב-260 מ׳ */
+  var z=f.deck?1:clamp(1-(f.r-14)/250,0,1); z=z*z;
+  var gust=1+0.20*Math.sin(now*0.00091)+0.13*Math.sin(now*0.0031+1.3)+0.07*Math.sin(now*0.0073+2.1);
+  var dp=Math.abs((f.pitch||0)-prevPitch)/Math.max(0.03,dt); prevPitch=f.pitch||0;
+  slam+=(Math.min(1,dp*9+(f.burst||0)*0.8)-slam)*0.30;
+  var W=c.wind, H=c.waveH, S=FIX.sog;
+  function set(p,v){ p.setTargetAtTime(v,T,0.16); }
+  set(AU.slf.frequency,110+H*22);
+  set(AU.swg.gain,(0.16+Math.min(0.55,H*0.24))*z*(under?1.5:1));
+  set(AU.wbp.frequency,(330+W*16)*(0.8+0.2*z));
+  set(AU.wg.gain,(0.07+Math.min(0.40,H*0.17)+Math.max(0,W-9)/30*0.16)*z*gust*(under?0.10:1));
+  set(AU.hp.frequency,900+S*95);
+  set(AU.hwg.gain,Math.max(0,S-1.4)/6*0.26*z*(f.deck?1.25:1)*(under?1.35:1));
+  set(AU.wnd.frequency,520+W*30);
+  set(AU.wng.gain,(0.05+W/38*0.42)*z*gust*(under?0.03:1));
+  set(AU.hbp.frequency,1900+W*38);
+  set(AU.hg.gain,Math.max(0,(W-13)/24)*0.085*z*gust*(under?0:1));
+  set(AU.bg.gain,(0.02+0.34*slam)*z*(under?0.25:1));
+  set(AU.mlp.frequency,under?300:19000); }
+function audioSet(on,quiet){ if(on&&!AU){ if(!audioStart()){ if(!quiet) toast('הדפדפן הזה לא תומך בקול מסונתז'); return false; } }
+  auOn=!!on; if(!AU) return false; if(auOn){ try{ AU.ac.resume(); }catch(e){} }
+  AU.master.gain.setTargetAtTime(auOn?0.9:0,AU.ac.currentTime,0.3);
+  store('exo.sound',auOn?'1':'0'); auWanted=auOn; paintSound(); return auOn; }
+function paintSound(){ var b=$('sndBtn'); if(b){ b.setAttribute('aria-pressed',auOn?'true':'false'); b.classList.toggle('off',!auOn);
+    b.setAttribute('aria-label',auOn?'קול פועל, להשתקה':'קול מושתק, להפעלה'); }
+  var m=$('bSound'); if(m){ m.setAttribute('aria-pressed',auOn?'true':'false'); m.textContent=auOn?'קול: פועל':'קול'; } }
+/* ברירת המחדל היא קול פועל. דפדפנים לא מרשים להתחיל בלי מגע, ולכן מתחילים במגע הראשון. */
+function auArm(){ if(auTried||!auWanted) return; auTried=true; audioSet(true,true); }
+['pointerdown','keydown','touchstart','wheel'].forEach(function(ev){
+  window.addEventListener(ev,function h(){ auArm(); window.removeEventListener(ev,h,true); },{capture:true,passive:true}); });
 document.addEventListener('visibilitychange',function(){ if(AU&&auOn) AU.master.gain.setTargetAtTime(document.hidden?0:0.9,AU.ac.currentTime,0.2); });
 
 /* ================= הודעה קצרה ================= */
@@ -189,6 +235,7 @@ function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.cl
 var menu=$('menu'), menuBtn=$('menuBtn'), menuOpen=false;
 function setMenu(on){ menuOpen=!!on; menu.hidden=!on; menuBtn.setAttribute('aria-expanded',on?'true':'false'); if(on){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
+var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 $('menuX').addEventListener('click',function(){ setMenu(false); menuBtn.focus(); });
 document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)) setMenu(false); },true);
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY); }
@@ -250,6 +297,7 @@ function closeGlobe(fromPop){ if(!gOpen) return; gOpen=false; G.setAttribute('ar
   if(LIVE){ EXO.pause(false); if(EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.TOP); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
   if(!fromPop&&gPushed){ gPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
 $('gBack').addEventListener('click',function(){ closeGlobe(false); });
+window.__exoBackToBoat=function(){ closeGlobe(false); };   /* הקשה כפולה על הגלובוס */
 if(LIVE) EXO.onZoomOut=function(){ openGlobe('out'); };      /* בלי מעברים (מצב קל, reduced motion, או גלובוס שעוד לא מוכן): קפיצה, כמו במנה א׳ */
 
 /* ההצלבה בין ההדמיה לגלובוס, לשני הכיוונים. המנוע מדווח gX (0 עד 1) בכל פריים, והוא מונע מהצביטה או מהגלגלת עצמה.

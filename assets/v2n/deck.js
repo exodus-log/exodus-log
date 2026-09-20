@@ -768,7 +768,7 @@ var WATER={
 var _wFor=null, _wVal=null;
 function mixW(a,b,f){ var o={}, k; for(k in a){ o[k]=[a[k][0]+(b[k][0]-a[k][0])*f, a[k][1]+(b[k][1]-a[k][1])*f, a[k][2]+(b[k][2]-a[k][2])*f]; } return o; }
 function waterNow(c){ if(_wFor===c&&_wVal) return _wVal; var la=Math.abs(FIX.lat);
-  var tw=(c.seaT!=null)?smooth(24.5,28,c.seaT):smooth(26,12,la), sw=smooth(38,50,la);
+  var tw=(c.seaT!=null)?smooth(21.5,27.5,c.seaT):smooth(28,10,la), sw=(c.seaT!=null)?smooth(17,8,c.seaT):smooth(34,48,la);
   _wFor=c; _wVal=mixW(mixW(WATER.subtropic,WATER.tropic,tw),WATER.south,sw); return _wVal; }
 function probit(p){ p=Math.max(0.002,Math.min(0.998,p));
   var t=Math.sqrt(-2*Math.log(p<0.5?p:1-p));
@@ -1288,7 +1288,7 @@ function mainTexture(){
 }
 /* הדגל: כ-45×30 ס״מ, על האחורן בערך בשליש גובהו, מתנופף עם הרוח המדומה */
 function ensignMesh(){
-  var NU=7,NV=4,p=[],idx=[],uv=[],i,j, W=0.45, H=0.30;
+  var NU=7,NV=4,p=[],idx=[],uv=[],i,j, W=0.52, H=0.40;
   for(i=0;i<=NU;i++) for(j=0;j<=NV;j++){ var u=i/NU, v=j/NV;
     p.push(-u*W, (v-0.5)*H, Math.sin(u*5.4)*0.055*u); uv.push(u,v); }
   for(i=0;i<NU;i++) for(j=0;j<NV;j++){ var q=i*(NV+1)+j, r2=q+NV+1; idx.push(q,r2,q+1,q+1,r2,r2+1); }
@@ -1562,74 +1562,87 @@ function crewParts(){
 var CREW=crewParts();
 var C_HEAD=sphMesh(0.104,0.00,0.955,0,1.02,0.93), C_HAIR=sphMesh(0.119,-0.018,0.975,0,0.93,0.97);
 
-/* ======================= לוויתן ======================= 
-   לוויתן אחד ששוחה בעומק, בכיוון ובמרחק אקראיים, ומתחלף כשהוא מתרחק. מתחת למים הוא מוצק ומואר;
-   מעל המים הוא נראה כצל כהה דרך פני הים, כי הים אטום ולכן הוא מצויר בלי בדיקת עומק ובשקיפות שתלויה בעומק.
-   הגוף רשת אחת; המדוכה (הזנב) רשת נפרדת שמתנדנדת סביב ציר הגוף, וזה מה שנותן את תחושת השחייה. */
-var WH_LEN=15.0;
-function whaleBody(){
-  var g=G(), NS=26, NR=10, i,j, prev=null;
-  function prof(t){                                   /* חצי קוטר לאורך הגוף, מהזנב אל החוטם */
-    var pts=[[0,0.03],[0.07,0.22],[0.16,0.46],[0.28,0.86],[0.42,1.20],[0.55,1.34],[0.68,1.30],[0.80,1.08],[0.90,0.72],[0.96,0.40],[1,0.10]],k;
-    for(k=0;k<pts.length-1;k++) if(t<=pts[k+1][0]){ var f=(t-pts[k][0])/(pts[k+1][0]-pts[k][0]); return pts[k][1]+(pts[k+1][1]-pts[k][1])*f; }
-    return 0.10; }
-  for(i=0;i<=NS;i++){ var t=i/NS, r=prof(t), x=(t-0.5)*WH_LEN;
-    var wz=r*(t<0.20?0.22+0.78*(t/0.20):0.86), wy=r*(t<0.20?0.85:1.0);     /* גזע הזנב שטוח לרוחב */
+/* ======================= לוויתן =======================
+   לוויתן מצוי (fin whale), 18 מ׳: ראש רחב וקהה ושטוח מלמעלה, גוף שמתעבה מאחורי הראש, גזע זנב דק,
+   סנפיר גבי קטן ומגלי בשני שלישים לאחור, וסנפירי חזה צרים. לא כריש.
+   התנועה: הגוף בנוי משלושה מקטעים שמסתובבים במישור האנכי בפאזות נדחות, כך שגל עובר מהראש אל המדוכה.
+   זו התנועה האמיתית של לווייתנים — אנכית, לא צדית כמו דג. */
+var WH_LEN=18.0;
+function whProf(t){                                  /* חצי קוטר לאורך הגוף, מקצה הזנב אל החוטם */
+  var p=[[0,0.03],[0.06,0.22],[0.14,0.50],[0.26,1.00],[0.40,1.46],[0.52,1.70],[0.64,1.76],[0.74,1.72],
+         [0.83,1.60],[0.895,1.40],[0.945,1.12],[0.98,0.80],[1,0.58]],k;
+  if(t<=0) return 0.03; if(t>=1) return 0.58;
+  for(k=0;k<p.length-1;k++) if(t<=p[k+1][0]){ var f=(t-p[k][0])/(p[k+1][0]-p[k][0]); return p[k][1]+(p[k+1][1]-p[k][1])*f; }
+  return 0.58; }
+function sm(a,b,x){ var q=Math.max(0,Math.min(1,(x-a)/(b-a))); return q*q*(3-2*q); }
+function whSeg(t0,t1,ox){                            /* מקטע גוף, עם ראשית הצירים בציר הסיבוב שלו */
+  var g=G(), NS=Math.max(4,Math.round((t1-t0)*30)), NR=12, i,j, prev=null;
+  for(i=0;i<=NS;i++){ var t=t0+(t1-t0)*i/NS, r=whProf(t), x=(t-0.5)*WH_LEN-ox;
+    var head=sm(0.80,1.0,t), tail=sm(0.22,0.05,t);
+    var wz=r*(0.84+0.34*head)*(1-0.55*tail), wy=r*(1.0-0.42*head)*(1-0.10*tail), drop=(t>0.86?-0.10*head*r:0);
     var ring=[];
-    for(j=0;j<NR;j++){ var a=j/NR*6.2831853;
-      ring.push([x, Math.sin(a)*wy - (t>0.55?0:0.04), Math.cos(a)*wz]); }
-    if(prev){ var b=g.p.length/3;
-      for(j=0;j<NR;j++) g.p.push(ring[j][0],ring[j][1],ring[j][2]);
-      for(j=0;j<NR;j++){ var q=b-NR+j, q2=b-NR+(j+1)%NR, s=b+j, s2=b+(j+1)%NR;
-        g.i.push(q,s,q2, q2,s,s2); }
-    } else { for(j=0;j<NR;j++) g.p.push(ring[j][0],ring[j][1],ring[j][2]); }
+    for(j=0;j<NR;j++){ var a=j/NR*6.2831853, sy=Math.sin(a), cz=Math.cos(a);
+      ring.push([x, sy*wy*(sy<0?1.12:1.0)+drop, cz*wz]); }   /* בטן מעט מלאה יותר מהגב */
+    var b=g.p.length/3;
+    for(j=0;j<NR;j++) g.p.push(ring[j][0],ring[j][1],ring[j][2]);
+    if(prev) for(j=0;j<NR;j++){ var q=b-NR+j, q2=b-NR+(j+1)%NR, s2=b+j, s3=b+(j+1)%NR; g.i.push(q,s2,q2, q2,s2,s3); }
     prev=ring; }
-  /* סנפיר גבי, בשני שלישים לאחור */
-  var dx=(0.34-0.5)*WH_LEN;
-  gPush(g,[[dx+0.55,1.22,0],[dx-0.30,1.20,0],[dx-0.05,2.05,0],[dx+0.55,1.22,0.06],[dx-0.30,1.20,0.06],[dx-0.05,2.05,0.06]],
-        [[0,1,2],[3,5,4],[0,2,5],[0,5,3],[1,4,5],[1,5,2]]);
-  /* סנפירי חזה, נטויים אחורה */
-  var fx=(0.76-0.5)*WH_LEN, k2;
-  for(k2=-1;k2<=1;k2+=2){
-    gPush(g,[[fx+0.30,-0.35,k2*0.80],[fx-1.35,-0.95,k2*2.10],[fx-1.60,-0.75,k2*1.95],[fx-0.25,-0.20,k2*0.72]],
-          k2>0?[[0,1,2],[0,2,3]]:[[0,2,1],[0,3,2]]);
-    gPush(g,[[fx+0.30,-0.42,k2*0.80],[fx-1.35,-1.02,k2*2.10],[fx-1.60,-0.82,k2*1.95],[fx-0.25,-0.27,k2*0.72]],
-          k2>0?[[0,2,1],[0,3,2]]:[[0,1,2],[0,2,3]]); }
-  return gMesh(g); }
-function whaleFluke(){                                  /* מדוכה: V אופקי, ממורכז על ציר הנדנוד */
+  return g; }
+function whaleParts(){
+  /* לכל מקטע ראשית הצירים בקצה הקדמי שלו (המפרק עם המקטע שלפניו), כדי שהשרשור יחזיק אותם צמודים */
+  var A=whSeg(0.44,1.0,(0.44-0.5)*WH_LEN), B=whSeg(0.20,0.44,(0.44-0.5)*WH_LEN), C=whSeg(0.0,0.20,(0.20-0.5)*WH_LEN);
+  /* סנפירי חזה: צרים וארוכים, מאחורי הראש */
+  (function(){ var fx=(0.79-0.44)*WH_LEN, k;
+    for(k=-1;k<=1;k+=2) for(var s=-1;s<=1;s+=2){
+      gPush(A,[[fx+0.35,-0.45+s*0.05,k*0.78],[fx-1.55,-1.15+s*0.04,k*2.25],[fx-1.95,-0.92+s*0.04,k*2.05],[fx-0.30,-0.28+s*0.05,k*0.70]],
+            (k*s>0)?[[0,1,2],[0,2,3]]:[[0,2,1],[0,3,2]]); } })();
+  /* סנפיר גבי: קטן, מגלי, נוטה אחורה */
+  (function(){ var dx=(0.325-0.44)*WH_LEN, s;
+    for(s=-1;s<=1;s+=2)
+      gPush(B,[[dx+0.62,1.02,s*0.05],[dx-0.34,0.98,s*0.05],[dx-0.42,1.74,s*0.04],[dx+0.16,1.62,s*0.04]],
+            s>0?[[0,1,2],[0,2,3]]:[[0,2,1],[0,3,2]]); })();
+  return { A:gMesh(A), B:gMesh(B), C:gMesh(C) }; }
+function whaleFluke(){                               /* מדוכה רחבה עם חריץ במרכז */
   var g=G();
-  var P=[[0.55,0,0],[-0.35,0.02,1.95],[-1.25,0.02,2.15],[-0.55,0,0.25],[-1.25,0.02,-2.15],[-0.35,0.02,-1.95]];
-  gPush(g,[P[0],P[1],P[2],P[3]],[[0,1,2],[0,2,3]]);
-  gPush(g,[P[0],P[3],P[4],P[5]],[[0,1,2],[0,2,3]]);
-  gPush(g,[[P[0][0],-0.06,0],[P[1][0],-0.04,P[1][2]],[P[2][0],-0.04,P[2][2]],[P[3][0],-0.06,P[3][2]]],[[0,2,1],[0,3,2]]);
-  gPush(g,[[P[0][0],-0.06,0],[P[3][0],-0.06,P[3][2]],[P[4][0],-0.04,P[4][2]],[P[5][0],-0.04,P[5][2]]],[[0,2,1],[0,3,2]]);
+  var P=[[0.55,0,0],[-0.25,0.03,2.55],[-1.65,0.05,3.05],[-1.15,0.02,0.60],[-0.60,0,0.10]];
+  var Q=[[0.55,0,0],[-0.60,0,-0.10],[-1.15,0.02,-0.60],[-1.65,0.05,-3.05],[-0.25,0.03,-2.55]];
+  gPush(g,P,[[0,1,2],[0,2,3],[0,3,4]]);
+  gPush(g,Q,[[0,4,3],[0,3,2],[0,2,1]]);
+  gPush(g,[[P[0][0],-0.07,0],[P[1][0],-0.03,P[1][2]],[P[2][0],-0.03,P[2][2]],[P[3][0],-0.05,P[3][2]],[P[4][0],-0.07,P[4][2]]],[[0,2,1],[0,3,2],[0,4,3]]);
+  gPush(g,[[Q[0][0],-0.07,0],[Q[1][0],-0.07,Q[1][2]],[Q[2][0],-0.05,Q[2][2]],[Q[3][0],-0.03,Q[3][2]],[Q[4][0],-0.03,Q[4][2]]],[[0,1,2],[0,2,3],[0,3,4]]);
   return gMesh(g); }
-var M_WHALE=whaleBody(), M_FLUKE=whaleFluke();
-var WH={x:0,z:0,dep:14,hdg:0,spd:2.1,ph:0,live:false};
+var WHP=whaleParts(), M_FLUKE=whaleFluke();
+var WH={x:0,z:0,dep:14,hdg:0,spd:2.1,ph:0};
 function whaleSeed(first){
-  var a=Math.random()*6.2831853, d=first?(60+Math.random()*90):(150+Math.random()*60);
+  var a=Math.random()*6.2831853, d=first?(70+Math.random()*90):(160+Math.random()*70);
   WH.x=Math.cos(a)*d; WH.z=Math.sin(a)*d;
-  WH.hdg=Math.atan2(-WH.x,WH.z)+ (Math.random()-0.5)*2.2;        /* בערך לכיוון הסירה, עם סטייה */
-  WH.dep=5.5+Math.random()*16; WH.spd=1.7+Math.random()*1.3; WH.ph=Math.random()*6.283; WH.live=true; }
+  WH.hdg=Math.atan2(-WH.x,WH.z)+(Math.random()-0.5)*2.4;
+  WH.dep=6+Math.random()*15; WH.spd=1.5+Math.random()*1.1; WH.ph=Math.random()*6.283; }
 whaleSeed(true);
 function drawWhale(t,dt,eye,under,VP){
   if(EXO.quality==='lite'||reduce) return;
   WH.x+=Math.sin(WH.hdg)*WH.spd*dt; WH.z-=Math.cos(WH.hdg)*WH.spd*dt;
-  var rr=Math.hypot(WH.x,WH.z); if(rr>260) whaleSeed(false);
-  var dcam=Math.hypot(eye[0]-WH.x,eye[2]-WH.z); if(dcam>240) return;
-  var wob=Math.sin(t*0.33+WH.ph), y=-WH.dep+wob*1.15;
-  var pitch=Math.cos(t*0.33+WH.ph)*0.10, beat=Math.sin(t*0.95+WH.ph)*0.38;
-  var W=mMul(mMul(mMul(mTrans(WH.x,y,WH.z),mRotY(Math.PI/2-WH.hdg)),mRotZ(pitch)),mRotX(Math.sin(t*0.47+WH.ph)*0.07));
+  WH.hdg+=Math.sin(t*0.07+WH.ph)*0.0025;                        /* סטייה איטית מאוד, לא קו ישר מכני */
+  if(Math.hypot(WH.x,WH.z)>270) whaleSeed(false);
+  var dcam=Math.hypot(eye[0]-WH.x,eye[2]-WH.z); if(dcam>250) return;
+  var w=1.15+WH.spd*0.20, ph=t*w+WH.ph;                          /* קצב המחזור עולה מעט עם המהירות */
+  var y=-WH.dep+Math.sin(ph*0.30)*1.25+Math.sin(ph)*0.16;        /* עלייה וירידה איטית, ועוד נדנוד קטן בקצב הזנב */
+  var roll=Math.sin(t*0.21+WH.ph)*0.11;
+  var W=mMul(mMul(mMul(mTrans(WH.x,y,WH.z),mRotY(Math.PI/2-WH.hdg)),mRotZ(Math.sin(ph)*0.035)),mRotX(roll));
+  var a1=Math.sin(ph-0.7)*0.115, a2=Math.sin(ph-1.5)*0.20, a3=Math.sin(ph-2.3)*0.34;   /* גל שעובר אחורה */
+  var MB=mMul(W,mRotZ(a1));
+  var MC=mMul(mMul(MB,mTrans((0.20-0.44)*WH_LEN,0,0)),mRotZ(a2));
+  var MF=mMul(mMul(MC,mTrans((0.0-0.20)*WH_LEN,0,0)),mRotZ(a3));
   var deep=Math.max(0,Math.min(1,(WH.dep-1.5)/16));
   var a=under?1.0:(0.72-0.34*deep)*Math.max(0,Math.min(1,1.45-dcam/150));
   if(a<0.02) return;
-  var col=under?[0.115,0.160,0.195]:[0.020,0.055,0.085];
+  var col=under?[0.125,0.165,0.195]:[0.020,0.055,0.085];
   gl.useProgram(SOLID);
   gl.enableVertexAttribArray(SOLID.a('aP')); gl.enableVertexAttribArray(SOLID.a('aN'));
   if(a<0.999){ gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST); }
   gl.uniform1f(SOLID.u('uA'),a);
-  drawMesh(M_WHALE, W, col);
-  drawMesh(M_FLUKE, mMul(mMul(W,mTrans(-WH_LEN*0.47,0,0)),mRotZ(beat)), col);
+  drawMesh(WHP.A, W, col); drawMesh(WHP.B, MB, col); drawMesh(WHP.C, MC, col);
+  drawMesh(M_FLUKE, MF, col);
   gl.uniform1f(SOLID.u('uA'),1);
   if(a<0.999){ gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); }
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
@@ -2135,7 +2148,7 @@ function frameBody(){
   }
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
   var enR=(((c.windDir+180)-FIX.cog+540)%360-180)*D2R, enW=Math.min(1,c.wind/16);
-  var enM=mMul(mMul(mMul(boatM,mTrans(-3.35,FREE+5.06,0)),mRotY(-enR+Math.sin(t*1.7)*0.09*enW)),mRotZ(-0.37+Math.sin(t*2.3+1.1)*0.05*enW));
+  var enM=mMul(mMul(mMul(boatM,mTrans(-1.32,FREE+10.30,0)),mRotY(-enR+Math.sin(t*1.7)*0.09*enW)),mRotZ(-0.37+Math.sin(t*2.3+1.1)*0.05*enW));
   gl.uniform1f(SAILP.u('uTwo'),1); drawSail(M_ENSIGN, enM, TEX_FLAG, 1);
   gl.uniform1f(SAILP.u('uTwo'),0);
   drawSail(M_DECS, boatM, TEX_NAME, 1);
@@ -2157,7 +2170,7 @@ function frameBody(){
 
   /* מצב לפריים: לאן המצלמה מסתכלת (כיוון מצפן), כדי שהשושנה תצייר את הטריז */
   EXO.frame.camBearing=(((-cam.az*R2D)%360)+360)%360; EXO.frame.auto=cam.auto; EXO.frame.r=cam.r;
-  EXO.frame.groundW=2*cam.r*Math.tan(hfx);
+  EXO.frame.groundW=2*cam.r*Math.tan(hfx); EXO.frame.burst=LAB._burst||0;
   EXO.frame.u=cam.u; EXO.frame.sD=sD; EXO.frame.gT=gT; EXO.frame.gX=gX; EXO.frame.touching=Object.keys(pts).length>0;
   EXO.frame.under=under; EXO.frame.deck=deck; EXO.frame.el=cam.el; EXO.frame.pitch=pitch; EXO.frame.heave=bodyY;
   labAnchors(VP,t);
@@ -2314,7 +2327,7 @@ function tapped(e){
   var now=performance.now(), x=e.clientX, y=e.clientY;
   if(now-tapT<340 && Math.hypot(x-tapX,y-tapY)<34 && cam.u>U_DECK+0.05 && cam.u<U_MAX+0.02){
     var b=boatOnScreen(), rad=Math.max(90,Math.min(C.clientWidth,C.clientHeight)*0.30);
-    if(b && Math.hypot(x-b[0],y-b[1])<rad){ tapT=0; EXO.setCam('deck'); return; } }
+    if(b && Math.hypot(x-b[0],y-b[1])<rad){ tapT=0; EXO.setCam(cam.u>0.75?'home':'deck'); return; } }
   tapT=now; tapX=x; tapY=y; }
 C.addEventListener('pointerup',function(e){ if(Object.keys(pts).length<=1) tapped(e); });
 C.addEventListener('pointerup',up);
