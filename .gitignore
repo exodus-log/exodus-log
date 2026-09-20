@@ -15,3 +15,6 @@ _private/
 .env
 .env.*
 .wrangler/
+
+# חבילות עבודה שנוחתות בתיקייה (למשל claude/files.zip) לא עולות לריפו הציבורי.
+*.zip
