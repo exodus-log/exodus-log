@@ -240,7 +240,7 @@ function compute(inp) {
     skipped = [];
   }
   if (skipped.length) warn.push('דילוג על נקודת חובה בלי קואורדינטות: ' + skipped.join(', '));
-  if (prev.FIX && gate && prev.FIX.gate !== gate.name) warn.push('נקודת החובה התחלפה: ' + prev.FIX.gate + ' ← ' + gate.name + ' (לעדכן את STORY)');
+  if (prev.FIX && gate && prev.FIX.gate !== gate.name) warn.push('נקודת החובה התחלפה: ' + prev.FIX.gate + ' ← ' + gate.name + ' (לעדכן את assets/story.js)');
 
   var land = inp.land ? nearestLand(inp.land, now.lat, now.lon) : null;
   if (land && !land.name) warn.push('אין שם עברי לחוף ב-' + land.lat.toFixed(2) + ',' + land.lon.toFixed(2));
@@ -342,9 +342,7 @@ function render(v, prev, cond) {
   L.push('/* נקודת החובה הבאה במסלול' + (v.gateNote ? ': ' + v.gateNote : '') + ' */');
   L.push('var GATE = [' + v.GATE[0] + ', ' + v.GATE[1] + '];');
   L.push('');
-  if (prev.storyBlock) L.push(prev.storyBlock.replace(/\n$/, ''));
-  else if (prev.STORY != null) L.push('var STORY = ' + JSON.stringify(prev.STORY) + ';');
-  L.push('');
+  /* משפט הסיפור לא כאן: הוא ב-assets/story.js, ואותו כותב רק Claude (מ-21.9.2026) */
   L.push('/* שעה (UTC), רוח קשר, משבים קשר, כיוון רוח, גל מ׳, מחזור שנ׳, כיוון גל, זרם קשר, כיוון זרם,');
   L.push('   ומהעמודה העשירית: לחץ hPa, אוויר °C, מים °C, עננות %, ראות ק״מ, משקעים מ״מ לשעה */');
   L.push('var COND = [');
@@ -362,9 +360,9 @@ function render(v, prev, cond) {
 /* ---------- בדיקות לפני כתיבה ---------- */
 function validate(text) {
   var d = readData(text), e = [];
-  ['FIX', 'GATE', 'STORY', 'COND', 'OBS_UNTIL', 'FLEET', 'TRACKP'].forEach(function (k) { if (d[k] == null) e.push('חסר ' + k); });
+  ['FIX', 'GATE', 'COND', 'OBS_UNTIL', 'FLEET', 'TRACKP'].forEach(function (k) { if (d[k] == null) e.push('חסר ' + k); });
   if (e.length) return e;
-  if (!String(d.STORY).trim() || /\n/.test(d.STORY)) e.push('STORY ריק או יותר משורה');
+  if (d.STORY != null) e.push('STORY נמצא ב-data.js — מקומו ב-assets/story.js');
   for (var i = 1; i < d.FLEET.length; i++) if (d.FLEET[i][0] < d.FLEET[i - 1][0]) e.push('FLEET לא ממוין');
   d.COND.forEach(function (r, i) {
     if (r.length !== 15) e.push('COND שורה ' + i + ': ' + r.length + ' עמודות');
