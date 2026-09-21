@@ -298,7 +298,11 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   /* light coming through the back of a crest */
   ' float sss=pow(max(0.0,dot(V,-L)),3.0)*smoothstep(0.35,1.0,hn)*uSunUp;',
   ' col+=uSss*sss*0.55;',
-  ' col+=uSunCol*pow(max(dot(N,H),0.0),300.0)*1.9*uSunUp;',
+  ' vec3 Ng=N; if(det>0.012){ vec2 g=vW.xz*2.6-uWindV*uTime*1.1+vec2(uTime*0.07,0.0); float g0=vn(g), gx=vn(g+vec2(0.19,0.0)), gz=vn(g+vec2(0.0,0.19));',
+  '  vec2 g2=vW.xz*7.3+uWindV*uTime*0.6; float k0=vn(g2), kx=vn(g2+vec2(0.17,0.0)), kz=vn(g2+vec2(0.0,0.17));',
+  '  Ng=normalize(N+(vec3(gx-g0,0.0,gz-g0)*1.9+vec3(kx-k0,0.0,kz-k0)*1.1)*det); }',
+  ' float spk=pow(max(dot(Ng,H),0.0),520.0)*3.2+pow(max(dot(N,H),0.0),90.0)*0.16;',
+  ' col+=uSunCol*(1.0-exp(-spk*1.4))*0.92*uSunUp;',
   ' col+=uSunCol*pow(max(dot(N,H),0.0),22.0)*0.11*uSunUp;',
   /* whitecaps where the surface folds, broken up so they read as spray not paint */
   ' float fold=clamp((0.74-vJ)/0.74,0.0,1.0);',
@@ -350,13 +354,17 @@ var SOLID=prog(
   'varying vec3 vW,vN;',
   'void main(){ vec3 p=vec3(aP.x,aP.y,aP.z*uZS); vec4 w=uM*vec4(p,1.0); vW=w.xyz;',
   ' vN=mat3(uM[0].xyz,uM[1].xyz,uM[2].xyz)*aN; gl_Position=uVP*w;}'].join('\n'),
- ['precision highp float;',LIT,'uniform float uA;','varying vec3 vW,vN;',
+ ['precision highp float;',LIT,'uniform float uA; uniform vec2 uSpec;','varying vec3 vW,vN;',
   'void main(){ vec3 N=normalize(vN); float dl=dot(N,normalize(uLightDir));',
   ' if(dot(N,uEye-vW)<0.0){ N=-N; dl=-dl; }',
   ' float df=max(dl,0.0); float wr=dl*0.5+0.5;',
   ' vec3 amb=mix(uAmbGnd,uAmbSky,N.y*0.5+0.5)*(1.05+0.80*wr);',
   ' vec3 lit=uCol*(amb+uLightCol*df); float Lm=max(lit.r,max(lit.g,lit.b));',
   ' if(Lm>0.8) lit*=(0.8+0.2*(1.0-exp(-(Lm-0.8)/0.2)))/Lm;',
+  ' if(uSpec.x>0.0){ vec3 V=normalize(uEye-vW), Hh=normalize(normalize(uLightDir)+V);',
+  '  float fr=0.04+0.96*pow(1.0-max(dot(N,V),0.0),5.0);',
+  '  lit+=uLightCol*uSpec.x*pow(max(dot(N,Hh),0.0),uSpec.y)*(uSpec.y+8.0)*0.02*df;',
+  '  lit=mix(lit,uAmbSky*1.15,clamp(fr*uSpec.x*0.55,0.0,0.35)); }',
   ' vec3 col=mix(lit,uCol,uFlat);',
   ' float fg=1.0-exp(-pow(length(uEye-vW)*uFogD,2.0));',
   ' gl_FragColor=vec4(mix(col,uFogCol,clamp(fg,0.0,1.0)),uA);}'].join('\n'));
@@ -641,6 +649,11 @@ var COL={ tops:[0.940,0.950,0.960], bott:[0.105,0.125,0.155], boot:[0.40,0.13,0.
           skin:[0.78,0.57,0.41], tee:[0.115,0.135,0.205], short:[0.74,0.71,0.64],
           shade:[0.055,0.060,0.075], cush:[0.60,0.545,0.665], navy:[0.085,0.105,0.165],
           hair:[0.115,0.080,0.055] };
+/* ברק לכל חומר: [עוצמה, חדות]. המפתח הוא אותו מערך צבע שמועבר ל-drawMesh */
+var SPEC=new Map([[COL.tops,[0.55,70]],[COL.dkwhite,[0.30,40]],[COL.deckEdge,[0.30,40]],[COL.trunk,[0.30,40]],[COL.hatch,[0.40,60]],
+  [COL.spar,[0.45,36]],[COL.steel,[0.70,80]],[COL.vane,[0.40,40]],[COL.glass,[0.90,140]],[COL.solar,[0.75,110]],[COL.bronze,[0.45,40]],
+  [COL.ring,[0.25,30]],[COL.jack,[0.20,24]],[COL.bott,[0.05,12]],[COL.boot,[0.10,20]],[COL.deck,[0.06,16]],[COL.teak,[0.04,10]],[COL.rail,[0.06,14]],
+  [COL.skin,[0.08,14]],[COL.hair,[0.10,18]],[COL.navy,[0.06,12]]]);
 var lastPlan='', SAIL_FLIP=1;
 function planFor(c,twa){ return (twa>=118)?(c.wind<12?'spin':(c.wind<26?'poled':'heavy'))
   :(twa>=70?(c.wind<22?'reach':'heavy'):(c.wind<19?'beat':'heavy')); }
@@ -1943,7 +1956,7 @@ var P={ dayZ:[0.165,0.423,0.706], dayH:[0.663,0.788,0.874],
 function smooth(a,b,x){ var t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); }
 
 function resize(){ var w=C.clientWidth,h=C.clientHeight; if(!w||!h) return;
-  var dpr=Math.min(window.devicePixelRatio||1,EXO.quality==='lite'?1:1.5), W=Math.round(w*dpr), H=Math.round(h*dpr);
+  var dpr=Math.min(window.devicePixelRatio||1,EXO.quality==='lite'?1:(EXO.dprMax||1.5)), W=Math.round(w*dpr), H=Math.round(h*dpr);
   if(C.width!==W||C.height!==H){ C.width=W; C.height=H; }
   gl.viewport(0,0,C.width,C.height); }
 
@@ -1957,6 +1970,7 @@ function drawMesh(m,model,col,zs,flat){
   gl.uniform3fv(SOLID.u('uCol'),col);
   gl.uniform1f(SOLID.u('uZS'),zs===undefined?1:zs);
   gl.uniform1f(SOLID.u('uFlat'),flat||0);
+  var sp=SPEC.get(col); gl.uniform2f(SOLID.u('uSpec'),sp?sp[0]:0,sp?sp[1]:1);
   gl.bindBuffer(gl.ARRAY_BUFFER,m.p); gl.vertexAttribPointer(SOLID.a('aP'),3,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,m.n); gl.vertexAttribPointer(SOLID.a('aN'),3,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.i);
@@ -2318,7 +2332,8 @@ function perfProbe(pNow){
   probe.last=pNow;
   if(probe.n>=80){ probe.done=true;
     var avg=probe.sum/60; EXO.frameMs=avg;
-    if(avg>48&&EXO.quality==='full'&&!EXO.qualityLocked){ EXO.setQuality('lite',true); } }
+    if(avg>48&&EXO.quality==='full'&&!EXO.qualityLocked){ EXO.setQuality('lite',true); }
+    else if(avg<20&&EXO.quality==='full'&&(window.devicePixelRatio||1)>1.5){ EXO.dprMax=2; resize(); } }
 }
 
 /* ===== המצב שהדף מצייר ממנו: שעון, שמיים, תנאים, מפרשים ===== */
