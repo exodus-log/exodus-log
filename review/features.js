@@ -1,0 +1,74 @@
+/* ===== review/features.js — רשימת הפיצ'רים של תחנת הבדיקה =====
+   כל פיצ'ר מקבל מספר ושם שלא משתנים בין סבבים ובין גדלי מסך. הערות נשמרות לפי key,
+   ולכן לא משנים key של פיצ'ר קיים ולא ממחזרים מספר. פיצ'ר חדש מקבל מספר חדש.
+
+   sel   — בורר CSS בתוך הדף הנבדק. multi:true = כל ההתאמות (מסגרת לכל אחת, מספר על הראשונה).
+   calc  — מיקום מחושב מתוך window.EXO של ההדמיה (ring, boat), כשאין אלמנט HTML.
+   scr   — המסך שבו הפיצ'ר חי: sim (ההדמיה), menu (התפריט פתוח), globe (הגלובוס), journey (המסע והניתוח).
+   chip  — פיצ'רים שפרושים על כל הסצנה ואין להם מקום אחד: מופיעים כשורת כפתורים מתחת למסגרת.
+   הדף "הניתוח המלא" (deep) ממוספר אוטומטית לפי סדר הפרקים: D1, D2...  */
+window.REVIEW_FEATURES = [
+  /* --- ההדמיה --- */
+  {n:1,  key:'top-row1',  scr:'sim', sel:'.hud.topr .row.r1', name:'שורת הכותרת: שם היומן, יום המסע, תאריך, נ״צ וגיל הנתון'},
+  {n:2,  key:'top-row2',  scr:'sim', sel:'.hud.topr .row.r2', name:'רוח, גל וזרם בשורה העליונה'},
+  {n:3,  key:'top-row3',  scr:'sim', sel:'#hRow3',            name:'השורה השלישית: לחץ, עננות, ראות, גשם, אוויר ומים'},
+  {n:4,  key:'tstrip',    scr:'sim', sel:'#tstrip',           name:'רצועת הזמן: רוח, גל, לחץ ואור לאורך היממות'},
+  {n:5,  key:'clocks',    scr:'sim', sel:'.hud.clocks',       name:'שלושת השעונים'},
+  {n:6,  key:'vit',       scr:'sim', sel:'.hud.vit',          name:'שורת מספרי המרוץ'},
+  {n:7,  key:'mini',      scr:'sim', sel:'#mini',             name:'מפת המיקומים — הכפתור אל המסע והניתוח'},
+  {n:8,  key:'ly-wind',   scr:'sim', sel:'#lay .ly-wind',     name:'כפתור שכבת הרוח'},
+  {n:9,  key:'ly-wave',   scr:'sim', sel:'#lay .ly-wave',     name:'כפתור שכבת הגל'},
+  {n:10, key:'ly-cur',    scr:'sim', sel:'#lay .ly-cur',      name:'כפתור שכבת הזרם'},
+  {n:11, key:'menuBtn',   scr:'sim', sel:'#menuBtn',          name:'כפתור התפריט'},
+  {n:12, key:'snd',       scr:'sim', sel:'#sndBtn',           name:'כפתור הקול'},
+  {n:13, key:'ring',      scr:'sim', calc:'ring',             name:'טבעת המצפן על המים: שנתות, מעלות, צפון'},
+  {n:14, key:'ring-wind', scr:'sim', sel:'#labels .lb.dat.wind', name:'סימון הרוח על הטבעת (נוצה ותווית)'},
+  {n:15, key:'ring-wave', scr:'sim', sel:'#labels .lb.dat.wave', name:'סימון הגל על הטבעת (קשתות ותווית)'},
+  {n:16, key:'ring-cur',  scr:'sim', sel:'#labels .lb.dat.cur',  name:'סימון הזרם על הטבעת (חץ גלי ותווית)'},
+  {n:17, key:'ring-gate', scr:'sim', sel:'#labels .lb.dat.gate', name:'היעד הבא על הטבעת (מעוין)'},
+  {n:18, key:'beacon',    scr:'sim', sel:'#labels .lb.beacon',   name:'המשואה באופק: שם היעד, מרחק וכיוון'},
+  {n:19, key:'boat',      scr:'sim', calc:'boat',             name:'הסירה'},
+  {n:20, key:'wind-air',  scr:'sim', chip:true, name:'הרוח באוויר: הזרמים סביב המפרשים'},
+  {n:21, key:'waves',     scr:'sim', chip:true, name:'קווי הגלים על המים'},
+  {n:22, key:'current',   scr:'sim', chip:true, name:'נחשי הזרם, גם מתחת למים'},
+  {n:23, key:'sky',       scr:'sim', chip:true, name:'השמיים: עננים, כוכבים, שמש וירח'},
+  {n:24, key:'sea',       scr:'sim', chip:true, name:'המים: צבע, קצף, ערפל'},
+  {n:25, key:'toast',     scr:'sim', sel:'#toast:not(.off)',  name:'הודעה קופצת'},
+  {n:26, key:'camera',    scr:'sim', chip:true, name:'תנועת המצלמה: גרירה, זום, הגלישה לסיפון ולגלובוס'},
+  {n:27, key:'sound',     scr:'sim', chip:true, name:'הקול'},
+
+  /* --- התפריט --- */
+  {n:30, key:'menu',      scr:'menu', sel:'#menu',             name:'התפריט כולו'},
+  {n:31, key:'menuX',     scr:'menu', sel:'#menuX',            name:'סגירת התפריט'},
+  {n:32, key:'menu-btns', scr:'menu', sel:'#menu .grp',        name:'כפתורי התפריט: קול, מצב קל, מסך מלא, התקנה'},
+  {n:33, key:'menu-hint', scr:'menu', sel:'#mHint',            name:'שורת ההסבר בתפריט'},
+  {n:34, key:'menu-fine', scr:'menu', sel:'#menu p.fine:last-of-type', name:'"פרויקט אוהדים עצמאי" בתפריט'},
+
+  /* --- הגלובוס --- */
+  {n:40, key:'globe',     scr:'globe', sel:'#globe',           name:'הגלובוס עצמו: כדור הארץ, יום ולילה'},
+  {n:41, key:'gBack',     scr:'globe', sel:'#gBack',           name:'"חזרה אל הסירה" בגלובוס'},
+  {n:42, key:'g-leg',     scr:'globe', sel:'.g-leg',           name:'המקרא של הגלובוס'},
+  {n:43, key:'scrub',     scr:'globe', sel:'#scrub',           name:'רצועת הימים וכפתור הניגון'},
+  {n:44, key:'g-names',   scr:'globe', sel:'.gl-name', multi:true, name:'שמות אוקיינוסים, יבשות ואיים'},
+  {n:45, key:'g-deg',     scr:'globe', sel:'.gl-deg', multi:true,  name:'תוויות קווי הרוחב והאורך'},
+  {n:46, key:'g-marks',   scr:'globe', sel:'.gl-label:not(.k-me)', multi:true, name:'נקודות החובה ושמותיהן'},
+  {n:47, key:'g-me',      scr:'globe', sel:'.gl-boat, .gl-label.k-me', multi:true, name:'אקסודוס על הגלובוס'},
+  {n:48, key:'g-rim',     scr:'globe', sel:'.gl-rim',          name:'המשולש בשפת הכדור (כשהסירה מעבר לאופק)'},
+  {n:49, key:'g-lines',   scr:'globe', chip:true, name:'קווים על הגלובוס: המסלול, השובלים, קו הלילה, רשת המעלות'},
+  {n:39, key:'g-gesture', scr:'globe', chip:true, name:'גרירה וזום בגלובוס, והחזרה אל הסירה'},
+
+  /* --- המסע והניתוח --- */
+  {n:50, key:'j-bar',     scr:'journey', sel:'#journey .j-bar',    name:'הסרגל העליון של המסע וכפתור החזרה'},
+  {n:51, key:'j-lead',    scr:'journey', sel:'#journey .j-lead',   name:'הפתיח: משפט הסיפור'},
+  {n:52, key:'race-head', scr:'journey', sel:'#race > header',     name:'"המרוץ כרגע" — כותרת ושורת הסיכום'},
+  {n:53, key:'race-box',  scr:'journey', sel:'#race .racebox',     name:'גרף המרוץ'},
+  {n:54, key:'fleetTbl',  scr:'journey', sel:'#fleetTbl',          name:'טבלת הצי'},
+  {n:55, key:'scale',     scr:'journey', sel:'#scale',             name:'"כמה זה, בעצם" — כרטיסי קנה המידה'},
+  {n:56, key:'ahead',     scr:'journey', sel:'#ahead .aheadbox',   name:'"24 השעות הקרובות" — גרפי הרוח והגל'},
+  {n:57, key:'daybar',    scr:'journey', sel:'#daybar',            name:'פס היום: זריחה, שקיעה ואיפה השמש'},
+  {n:58, key:'sextant',   scr:'journey', sel:'#sextant',           name:'"לנווט כמו דניאל" — הסקסטנט'},
+  {n:59, key:'gobtn',     scr:'journey', sel:'#more .gobtn',       name:'הכפתור אל הניתוח המלא'},
+  {n:60, key:'prov',      scr:'journey', sel:'#more .prov',        name:'"מה כאן נמדד, מה מחושב ומה מודל"'},
+  {n:61, key:'j-foot',    scr:'journey', sel:'#journey > footer',  name:'השורה התחתונה: קרדיטים ומקורות'},
+  {n:62, key:'ahead-head',scr:'journey', sel:'#ahead > header',    name:'"24 השעות הקרובות" — כותרת ושורת הסיכום'}
+];
