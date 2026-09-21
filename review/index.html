@@ -189,6 +189,9 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
 }
 @media (min-width:900px) and (min-height:541px){
   .sheet{inset-inline:auto 16px;width:440px;bottom:16px;border-radius:14px;border:1px solid #2b4a5e;max-height:80dvh}
+  /* במחשב החלון הוא פאנל בצד ולא מכסה את האתר: בלי מסך כהה שסוגר אותו בכל הקשה. כך הוא נשאר פתוח
+     גם במעבר ל"שימוש" ובזמן שמשחקים עם הממשק (בקשה של שמוליק, 21.9). סוגרים ב-×. */
+  #scrim{display:none!important}
 }
 </style>
 </head>
