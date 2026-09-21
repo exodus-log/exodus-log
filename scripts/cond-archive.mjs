@@ -211,8 +211,14 @@ async function main() {
   }
   if (cur.length) groups.push(cur);
 
-  let done = 0, nulls = 0, failed = 0;
+  /* הריצה הראשונה האמיתית (22.9) לקחה 21 דקות ל-1,800 מיקומים, קרוב לתקרה של 25 דקות ב-workflow.
+     לכן: עצירה מסודרת אחרי 17 דקות, שמירה לדיסק כל 10 בקשות (כך שנפילה באמצע לא מוחקת עבודה),
+     ושורת התקדמות בלוג. מה שלא הספיק נשאר לריצה הבאה. */
+  const T0 = Date.now(), MAX_MS = +(process.env.EXO_MAX_MIN || 17) * 60000;
+  let done = 0, nulls = 0, failed = 0, gi = 0, skipped = 0;
   for (const g of groups) {
+    if (Date.now() - T0 > MAX_MS) { skipped += g.length; continue; }
+    gi++; if (gi % 10 === 0) { save(); console.log(`… ${gi}/${groups.length} בקשות, ${done} שורות, ${Math.round((Date.now() - T0) / 60000)} דק׳`); }
     let rows;
     try { rows = await fetchBatch(g); }
     catch (e) { failed += g.length; say(`> ⚠ ${iso(g[0].t)}: ${e.message}`); if (/429/.test(e.message)) break; continue; }
@@ -231,8 +237,9 @@ async function main() {
   if (done && nulls / done > 0.2) throw new Error(`${nulls} מתוך ${done} שורות בלי רוח או גל — משהו השתנה ב-Open-Meteo. לא נכתב כלום.`);
   const files = save();
 
-  const left = want.length - todo.length + failed;
-  say(`נמשכו ${done} שורות ב-${groups.length} בקשות (${calls} פניות). שורות ריקות: ${nulls}. קבצים שנכתבו: ${files}.`);
+  if (skipped) say(`> עצירה מתוכננת אחרי ${Math.round(MAX_MS / 60000)} דקות: ${skipped} מיקומים עברו לריצה הבאה.`);
+  const left = want.length - todo.length + failed + skipped;
+  say(`נמשכו ${done} שורות ב-${gi} בקשות (${calls} פניות). שורות ריקות: ${nulls}. קבצים שנכתבו: ${files}.`);
   say(left ? `נשארו ${left} לריצה הבאה.` : 'הארכיון מלא עד לפני שעתיים.');
   /* מצב לכל שבוע: כמה שורות, וכמה מהן סופיות */
   const weeks = {};
