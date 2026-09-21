@@ -266,7 +266,12 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-scrub .sc-ticks span{position:absolute;transform:translateX(-50%);font-size:9.5px;color:#cbd8e1;white-space:nowrap;direction:rtl}
 .g-scrub output{flex:none;min-width:11em;text-align:end;font-size:12px;color:var(--ink);direction:rtl;padding-bottom:13px}
 .g-scrub output .num{font-family:var(--inst);direction:ltr;unicode-bidi:isolate;display:inline-block}
-#globeLayer .maplibregl-ctrl-top-left{top:calc(var(--top) + 2px);left:calc(6px + env(safe-area-inset-left,0px))}
+#globeLayer .maplibregl-ctrl-top-left{top:calc(var(--top) + 2px);left:calc(var(--e-l) - 8px)}
+/* MapLibre מכריז visibility:visible על שורת הקרדיטים שלו, והיא בורחת מה-visibility:hidden של
+   השכבה: שורת קרדיטים של מפה צוירה על ההדמיה, במסך שאין בו מפה. כשהשכבה סגורה — אין פקדים.
+   כשהיא פתוחה הקרדיטים חוזרים, כפי שמחייבים מקורות האריחים. */
+#globeLayer[aria-hidden="true"] .maplibregl-ctrl-top-left,
+#globeLayer[aria-hidden="true"] .maplibregl-ctrl-bottom-right{display:none!important}
 #globeLayer .maplibregl-ctrl-attrib{background:rgba(7,17,26,.6);color:var(--ink2);font:11px var(--ui)} #globeLayer .maplibregl-ctrl-attrib a{color:var(--ink2)}
 #globeLayer .maplibregl-popup-content{background:rgba(7,17,26,.94);color:#eef4f7;border:1px solid var(--hair);border-radius:4px;padding:7px 11px;font:12.5px/1.4 var(--ui);box-shadow:none}
 #globeLayer .maplibregl-popup-tip{display:none} .gl-pop b{display:block;font-weight:500;font-size:13.5px}
