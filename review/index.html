@@ -51,7 +51,8 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline
 #chg b{color:var(--ink2);font-weight:500}
 
 /* ---------- הבמה ---------- */
-#stage{flex:1;min-height:0;overflow:auto;display:flex;background:
+#stageBox{flex:1;min-height:0;position:relative}
+#stage{position:absolute;inset:0;overflow:auto;display:flex;background:
   radial-gradient(circle at 50% 40%,#0c1b26 0,#050d13 70%);overscroll-behavior:contain}
 #wrap{position:relative;margin:auto;flex:none;box-shadow:0 0 0 1px #28475b,0 10px 40px rgba(0,0,0,.6);background:#000}
 #fr{position:absolute;left:0;top:0;border:0;transform-origin:0 0;background:#06121b;display:block}
@@ -88,15 +89,23 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
 /* ---------- הרציף התחתון ---------- */
 #dock{flex:none;display:flex;align-items:center;gap:8px;padding:7px 10px calc(7px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}
 #mode{flex:0 0 auto}
-#mode button{height:38px;padding:0 12px;font-size:14px}
-.db{height:38px;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#mode button{height:38px;padding:0 10px;font-size:14px}
+.db{height:38px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .db[aria-pressed="true"]{background:var(--acc2);border-color:var(--acc)}
 .db .cnt{min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--open);color:#2a1a00;font-size:12px;font-weight:700;display:inline-grid;place-items:center}
 .db .cnt:empty{display:none}
 .db .cnt.f{background:var(--acc);color:#04201e}
 .sp{flex:1}
-.zm{display:flex;gap:4px}
-.zm button{width:38px;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:19px;line-height:1}
+#tools{position:absolute;left:6px;bottom:6px;z-index:4;display:flex;flex-direction:column;gap:5px}
+#tools button{width:34px;height:34px;border:1px solid #2b4a5e;border-radius:9px;background:rgba(11,24,34,.88);font-size:18px;line-height:1;color:var(--ink)}
+#tools button[aria-pressed="true"]{border-color:var(--acc);background:rgba(20,70,72,.9)}
+.hand{flex:1 1 auto;min-width:0;justify-content:center;height:38px;padding:0 10px;border-radius:9px;background:var(--acc);color:#04201e;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
+.hand[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.hand #handT{overflow:hidden;text-overflow:ellipsis}
+.hand .hc{flex:none;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#04201e;color:var(--acc);font-size:12px;display:inline-grid;place-items:center}
+.hand .hc:empty{display:none}
+.hand.idle{background:var(--panel2);color:var(--ink);border:1px solid var(--acc);font-weight:500}
+.chip2{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:9px;background:var(--acc2);color:var(--acc);margin-inline-start:4px}
 
 /* ---------- הגיליונות ---------- */
 .sheet{position:fixed;inset:auto 0 0 0;z-index:20;max-height:78dvh;display:flex;flex-direction:column;background:var(--panel);
@@ -173,9 +182,9 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
   #dock .sp{display:none}
   #mode{flex:1 1 100%}
   #mode button{height:34px}
-  .db,.zm button{height:34px}
-  #listBtn{flex:1}
-  #stage{grid-column:2;grid-row:1 / 4}
+  .db,.hand{height:34px}
+  #listBtn,.hand{flex:1;justify-content:center}
+  #stageBox{grid-column:2;grid-row:1 / 4}
   .sheet{inset-inline-start:auto;width:min(460px,64vw);max-height:92dvh}
 }
 @media (min-width:900px) and (min-height:541px){
@@ -201,6 +210,7 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
   </div>
   <p id="chg"></p>
 </header>
+<div id="stageBox">
 <main id="stage">
   <div id="wrap">
     <div id="loading">טוען…</div>
@@ -211,20 +221,25 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
       <p><b>הקש על מספר, או על כל חלק במסך,</b> כדי לכתוב מה לא טוב שם.</p>
       <p>כדי ללחוץ על האתר עצמו — לפתוח תפריט, לגרור, להתרחק לגלובוס — עבור ל<b>שימוש</b> למטה, ובחזרה ל<b>הערות</b> כשאתה רוצה לכתוב.</p>
       <p>המספרים קבועים: 7 הוא תמיד מפת המיקומים, בכל גודל ובכל סבב. בתצוגת מחשב נוח יותר לסובב את הטלפון לרוחב, ו־+ מגדיל.</p>
+      <p>כשסיימת: <b>לטיפול Claude</b> למטה פותח את השיחה איתו, עם הודעה מוכנה בזיכרון ההעתקה. מדביקים ושולחים.</p>
       <button type="button" id="helpOk">הבנתי</button>
     </div>
   </div>
 </main>
+<div id="tools">
+  <button type="button" id="framesBtn" aria-pressed="false" aria-label="מסגרות סביב כל הפיצ'רים">▢</button>
+  <button type="button" id="zIn" aria-label="הגדלה">+</button>
+  <button type="button" id="zOut" aria-label="הקטנה">−</button>
+</div>
+</div>
 <div id="chips"></div>
 <footer id="dock">
   <div class="seg" id="mode" role="group" aria-label="מצב">
     <button type="button" data-m="notes" aria-pressed="true">הערות</button>
     <button type="button" data-m="use" aria-pressed="false">שימוש</button>
   </div>
-  <button type="button" class="db" id="listBtn">רשימה <span class="cnt" id="cntO"></span><span class="cnt f" id="cntF"></span></button>
-  <span class="sp"></span>
-  <button type="button" class="db" id="framesBtn" aria-pressed="false" aria-label="מסגרות סביב כל הפיצ'רים">▢</button>
-  <div class="zm"><button type="button" id="zOut" aria-label="הקטנה">−</button><button type="button" id="zIn" aria-label="הגדלה">+</button></div>
+  <button type="button" class="db" id="listBtn" aria-label="רשימת ההערות"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span class="cnt" id="cntO"></span><span class="cnt f" id="cntF"></span></button>
+  <a class="hand" id="handBtn" href="#" target="_blank" rel="noopener" aria-disabled="true"><span id="handT">לטיפול Claude</span><span class="hc" id="handC"></span></a>
 </footer>
 
 <div id="scrim" hidden></div>

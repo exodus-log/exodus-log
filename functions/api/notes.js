@@ -5,7 +5,10 @@
    GET  → {notes:[…]}
    POST {op:'add',   note:{n,key,fname,view,allViews,target,page,screen,point,text}}
    POST {op:'reply', id, who:'user'|'claude', text, status?:'open'|'fixed'|'done'|'wontfix'}
-   POST {op:'delete', id} */
+   POST {op:'delete', id}
+   POST {op:'handoff', ids:[…]} — כפתור "העבר לטיפול Claude": מסמן את ההערות handed=עכשיו ורושם meta.lastHandoff.
+   טבלה נוספת: meta (k TEXT PRIMARY KEY, v TEXT). meta.conv = הכתובת של שיחת Claude שמטפלת בתחנה.
+   היא יושבת במסד ולא בקוד, כי הריפו ציבורי. GET מחזיר גם {meta:{conv, lastHandoff}}. */
 const HASH = '910c6e2e57e00406cb9d4508f89cd318805530bcbdd1d18eca3d7507c82ce0af';
 const STATUSES = ['open', 'fixed', 'done', 'wontfix'];
 
@@ -27,7 +30,12 @@ export async function onRequest({ request, env }) {
 
   if (request.method === 'GET') {
     const r = await db.prepare('SELECT data FROM notes ORDER BY created').all();
-    return out({ notes: (r.results || []).map(x => JSON.parse(x.data)) });
+    const meta = {};
+    try {
+      const m = await db.prepare('SELECT k, v FROM meta').all();
+      (m.results || []).forEach(x => { meta[x.k] = x.k === 'lastHandoff' ? JSON.parse(x.v) : x.v; });
+    } catch (e) { /* בלי טבלת meta התחנה עובדת, רק בלי כפתור ההעברה */ }
+    return out({ notes: (r.results || []).map(x => JSON.parse(x.data)), meta });
   }
   if (request.method !== 'POST') return out({ error: 'method' }, 405);
 
@@ -63,6 +71,19 @@ export async function onRequest({ request, env }) {
     note.status = status; note.updated = now;
     await db.prepare('UPDATE notes SET data = ?2, updated = ?3 WHERE id = ?1').bind(note.id, JSON.stringify(note), now).run();
     return out({ note });
+  }
+
+  if (b.op === 'handoff') {
+    const ids = (Array.isArray(b.ids) ? b.ids : []).slice(0, 300).map(x => str(x, 64));
+    for (const id of ids) {
+      const row = await db.prepare('SELECT data FROM notes WHERE id = ?1').bind(id).first();
+      if (!row) continue;
+      const note = JSON.parse(row.data); note.handed = now;
+      await db.prepare('UPDATE notes SET data = ?2 WHERE id = ?1').bind(id, JSON.stringify(note)).run();
+    }
+    const h = { t: now, n: ids.length, ids };
+    await db.prepare('INSERT OR REPLACE INTO meta (k, v) VALUES (?1, ?2)').bind('lastHandoff', JSON.stringify(h)).run();
+    return out({ handoff: h });
   }
 
   if (b.op === 'delete') {

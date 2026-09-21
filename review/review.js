@@ -29,7 +29,7 @@ var KEY=null;
 
 /* ---------- המצב ---------- */
 var S={ view:ls('rvView')||'portrait', page:'sim', target:null, auto:true, mode:'notes', zoom:1, frames:false,
-        sel:null, point:null, notes:[], info:null, screen:'sim', s:1 };
+        sel:null, point:null, notes:[], meta:{}, info:null, screen:'sim', s:1 };
 if(!VIEWS[S.view]) S.view='portrait';
 
 /* ---------- איזו גרסה: next אם היא חדשה יותר, אחרת הראשי ---------- */
@@ -278,12 +278,42 @@ function api(method,body){
 var notesErr='';
 function refreshNotes(){
   if(!KEY){ notesErr='nokey'; paintCounts(); return Promise.resolve(); }
-  return api('GET').then(function(j){ S.notes=j.notes||[]; notesErr=''; paintCounts(); if(!$('sheet').hidden&&S.sel) paintThread(); if(!$('lsheet').hidden) paintList(); tickNow(); })
+  return api('GET').then(function(j){ S.notes=j.notes||[]; S.meta=j.meta||{}; notesErr=''; paintCounts(); paintHand(); if(!$('sheet').hidden&&S.sel) paintThread(); if(!$('lsheet').hidden) paintList(); tickNow(); })
     .catch(function(e){ notesErr=String(e.message||e); paintCounts(); });
 }
 function paintCounts(){ var o=0,f=0; S.notes.forEach(function(n){ if(n.status==='open') o++; else if(n.status==='fixed') f++; });
   $('cntO').textContent=o||''; $('cntF').textContent=f||''; }
 setInterval(function(){ if(!document.hidden) refreshNotes(); },45000);
+
+/* ---------- "לטיפול Claude": פותח את השיחה עם Claude, עם הודעה מוכנה בזיכרון ההעתקה ----------
+   אתר לא יכול להעיר שיחה של Claude מבחוץ, ולכן הכפתור עושה את שלושת הדברים שכן אפשר, בלחיצה אחת:
+   מסמן במסד אילו הערות עברו (handed), מעתיק הודעה קצרה, ופותח את השיחה עצמה. כתובת השיחה יושבת
+   במסד (meta.conv) ולא בקוד, כי הריפו ציבורי. */
+function lastUserT(n){ var t=0; (n.thread||[]).forEach(function(e){ if(e.who==='user'&&e.t>t) t=e.t; }); return t; }
+function fresh(){ return S.notes.filter(function(n){ return n.status==='open'&&(!n.handed||lastUserT(n)>n.handed); }); }
+function handMsg(L){
+  if(!L.length) return 'חזרתי מתחנת הבדיקה.';
+  var ids=L.map(function(n){ return n.key==='general'?'כללית':(String(n.n).charAt(0)==='D'||n.n==='?'||n.n==='•'?n.n:'#'+n.n); });
+  return 'העברתי לטיפולך '+(L.length===1?'הערה אחת':L.length+' הערות')+' מתחנת הבדיקה ('+ids.join(', ')+').';
+}
+function paintHand(){
+  var a=$('handBtn'), conv=S.meta&&S.meta.conv, L=fresh();
+  if(conv&&/^https:\/\/claude\.ai\//.test(conv)){ a.href=conv; a.setAttribute('aria-disabled','false'); } else { a.removeAttribute('href'); a.setAttribute('aria-disabled','true'); }
+  $('handC').textContent=L.length||'';
+  $('handT').textContent=L.length?'לטיפול Claude':'לשיחה עם Claude';
+  a.classList.toggle('idle',!L.length);
+}
+$('handBtn').addEventListener('click',function(){
+  var L=fresh(), msg=handMsg(L);
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(msg).catch(function(){}); }catch(e){}
+  if(L.length){
+    fetch('/api/notes',{method:'POST',keepalive:true,headers:{'x-review-key':KEY||'','content-type':'application/json'},
+      body:JSON.stringify({op:'handoff',ids:L.map(function(n){ return n.id; })})}).then(function(){ refreshNotes(); }).catch(function(){});
+    var now=Date.now(); L.forEach(function(n){ n.handed=now; }); paintHand();
+  }
+  toast('ההודעה הועתקה. בשיחה עם Claude: הדבקה ושליחה.',6000);
+  /* בלי preventDefault: הקישור עצמו פותח את השיחה בלשונית חדשה */
+});
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refreshNotes(); });
 
 /* ---------- גיליון פיצ'ר ---------- */
@@ -303,6 +333,7 @@ function noteHtml(n,withTitle){
   (n.thread||[]).forEach(function(t,i){
     h+='<div class="ent'+(t.who==='claude'?' cl':'')+'">'+(t.text?'<p>'+esc(t.text)+'</p>':'')+
        '<div class="meta">'+(i===0?'<span class="st '+st[1]+'">'+st[0]+'</span>'+esc(ctxLine(n))+' · ':(t.status&&t.status!==(n.thread[i-1]||{}).status?'<span class="st '+(STATUS[t.status]||st)[1]+'">'+(STATUS[t.status]||st)[0]+'</span>':''))+when(t.t)+'</div></div>'; });
+  if(n.status==='open'&&n.handed&&lastUserT(n)<=n.handed) h+='<div class="meta"><span class="chip2">אצל Claude</span> '+ago(n.handed)+'</div>';
   h+='<div class="acts">';
   if(n.status==='fixed') h+='<button type="button" class="ok" data-a="done">✓ אושר</button><button type="button" class="no" data-a="again">עדיין לא טוב</button>';
   else if(n.status==='open') h+='<button type="button" data-a="add">הוספה</button>'+((n.thread||[]).length<2?'<button type="button" class="del" data-a="del">מחיקה</button>':'');
