@@ -272,7 +272,7 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
  ['precision highp float;',
   'uniform vec3 uDeep,uShal,uHor,uSunDir,uSunCol,uFogCol,uEye,uSss;',
   'uniform float uSunUp,uFogD,uAmpMax,uFoam,uChop,uDusk; uniform vec2 uWindV; uniform float uTime; uniform vec3 uDuskCol,uGlowDir;',
-  'uniform float uUnder;',
+  'uniform float uUnder; uniform vec4 uHull;',
   'varying vec3 vW,vN; varying float vH; varying float vJ;',
   'float h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
   'float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);',
@@ -315,6 +315,12 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   '  uc+=uSunCol*pow(max(dot(-V,normalize(uSunDir)),0.0),22.0)*0.60*uSunUp;',
   '  uc+=vec3(0.75,0.95,0.92)*pow(max(dot(N,normalize(normalize(uSunDir)-V)),0.0),90.0)*0.35*uSunUp;',
   '  col=uc; }',
+  ' if(uUnder<0.5&&uHull.w>0.0){ vec2 q=vW.xz, f2=uHull.xy; float la=dot(q,f2), lb=q.y*f2.x-q.x*f2.y;',
+  '  float e=length(vec2(la/5.45,lb/1.78))-1.0; float ao=exp(-max(e,0.0)*max(e,0.0)*9.0)*step(-0.35,e);',
+  '  vec3 Ls=normalize(uSunDir); vec2 so=Ls.xz/max(Ls.y,0.12)*0.95; so*=min(1.0,6.0/max(length(so),0.001));',
+  '  vec2 q2=q+so; float la2=dot(q2,f2), lb2=q2.y*f2.x-q2.x*f2.y; float e2=length(vec2(la2/5.2,lb2/1.6))-1.0;',
+  '  float shd=(1.0-smoothstep(-0.25,0.35,e2))*uSunUp*uHull.z;',
+  '  col*=1.0-(0.30*ao+0.34*shd)*uHull.w; }',
   ' float fg=1.0-exp(-pow(dist*uFogD,2.0));',
   ' float sdV=pow(clamp(dot(normalize(-V.xz+vec2(1e-5)),gd)*0.5+0.5,0.0,1.0),3.0);',
   ' vec3 fogc=mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',
@@ -1504,8 +1510,10 @@ function clothMesh(x0,x1,y0,h,z,flip){
   for(i=0;i<N;i++){ var b=i*2; if(flip) idx.push(b,b+2,b+1,b+1,b+2,b+3); else idx.push(b,b+1,b+2,b+1,b+3,b+2); }
   return mesh(p,idx,uv); }
 var M_CLOTHS=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46, dW(-2.7)-0.04,false),
-    M_CLOTHP=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46,-(dW(-2.7)-0.04),true),
-    M_CLOTHT=clothMesh(-0.48,0.48,dY(-5.05)+0.26,0.28,-5.15,false);
+    M_CLOTHP=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46,-(dW(-2.7)-0.04),true);
+/* 22.9: היה כאן גם M_CLOTHT, "בד הירכתיים": clothMesh מותח את הבד לאורך ציר x, ולכן (-0.48..0.48, z=-5.15)
+   יצא לוח לבן שמרחף באוויר 5 מ׳ משמאל לאמצע הסירה ולא בד על מעקה הירכתיים. בתמונה 09 הבדים יושבים על מעקה הצד
+   ליד הקוקפיט (כבר קיימים כאן) ולא לרוחב הירכתיים — ולכן הוסר ולא הוזז. */
 
 /* ---------- הגוף: תפרי לוחות, פס שפשוף, והמדבקה של המספר ---------- */
 function hullPt(t,sv){ var x=(t-0.5)*LOA, w=hb(t), sh2=sheer(t), dp=dep(t);
@@ -2164,6 +2172,7 @@ function frameBody(){
   gl.uniform3fv(SEA.u('uEye'),eye);
   gl.uniform1f(SEA.u('uSunUp'),sunSea); gl.uniform1f(SEA.u('uFogD'),fogD);
   gl.uniform1f(SEA.u('uAmpMax'),ampMax); gl.uniform1f(SEA.u('uFoam'),foam);
+  var hrS=BP.cog*D2R; gl.uniform4f(SEA.u('uHull'),Math.sin(hrS),-Math.cos(hrS),1.0,EXO.quality==='lite'?0.0:1.0);
   gl.enableVertexAttribArray(SEA.a('aP'));
   gl.bindBuffer(gl.ARRAY_BUFFER,seaPB); gl.vertexAttribPointer(SEA.a('aP'),2,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,seaIB);
@@ -2275,7 +2284,7 @@ function frameBody(){
   drawSail(M_SEV7, boatM, TEX_SEVEN, 1);
   drawSail(M_SEV7P,boatM, TEX_SEVEN, 1);
   if(detail){ gl.uniform1f(SAILP.u('uTwo'),1);
-    drawSail(M_CLOTHS,boatM, TEX_SPON, 1); drawSail(M_CLOTHP,boatM, TEX_SPON, 1); drawSail(M_CLOTHT,boatM, TEX_SPON, 1);
+    drawSail(M_CLOTHS,boatM, TEX_SPON, 1); drawSail(M_CLOTHP,boatM, TEX_SPON, 1);
     gl.uniform1f(SAILP.u('uTwo'),0); }
   gl.depthMask(true); gl.disable(gl.BLEND);
   gl.disableVertexAttribArray(SAILP.a('aP')); gl.disableVertexAttribArray(SAILP.a('aN'));
