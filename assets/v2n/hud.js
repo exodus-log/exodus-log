@@ -17,8 +17,16 @@ function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} return null; }
 
 /* ---------- קומפוזיציה: הסירה במרכז החלון ---------- */
+/* הסירה במרכז השטח הפנוי, לא במרכז המסך. oy הוא היסט במרחב הגזירה (NDC, למעלה חיובי), ועד כה
+   הוא היה קבוע — 0.06 בטלפון, 0 במחשב — בלי קשר לכמה מקום תופסים הנתונים למעלה ומספרי המרוץ
+   למטה. בטלפון לרוחב, 390 פיקסל גובה, השורות והרצועה תופסות 27% מלמעלה, והתורן והמפרשים ישבו
+   מאחוריהן. עכשיו: ההיסט העיצובי הקודם, ועוד המרחק בין מרכז המסך למרכז הרצועה שבין --top ל---bot. */
+function frameOffset(){ if(!LIVE||!EXO.view) return; var h=stage.clientHeight||window.innerHeight, w=stage.clientWidth||window.innerWidth, portrait=w/h<0.8;
+  var cs=getComputedStyle(document.documentElement), top=parseFloat(cs.getPropertyValue('--top'))||70, bot=parseFloat(cs.getPropertyValue('--bot'))||44;
+  var free=-(top-bot)/h;
+  EXO.view.oy=(h<=520?0.06:portrait?0.06:0.0)+Math.max(-0.26,Math.min(0.02,free)); }
 function frameScene(){ if(!LIVE) return; var w=stage.clientWidth, h=stage.clientHeight, portrait=w/h<0.8;
-  EXO.view.ox=0; EXO.view.oy=(h<=520?0.06:portrait?0.06:0.0); EXO.view.ty=portrait?5.2:4.4; EXO.view.r=portrait?44:33;
+  EXO.view.ox=0; frameOffset(); EXO.view.ty=portrait?5.2:4.4; EXO.view.r=portrait?44:33;
   if(frameScene.p!==portrait){ frameScene.p=portrait; if(EXO.setEl&&LAB.cam!=='deck') EXO.setEl(portrait?0.55:0.30); }
   if(EXO.reframe&&LAB.cam!=='deck') EXO.reframe(); }
 
@@ -111,7 +119,7 @@ function mixHex(a,b,t){ function p(h){ return [parseInt(h.substr(1,2),16),parseI
 function measureBot(){ var v=document.querySelector('.hud.vit'); if(!v) return;
   var r=v.getBoundingClientRect(), h=window.innerHeight||document.documentElement.clientHeight;
   var band=Math.max(0,Math.round(h-r.top))+4;
-  document.documentElement.style.setProperty('--bot',band+'px'); }
+  document.documentElement.style.setProperty('--bot',band+'px'); frameOffset(); }
 var DEG12=['N','030','060','E','120','150','S','210','240','W','300','330'];
 DEG12.map(function(tx,i){ return ['g'+i,tx,'deg'+(i===0?' north':(i%3===0?' cardinal':''))]; }).concat([
  ['wind','','dat wind'],['wave','','dat wave'],['cur','','dat cur'],['gate','','dat gate'],['beacon','','beacon']])
