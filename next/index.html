@@ -308,11 +308,22 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 }
 @media (max-height:520px){
   :root{--ms:84px;--ls:112px}
-  #toast{bottom:calc(var(--row2) - 6px)}
+  /* ההודעה הצפה מעל הרצועה שירדה לתחתית, ובין המפה הקטנה לטבעת */
+  #toast{left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));
+         right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));
+         transform:none;max-width:none;bottom:calc(var(--row2) + 22px + var(--gut))}
   .mini span{display:none}
   .ly .n{font-size:9.5px} .lnm{font-size:9.5px}
   #menu{left:auto;right:0;top:0;bottom:0;width:min(330px,56%);max-height:none;border-radius:0}
   .g-scrub{bottom:calc(var(--row2) - 8px)} .g-leg{display:none}
+  /* מסך נמוך (טלפון לרוחב): הרצועה השעתית יורדת מראש המסך אל התחתית, בדיוק במקום ובמידות של
+     רצועת הימים בגלובוס — בין המפה הקטנה לטבעת. שם היא לא חוצה את מרכז המסך, ששם התורן, והראש
+     נשאר לנתונים בלבד. measureTop מודד את .topr, ולכן --top מתכווץ מעצמו. */
+  .tstrip{position:fixed;z-index:4;
+    left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));
+    right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));
+    bottom:var(--row2);width:auto;min-width:0;height:22px;margin:0;align-self:auto}
+  .tstrip input[type=range]::-webkit-slider-thumb{height:22px}
 }
 /* טלפון לאורך: שלושה כפתורים עגולים נפרדים בטור בשוליים הימניים, בגובה האגודל, והתפריט קטן מתחתם */
 @media (max-width:700px) and (min-height:521px){
