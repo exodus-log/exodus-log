@@ -244,7 +244,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-ui{position:absolute;z-index:3;top:calc(var(--top) + var(--gut));left:0;right:0;display:flex;justify-content:center;align-items:center;gap:4px 18px;flex-wrap:wrap;pointer-events:none;text-shadow:var(--sh);padding:0 var(--edge)}
 .g-ui button{pointer-events:auto;border:0;background:none;color:var(--ink2);font:400 12.5px var(--ui);padding:9px 9px 7px;cursor:pointer;border-bottom:1px solid transparent;text-shadow:var(--sh)}
 .g-ui button:hover{color:#fff} .g-ui button[aria-pressed=true]{color:#fff;border-bottom-color:rgba(255,255,255,.85)}
-.g-ui #gBack{border:1px solid var(--hair);border-radius:3px;color:var(--ink);padding:7px 12px;background:rgba(7,17,26,.35)}
+.g-ui #gBack{border:1px solid var(--hair);border-radius:3px;color:var(--ink);padding:7px 12px;background:rgba(7,17,26,.35);min-height:44px}
 .g-ui #gBack:hover{background:rgba(7,17,26,.7)}
 .g-chips{display:flex;gap:2px}
 .g-leg{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:11px;color:#cbd8e1}
@@ -281,7 +281,9 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   padding:calc(10px + env(safe-area-inset-top,0px)) calc(clamp(16px,4vw,44px) + env(safe-area-inset-right,0px)) 10px calc(clamp(16px,4vw,44px) + env(safe-area-inset-left,0px));
   background:rgba(6,18,27,.92);border-bottom:1px solid rgba(190,220,240,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .j-bar b{font-weight:500;font-size:15px}
-.j-bar button{border:1px solid var(--hair);border-radius:3px;background:none;color:var(--ink);font:500 13px var(--ui);padding:8px 14px;cursor:pointer}
+/* אזור מגע של 44 פיקסל לכפתורי החזרה: נמדדו 37 ב"המסע" ו-33 בגלובוס. הם לא קישורים בתוך
+   משפט אלא כפתורים עומדים בפני עצמם, ולכן הפטור לקישורים מוטבעים לא חל עליהם. */
+.j-bar button{border:1px solid var(--hair);border-radius:3px;background:none;color:var(--ink);font:500 13px var(--ui);padding:8px 14px;cursor:pointer;min-height:44px}
 .j-bar button:hover{background:rgba(255,255,255,.08)}
 #fleetTbl{margin-top:18px;overflow-x:auto} #fleetTbl table{width:100%;border-collapse:collapse;font-size:.95rem}
 #fleetTbl th{font-weight:400;color:#7f95a3;font-size:.8rem;text-align:start;padding:6px 10px;border-bottom:1px solid rgba(190,220,240,.26)}
