@@ -40,7 +40,7 @@ var TRACK=(function(){
     for(i=0;i<tp.length;i++){ var d=gcNm(tp[i],last); if(d<bd){ bd=d; best=i; } }
     var tail=tp.slice(best+1), t0=out[out.length-1].t;
     for(i=0;i<tail.length;i++) out.push({t:t0+(FIX.at-t0)*(i+1)/tail.length, p:tail[i]}); }
-  var end=out[out.length-1]; if(gcNm(end.p,[FIX.lon,FIX.lat])>0.5) out.push({t:FIX.at,p:[FIX.lon,FIX.lat]}); else end.t=FIX.at;
+  var end=out[out.length-1]; if(gcNm(end.p,[FIX.lon,FIX.lat])>0.5) out.push({t:FIX.at,p:[FIX.lon,FIX.lat]}); else { end.t=FIX.at; end.p=[FIX.lon,FIX.lat]; }
   return out; })();
 var T0=RACE_START, T1=FIX.at;
 
