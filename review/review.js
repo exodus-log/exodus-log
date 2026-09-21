@@ -285,20 +285,30 @@ function paintCounts(){ var o=0,f=0; S.notes.forEach(function(n){ if(n.status===
   $('cntO').textContent=o||''; $('cntF').textContent=f||''; }
 setInterval(function(){ if(!document.hidden) refreshNotes(); },45000);
 
-/* ---------- "לטיפול Claude": פותח את השיחה עם Claude, עם הודעה מוכנה בזיכרון ההעתקה ----------
-   אתר לא יכול להעיר שיחה של Claude מבחוץ, ולכן הכפתור עושה את שלושת הדברים שכן אפשר, בלחיצה אחת:
-   מסמן במסד אילו הערות עברו (handed), מעתיק הודעה קצרה, ופותח את השיחה עצמה. כתובת השיחה יושבת
-   במסד (meta.conv) ולא בקוד, כי הריפו ציבורי. */
+/* ---------- "לטיפול Claude": כל סבב הערות = שיחה חדשה וקצרה (כלל המקל, מ-21.9.2026) ----------
+   אתר לא יכול לפתוח שיחה של Claude בעצמו. לכן הכפתור, בלחיצה אחת: מסמן במסד אילו הערות עברו (handed),
+   מעתיק פתיחה מלאה שמספיקה לשיחה חדשה בלי שום היסטוריה, ופותח את Claude. שמוליק פותח משימה חדשה, מדביק ושולח.
+   הכתובת שנפתחת: meta.start אם הוגדרה במסד, אחרת https://claude.ai/new. (meta.conv הישן — השיחה הקבועה — לא בשימוש.) */
+var START_URL='https://claude.ai/new';
 function lastUserT(n){ var t=0; (n.thread||[]).forEach(function(e){ if(e.who==='user'&&e.t>t) t=e.t; }); return t; }
 function fresh(){ return S.notes.filter(function(n){ return n.status==='open'&&(!n.handed||lastUserT(n)>n.handed); }); }
+function noteIds(L){ return L.map(function(n){ return n.key==='general'?'כללית':(String(n.n).charAt(0)==='D'||n.n==='?'||n.n==='•'?n.n:'#'+n.n); }); }
 function handMsg(L){
-  if(!L.length) return 'חזרתי מתחנת הבדיקה.';
-  var ids=L.map(function(n){ return n.key==='general'?'כללית':(String(n.n).charAt(0)==='D'||n.n==='?'||n.n==='•'?n.n:'#'+n.n); });
-  return 'העברתי לטיפולך '+(L.length===1?'הערה אחת':L.length+' הערות')+' מתחנת הבדיקה ('+ids.join(', ')+').';
+  var base='הפרויקט בתיקייה Documents\\GGR Project במחשב שלי — בקש גישה אליה. קרא קודם את claude/לוח-תיאום.md.';
+  if(!L.length) return 'שאלה על האתר exodus-log.com. '+base;
+  return [
+    'סבב תיקונים מתחנת הבדיקה של exodus-log.com: '+(L.length===1?'הערה אחת':L.length+' הערות')+' ('+noteIds(L).join(', ')+').',
+    'אתה הבונה של הסבב הזה. הפרויקט בתיקייה Documents\\GGR Project במחשב שלי — בקש גישה אליה.',
+    '1. קרא את claude/לוח-תיאום.md ואת claude/תחנת-בדיקה.md, וקח את המקל בלוח. אם המקל אצל שיחה אחרת — עצור ושאל אותי.',
+    '2. אני מאשר לך להשתמש במפתח שבקובץ _private/review-key.txt כדי לקרוא את ההערות ולענות עליהן דרך כרום, כמו שכתוב בתחנת-בדיקה.md.',
+    '3. טפל רק בהערות שהועברו בסבב הזה, פרסם, ובדוק שהתיקון באוויר לפני שאתה מסמן "טופל" ועונה בתחנה.',
+    '4. בסוף: שחרר את המקל, שורה ביומן, ועדכון של "הדרך לסיום" במרכז אקסודוס.'
+  ].join('\n');
 }
+function startUrl(){ var u=S.meta&&S.meta.start; return (u&&/^https:\/\/claude\.ai\//.test(u))?u:START_URL; }
 function paintHand(){
-  var a=$('handBtn'), conv=S.meta&&S.meta.conv, L=fresh();
-  if(conv&&/^https:\/\/claude\.ai\//.test(conv)){ a.href=conv; a.setAttribute('aria-disabled','false'); } else { a.removeAttribute('href'); a.setAttribute('aria-disabled','true'); }
+  var a=$('handBtn'), L=fresh();
+  a.href=startUrl(); a.setAttribute('aria-disabled','false');
   $('handC').textContent=L.length||'';
   $('handT').textContent=L.length?'לטיפול Claude':'לשיחה עם Claude';
   a.classList.toggle('idle',!L.length);
@@ -311,8 +321,8 @@ $('handBtn').addEventListener('click',function(){
       body:JSON.stringify({op:'handoff',ids:L.map(function(n){ return n.id; })})}).then(function(){ refreshNotes(); }).catch(function(){});
     var now=Date.now(); L.forEach(function(n){ n.handed=now; }); paintHand();
   }
-  toast('ההודעה הועתקה. בשיחה עם Claude: הדבקה ושליחה.',6000);
-  /* בלי preventDefault: הקישור עצמו פותח את השיחה בלשונית חדשה */
+  toast('הפתיחה הועתקה. ב־Claude: משימה חדשה, הדבקה ושליחה.',7000);
+  /* בלי preventDefault: הקישור עצמו פותח את Claude בלשונית חדשה */
 });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refreshNotes(); });
 
