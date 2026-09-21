@@ -73,5 +73,8 @@ window.REVIEW_FEATURES = [
   {n:62, key:'ahead-head',scr:'journey', sel:'#ahead > header',    name:'"24 השעות הקרובות" — כותרת ושורת הסיכום'},
   /* 21.9 בערב */
   {n:63, key:'hudDot',    scr:'sim', sel:'#hudDot',            name:'הנקודה הזוהרת שפותחת ומקפלת את הנתונים שבראש המסך'},
-  {n:64, key:'whale',     scr:'sim', chip:true, name:'הלוויתן: שחייה רחוקה, נשימה, נשיפה וזנב'}
+  {n:64, key:'whale',     scr:'sim', chip:true, name:'הלוויתן: שחייה רחוקה, נשימה, נשיפה וזנב'},
+  /* 21.9 לילה */
+  {n:65, key:'gl-scale',  scr:'globe', sel:'.gl-scale',        name:'סרגל קנה המידה בשולי הגלובוס'},
+  {n:66, key:'fleet-view',scr:'globe', chip:true, name:'מבט הצי: ההתרחקות מדלגת על הים הריק ונוחתת כשהמתחרים הקרובים על המסך'}
 ];

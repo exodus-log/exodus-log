@@ -58,13 +58,43 @@ function headingAt(pts){ var n=pts.length; if(n<2) return FIX.cog; var a=pts[Mat
   var y=Math.sin((b[0]-a[0])*D2R)*Math.cos(b[1]*D2R), x=Math.cos(a[1]*D2R)*Math.sin(b[1]*D2R)-Math.sin(a[1]*D2R)*Math.cos(b[1]*D2R)*Math.cos((b[0]-a[0])*D2R);
   return (Math.atan2(y,x)*R2D+360)%360; }
 
-/* המסלול שנותר: מהסירה אל הקטע הקרוב בקו המסלול הרשמי, ומשם עד קו הסיום */
-function remaining(from){ var c=parseLL(COURSE), best=0, bd=1e9, i;
+/* המסלול שנותר: מהסירה אל הקטע הקרוב בקו המסלול הרשמי, ומשם עד קו הסיום.
+   קו המסלול של המעקב הוא ציור, לא חובה: נקודות הביניים שלו אינן נקודות חובה. לכן מדלגים על נקודות ביניים
+   כל עוד הקו הישר מהסירה אל הנקודה שאחריהן עובר בים פתוח, ולעולם לא עוברים על פני נקודה שמייצגת נקודת חובה או כף. */
+var landRings=null;
+function landIndex(){ if(landRings) return landRings;
+  if(typeof LAND50==='undefined') return [];   /* קו החוף עוד לא נטען: לא שומרים, ננסה שוב בקריאה הבאה */
+  landRings=[];
+  for(var i=0;i<LAND50.length;i++) for(var j=0;j<LAND50[i].length;j++){ var f=LAND50[i][j], r=[], x=0, y=0, k, b=[1e9,1e9,-1e9,-1e9];
+    for(k=0;k<f.length;k+=2){ x+=f[k]; y+=f[k+1]; var p=[x/100,y/100]; r.push(p);
+      if(p[0]<b[0]) b[0]=p[0]; if(p[1]<b[1]) b[1]=p[1]; if(p[0]>b[2]) b[2]=p[0]; if(p[1]>b[3]) b[3]=p[1]; }
+    landRings.push({r:r,b:b,hole:j>0}); }
+  return landRings; }
+function onLand(p){ var L=landIndex(), inside=false, i, k, n;
+  for(i=0;i<L.length;i++){ var b=L[i].b; if(p[0]<b[0]||p[0]>b[2]||p[1]<b[1]||p[1]>b[3]) continue;
+    var r=L[i].r, c=false; for(k=0,n=r.length-1;k<r.length;n=k++){ var a=r[k], d=r[n];
+      if(((a[1]>p[1])!==(d[1]>p[1]))&&(p[0]<(d[0]-a[0])*(p[1]-a[1])/(d[1]-a[1])+a[0])) c=!c; }
+    if(c) inside=!inside; }
+  return inside; }
+function openSea(a,b){ var n=Math.max(2,Math.ceil(gcNm(a,b)/12)), dl=b[0]-a[0], s;
+  if(dl>180) dl-=360; if(dl<-180) dl+=360;
+  for(s=1;s<n;s++){ var f=s/n, lo=a[0]+dl*f; lo=((lo+540)%360)-180; if(onLand([lo,a[1]+(b[1]-a[1])*f])) return false; }
+  return true; }
+var courseStops=null;
+function stopsOn(c){ if(courseStops) return courseStops; courseStops={};
+  (typeof MARKS!=='undefined'?MARKS:[]).forEach(function(m){ var p=[m[1],m[0]], bi=0, bd=1e9;
+    c.forEach(function(q,i){ var d=gcNm(p,q); if(d<bd){ bd=d; bi=i; } }); courseStops[bi]=true; });
+  return courseStops; }
+var remMemo={};
+function remaining(from){ var key=from[0].toFixed(2)+','+from[1].toFixed(2); if(remMemo[key]) return remMemo[key];
+  var c=parseLL(COURSE), best=0, bd=1e9, i;
   for(i=0;i<c.length-1;i++){ var mid=[(c[i][0]+c[i+1][0])/2,(c[i][1]+c[i+1][1])/2], d=gcNm(from,c[i])+gcNm(from,c[i+1])-gcNm(c[i],c[i+1]);
     if(Math.abs(c[i][0]-c[i+1][0])>180) continue; if(d<bd&&i<c.length/2){ bd=d; best=i; } }
-  var rest=unwrap([from].concat(c.slice(best+1))), cut=rest.length-1;
+  var nxt=best+1, stop=stopsOn(c), coast=typeof LAND50!=='undefined';   /* בלי קו חוף לא מקצרים */
+  while(coast && nxt+1<c.length/2 && !stop[nxt] && openSea(from,c[nxt+1])) nxt++;
+  var rest=unwrap([from].concat(c.slice(nxt))), cut=rest.length-1;
   for(i=rest.length-1;i>0;i--){ if(rest[i][1]<0){ cut=i; break; } }       /* חציית קו המשווה בדרך הביתה */
-  return [rest.slice(0,cut+1), rest.slice(cut)]; }
+  var out=[rest.slice(0,cut+1), rest.slice(cut)]; if(coast) remMemo[key]=out; return out; }
 
 /* ---------- לילה: שלושה מצולעים (שמש מתחת ל-0°, ‎−6°, ‎−12°) שיוצרים קצה רך ---------- */
 function nightPolys(ms){
@@ -288,7 +318,7 @@ window.__exoGlobeTrack=function(widthM,brg){ try{
   var z=Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),zForWidth(widthM)));
   map.jumpTo({center:here,zoom:z,bearing:armB?armB*Math.max(0,Math.min(1,(z-5.4)/3.0)):map.getBearing()});
   tracking=false; }catch(e){ tracking=false; } };
-window.__exoGlobeSettle=function(){ armB=0; };
+window.__exoGlobeSettle=function(){ armB=0; try{ bandGo(-1); }catch(e){} };
 /* כל כתיבה אל המפה נדחית לפריים הבא: setCenter או setBearing בתוך אירוע zoom של אותה מפה
    מאלצים חישוב טרנספורם נוסף באמצע הציור, וזה היה מקור לחלק מהקפיצות בהתרחקות. */
 var pendC=null, pendB=null, pRaf=0;
@@ -324,7 +354,7 @@ window.__exoGlobeDrive=function(widthM){ try{ if(window.__exoGlobeZoomStop) wind
 /* כניסה מתוך ההתרחקות מהסירה */
 window.__exoGlobeEnter=function(how){ if(!window.__exoGlobeLoaded){ window.__exoGlobeWant=how; return; } try{ map.resize(); stop(); range.value=1000; draw(T1,true);
   if(how==='handoff'){ return; }
-  if(how==='out'){ armB=0; map.jumpTo({center:here,zoom:5.6}); map.easeTo({center:here,zoom:3.4,duration:reduce?0:1700,essential:true}); }
+  if(how==='out'){ armB=0; var zf=zFleet(); map.jumpTo({center:here,zoom:zf+2.2}); map.easeTo({center:here,zoom:zf,duration:reduce?0:1500,essential:true}); }      /* 21.9 לילה: נוחתים במבט הצי ולא בכל האוקיינוס */
   else if(typeof fly==='function') fly(how||'boat'); }catch(e){} };
 
 /* ===================== חלל: הכדור מתרחק אל תוך שדה כוכבים =====================
@@ -387,7 +417,7 @@ function pinchZoom(){
     driveZoom(zForWidth(W),anchor,pt); try{ anchor=map.unproject(pt); }catch(x){}
     var Wr=widthForZ(map.getZoom()); if(Math.abs(Math.log(Wr/W))>0.02) lnW=Math.log(Wr);      /* נעצרנו בגבול: לא צוברים מרחק מת, וההיפוך מיידי */
   }catch(e){} }
-  box.addEventListener('touchstart',function(e){ if(e.touches.length!==2||!owns()){ on=false; return; }
+  box.addEventListener('touchstart',function(e){ if(bandTw) bandStop(); if(e.touches.length!==2||!owns()){ on=false; return; }
     var g=geo(e); on=true; dP=g.d; pt=[g.x,g.y]; lnW=Math.log(widthForZ(map.getZoom()));
     try{ anchor=map.unproject(pt); }catch(x){ anchor=null; } },{capture:true,passive:true});
   box.addEventListener('touchmove',function(e){ if(!on||e.touches.length<2) return;
@@ -410,6 +440,8 @@ function smoothZoom(){
     driveZoom(z+d*(1-Math.exp(-dt/0.075))); if(Math.abs(map.getZoom()-z)<1e-5&&Math.abs(d)>0.0015) zT=map.getZoom();
     raf=requestAnimationFrame(step); }
   function nudge(dz){
+    if(bandTw){ if(dz*bandDir>0) return; bandStop(); }      /* גלגול באותו כיוון לא עוצר את ההחלקה */
+    if(dz&&bandGo(dz>0?1:-1,true)) return;      /* גלגול בתוך הרצועה הריקה: קופצים אל הקצה שלה בהחלקה אחת */
     if(!raf){ try{ map.stop(); }catch(e){} zT=map.getZoom(); last=0; }
     zT=lim(zT+dz);
     if(!raf) raf=requestAnimationFrame(step); }
@@ -480,7 +512,7 @@ function rimShow(on,cv,bv){
 /* הבוררים חייבים להצביע על הבלוק שבאמת נראה, לא על המעטפת שלו: ל-.g-ui ול-.vit יש
    left:0;right:0, ולכן התיבה שלהם היא כל רוחב המסך — שמירה עליה מחקה כל שם באותו גובה,
    ובכלל זה "אקסודוס" כשהסירה הייתה שם. לכן הילדים, לא ההורה. */
-var KEEP_SEL = '.g-ui > *,.g-scrub,header.topr,#hudDot,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
+var KEEP_SEL = '.gl-scale,.g-ui > *,.g-scrub,header.topr,#hudDot,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
 function rankOf(cn){ cn=cn||'';
   if(cn.indexOf('gl-boat')>=0) return 0;
   if(cn.indexOf('k-me')>=0) return 1;
@@ -625,9 +657,84 @@ map.on('zoom',function(){
       if(Math.abs(v-(+range.value))>0.6){ range.value=v; if(!sRaf) sRaf=requestAnimationFrame(scrubDraw); } } }
   else retV0=-1; });
 
+
+/* ===================== 21.9.2026 לילה — בלי רצועה ריקה בין הסירה לצי =====================
+   הגלובוס מקבל את ההדמיה בקנה המידה שלה, כ-2.5 ק״מ רוחב. משם ועד שהמתחרים הקרובים נכנסים למסך
+   יש כחמש רמות זום של ים כחול אחיד: שום דבר לא משתנה, והמבקר מגלגל ולא מבין אם משהו קורה.
+   עכשיו הרצועה הזאת היא מעבר ולא מקום: אחרי המסירה הגלובוס מחליק לבד אל "מבט הצי" — הזום שבו
+   שלושת המתחרים הקרובים על המסך. מי שמתקרב משם אל הסירה מחליק באותה תנועה חזרה אל הסיפון.
+   מחוץ לסירה (גררו את המפה הצידה) הרצועה לא קיימת והזום רגיל. */
+function zFleet(){ var me=here, ds=[];
+  try{ fleetAt(T1).forEach(function(o){ if(o.id!==4) ds.push(gcNm(me,[o.lon,o.lat])); }); }catch(e){}
+  ds.sort(function(a,b){ return a-b; });
+  var d=ds.length?ds[Math.min(2,ds.length-1)]:40;                     /* השלישי הקרוב, או השני/הראשון אם אין יותר */
+  var wNm=Math.max(12,Math.min(900,d*2.5)), dim=Math.max(1,Math.min(box.clientWidth,box.clientHeight));
+  var z=Math.log(78271.517*Math.cos(here[1]*Math.PI/180)*dim/(wNm*1852))/Math.LN2;
+  return Math.max(3.2,Math.min(10.5,z)); }
+var bandTw=0, bandDir=0;
+function bandStop(){ if(bandTw){ cancelAnimationFrame(bandTw); bandTw=0; } }
+/* dir -1 = החוצה אל מבט הצי, +1 = פנימה אל הסיפון. fromWheel: רק אם כבר בתוך הרצועה או על הסף שלה */
+function bandGo(dir,fromWheel){
+  var z0=map.getZoom(), zF=zFleet(), zG=zGlobe(), zTo;
+  if(!boatMid()) return false;
+  if(dir<0){ if(!(z0>zF+0.2&&z0<zG+0.6)) return false; zTo=zF; }
+  else { if(!(z0>=zF-0.35&&z0<zG-0.02)) return false; zTo=zXfade()+0.03; }      /* עוברים את ההצלבה עד הסוף: ההדמיה חוזרת */
+  if(window.__exoGlobeZoomStop) window.__exoGlobeZoomStop();
+  bandStop(); bandDir=dir;
+  var dur=reduce?0:Math.min(1500,650+130*Math.abs(zTo-z0)), t0=0;
+  function ease(t){ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+  function step(ts){ if(!t0) t0=ts; var k=dur?Math.min(1,(ts-t0)/dur):1;
+    try{ driveZoom(z0+(zTo-z0)*ease(k)); }catch(e){ k=1; }
+    if(k<1&&document.body.classList.contains('g-open')) bandTw=requestAnimationFrame(step); else bandTw=0; }
+  bandTw=requestAnimationFrame(step);
+  return true; }
+/* מגע וכל מה שלא עובר בגלגלת (צביטה שהתחילה בהדמיה, מקלדת): כשהכול נרגע בתוך הרצועה, ממשיכים לכיוון האחרון */
+(function(){ var nT=0, zPrev=null, dirL=-1, timer=0;
+  document.addEventListener('touchstart',function(e){ nT=e.touches.length; },{capture:true,passive:true});
+  function te(e){ nT=e.touches.length; if(!nT) kick(); }
+  document.addEventListener('touchend',te,{capture:true,passive:true}); document.addEventListener('touchcancel',te,{capture:true,passive:true});
+  function kick(){ clearTimeout(timer); timer=setTimeout(settle,240); }
+  function settle(){ timer=0; if(bandTw||nT||!document.body.classList.contains('g-open')) return;
+    var st=window.__exoGlobeZoomState&&window.__exoGlobeZoomState(); if(st&&st[1]) { kick(); return; }
+    var z=map.getZoom(); if(dirL>0&&z<zFleet()+0.4) return;      /* נגיעה קלה פנימה ממבט הצי לא מחזירה לסיפון */
+    bandGo(dirL); }
+  map.on('zoom',function(){ var z=map.getZoom();
+    if(zPrev!==null&&Math.abs(z-zPrev)>1e-4&&!bandTw) dirL=z>zPrev?1:-1;
+    zPrev=z; if(!bandTw&&!tracking) kick(); });
+})();
+
+/* ===================== סרגל קנה מידה =====================
+   עדין, בשולי המסך השמאליים ובגובה האמצע — הרחק מכפתור החזרה, מרצועת הימים ומהמפה הקטנה.
+   באורך "עגול" (1, 2 או 5 כפול חזקת עשר) שנכנס עד 96 פיקסלים; במייל ימי, ומתחת למייל במטרים.
+   נכבה כשהכדור קטן מכדי שלקנה מידה אחד תהיה משמעות. */
+function addScale(){
+  var lay=document.getElementById('globeLayer'); if(!lay) return;
+  var st=document.createElement('style'); st.textContent=
+    '.gl-scale{position:absolute;z-index:3;left:calc(var(--e-l,14px) + 2px);top:50%;transform:translateY(-50%);pointer-events:none;direction:ltr;opacity:.62;transition:opacity .4s}'
+   +'.gl-scale i{display:block;height:5px;border:1px solid rgba(233,241,246,.9);border-top:0;box-shadow:0 1px 2px rgba(2,8,14,.7);transition:width .12s linear}'
+   +'.gl-scale b{display:block;margin-top:4px;font:400 10px "B612 Mono",monospace;color:#e3edf3;letter-spacing:.03em;white-space:nowrap;direction:rtl;text-align:left;'
+   +'text-shadow:-1px -1px 0 rgba(2,8,14,.9),1px -1px 0 rgba(2,8,14,.9),-1px 1px 0 rgba(2,8,14,.9),1px 1px 0 rgba(2,8,14,.9),0 0 6px rgba(2,8,14,.8)}'
+   +'.gl-scale.off{opacity:0}';
+  document.head.appendChild(st);
+  var el=document.createElement('div'); el.className='gl-scale off'; el.setAttribute('aria-hidden','true');
+  el.innerHTML='<i></i><b></b>'; lay.appendChild(el);
+  var bar=el.firstChild, lab=el.lastChild, last='', raf=0;
+  function nice(v){ var p=Math.pow(10,Math.floor(Math.log(v)/Math.LN10)), m=v/p; return (m>=5?5:m>=2?2:1)*p; }
+  function upd(){ raf=0; try{
+    var z=map.getZoom(), c=map.getCenter();
+    if(z<2.6){ if(last!=='off'){ last='off'; el.classList.add('off'); } return; }
+    var mpp=78271.517*Math.cos(c.lat*Math.PI/180)/Math.pow(2,z), maxM=mpp*96, len, txt;
+    if(maxM>=1852){ var nm=nice(maxM/1852); len=nm*1852; txt=(nm>=1000?nm.toLocaleString('en-US'):nm)+' מייל'; }
+    else { var m=nice(maxM); len=m; txt=m+' מ׳'; }
+    var px=Math.round(len/mpp), key=px+txt;
+    if(key!==last){ last=key; el.classList.remove('off'); bar.style.width=px+'px'; lab.textContent=txt; } }catch(e){} }
+  function q(){ if(!raf) raf=requestAnimationFrame(upd); }
+  map.on('zoom',q); map.on('move',q); map.on('resize',q); upd();
+}
+
 map.on('load',function(){
   draw(T1,true);
-  try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); }catch(e){}
+  try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); addScale(); }catch(e){}
   var att=box.querySelector('.maplibregl-ctrl-attrib'); if(att){ att.classList.remove('maplibregl-compact-show'); att.removeAttribute('open'); }
   function night(){ if(!scrubbing()) nightAt((EXO&&EXO.state)?EXO.state.now:Date.now()); }
   night(); setInterval(night,5*60000);
