@@ -258,6 +258,13 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
   <div class="sh-h"><h2>ההערות</h2><button type="button" class="x" id="lsX" aria-label="סגירה">×</button></div>
   <div class="sh-b" id="lsB"></div>
 </section>
+<section class="sheet" id="cpsheet" hidden aria-label="העתקת הפתיחה">
+  <div class="sh-h"><h2>העתק את הפתיחה</h2><button type="button" class="x" id="cpX" aria-label="סגירה">×</button></div>
+  <div class="sh-b"><p>הטלפון לא נתן להעתיק אוטומטית. סמן את הטקסט והעתק, או לחץ "העתקה", ואז הדבק במשימה חדשה ב-Claude.</p>
+    <textarea id="cpTxt" readonly rows="9" style="width:100%;box-sizing:border-box;font:inherit;font-size:14px;direction:rtl;background:var(--panel2);color:var(--ink);border:1px solid var(--line,#2a4a50);border-radius:9px;padding:10px"></textarea>
+    <p style="display:flex;gap:8px;margin-top:10px"><button type="button" class="hand" id="cpGo" style="border:0;cursor:pointer">העתקה</button>
+    <a class="hand idle" href="https://claude.ai/new" target="_blank" rel="noopener">פתיחת Claude</a></p></div>
+</section>
 <div id="toast" role="status"></div>
 
 <script src="features.js"></script>

@@ -292,6 +292,9 @@ setInterval(function(){ if(!document.hidden) refreshNotes(); },45000);
 var START_URL='https://claude.ai/new';
 function lastUserT(n){ var t=0; (n.thread||[]).forEach(function(e){ if(e.who==='user'&&e.t>t) t=e.t; }); return t; }
 function fresh(){ return S.notes.filter(function(n){ return n.status==='open'&&(!n.handed||lastUserT(n)>n.handed); }); }
+/* הערות שכבר הועברו ועוד פתוחות ("אצל Claude"). עד 21.9 הכפתור התעלם מהן: אחרי לחיצה אחת הוא עבר ל"לשיחה עם Claude"
+   והעתיק רק משפט כללי — ואם ההעתקה הראשונה נכשלה (קורה בטלפון), הסבב אבד. עכשיו לחיצה נוספת מעתיקה שוב את הסבב המלא. */
+function pending(){ return S.notes.filter(function(n){ return n.status==='open'&&n.handed&&lastUserT(n)<=n.handed; }); }
 function noteIds(L){ return L.map(function(n){ return n.key==='general'?'כללית':(String(n.n).charAt(0)==='D'||n.n==='?'||n.n==='•'?n.n:'#'+n.n); }); }
 function handMsg(L){
   var base='הפרויקט בתיקייה Documents\\GGR Project במחשב שלי — בקש גישה אליה. קרא קודם את claude/לוח-תיאום.md.';
@@ -309,32 +312,50 @@ function startUrl(){ var u=S.meta&&S.meta.start; return (u&&/^https:\/\/claude\.
 function paintHand(){
   var a=$('handBtn'), L=fresh();
   a.href=startUrl(); a.setAttribute('aria-disabled','false');
-  $('handC').textContent=L.length||'';
-  $('handT').textContent=L.length?'לטיפול Claude':'לשיחה עם Claude';
-  a.classList.toggle('idle',!L.length);
+  var P=L.length?[]:pending(), c=L.length||P.length;
+  $('handC').textContent=c||'';
+  $('handT').textContent=L.length?'לטיפול Claude':P.length?'שוב לטיפול Claude':'לשיחה עם Claude';
+  a.classList.toggle('idle',!c);
 }
-$('handBtn').addEventListener('click',function(){
-  var L=fresh(), msg=handMsg(L);
-  try{ if(navigator.clipboard) navigator.clipboard.writeText(msg).catch(function(){}); }catch(e){}
+/* העתקה שעובדת גם בטלפון: navigator.clipboard, ואם הוא נכשל — textarea ו-execCommand בתוך אותה לחיצה.
+   אם שניהם נכשלו, הטקסט מוצג בחלון כדי להעתיק ביד, והקישור לא נפתח (אחרת הטקסט אובד). */
+function copyText(t){
+  var ok=false;
+  try{ var ta=document.createElement('textarea'); ta.value=t; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0,t.length); ok=document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).catch(function(){}); ok=true; } }catch(e){}
+  return ok;
+}
+function showCopy(t){
+  $('cpTxt').value=t; showSheet('cpsheet',true);
+  setTimeout(function(){ try{ $('cpTxt').focus(); $('cpTxt').select(); }catch(e){} },50);
+}
+$('cpX').onclick=function(){ showSheet('cpsheet',false); };
+$('cpGo').onclick=function(){ copyText($('cpTxt').value); showSheet('cpsheet',false); };
+$('handBtn').addEventListener('click',function(e){
+  var L=fresh(), again=!L.length; if(again) L=pending();
+  var msg=handMsg(L);
   if(L.length){
+    /* גם בשליחה חוזרת: handoff מעדכן את meta.lastHandoff לרשימה הזאת, כי ממנה השיחה החדשה יודעת במה לטפל */
     fetch('/api/notes',{method:'POST',keepalive:true,headers:{'x-review-key':KEY||'','content-type':'application/json'},
       body:JSON.stringify({op:'handoff',ids:L.map(function(n){ return n.id; })})}).then(function(){ refreshNotes(); }).catch(function(){});
     var now=Date.now(); L.forEach(function(n){ n.handed=now; }); paintHand();
   }
-  toast('הפתיחה הועתקה. ב־Claude: משימה חדשה, הדבקה ושליחה.',7000);
+  if(!copyText(msg)){ e.preventDefault(); showCopy(msg); return; }
+  toast(again?'הסבב הועתק שוב. ב־Claude: משימה חדשה, הדבקה ושליחה.':'הפתיחה הועתקה. ב־Claude: משימה חדשה, הדבקה ושליחה.',7000);
   /* בלי preventDefault: הקישור עצמו פותח את Claude בלשונית חדשה */
 });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) refreshNotes(); });
 
 /* ---------- גיליון פיצ'ר ---------- */
-function showSheet(id,on){ $(id).hidden=!on; $('scrim').hidden=!($('sheet').hidden===false||$('lsheet').hidden===false); }
+function showSheet(id,on){ $(id).hidden=!on; $('scrim').hidden=!($('sheet').hidden===false||$('lsheet').hidden===false||$('cpsheet').hidden===false); }
 function openSheet(f,pt){
   if(!f) return; S.sel=f; S.point=pt; showSheet('lsheet',false);
   $('shT').innerHTML='<span class="num">'+esc(f.n)+'</span>'+esc(f.name);
   var draft=ls('rvDraft:'+f.key); $('txt').value=draft||''; $('allV').checked=!!f.chip||f.key==='general';
   paintThread(); showSheet('sheet',true); tickNow();
 }
-function closeSheet(){ showSheet('sheet',false); showSheet('lsheet',false); S.sel=null; S.point=null; tickNow(); }
+function closeSheet(){ showSheet('sheet',false); showSheet('lsheet',false); showSheet('cpsheet',false); S.sel=null; S.point=null; tickNow(); }
 $('shX').onclick=closeSheet; $('lsX').onclick=closeSheet; $('scrim').onclick=closeSheet;
 function ctxLine(n){ var a=[]; a.push(n.allViews?'בכל הגדלים':(VIEWS[n.view]?VIEWS[n.view][2]:n.view)); if(n.target) a.push(n.target==='next'?'next':'ראשי'); if(n.screen&&SCREENS[n.screen]) a.push(SCREENS[n.screen]); return a.join(' · '); }
 function noteHtml(n,withTitle){
@@ -399,7 +420,7 @@ function paintList(){
   if(!L.length) h+='<p class="empty">'+(tab==='open'?'אין הערות פתוחות.':tab==='fixed'?'אין כרגע מה לבדוק.':'עוד לא נסגרה אף הערה.')+'</p>';
   L.forEach(function(n){ var last=(n.thread||[])[n.thread.length-1]||{}, first=(n.thread||[])[0]||{};
     h+='<button type="button" class="li" data-id="'+esc(n.id)+'"><div class="t"><span class="num">'+esc(n.n)+'</span>'+esc(n.fname)+'</div>'+
-      '<div class="x2">'+esc(last.who==='claude'?'Claude: '+last.text:first.text)+'</div><div class="meta">'+esc(ctxLine(n))+' · '+ago(n.updated)+'</div></button>'; });
+      '<div class="x2">'+esc(last.who==='claude'?'Claude: '+last.text:first.text)+'</div><div class="meta">'+(n.status==='open'&&n.handed&&lastUserT(n)<=n.handed?'<span class="chip2">אצל Claude</span> ':'')+esc(ctxLine(n))+' · '+ago(n.updated)+'</div></button>'; });
   $('lsB').innerHTML=h;
 }
 $('listBtn').onclick=function(){ S.sel=null; paintList(); showSheet('sheet',false); showSheet('lsheet',true); refreshNotes(); };
