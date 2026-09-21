@@ -48,7 +48,9 @@ function renderHud(s){
   var dayN=(typeof RACE_START!=='undefined')?Math.floor((s.now/1000-RACE_START)/86400)+1:FIX.dayN;
   put('hDay','יום '+dayN);
   put('hDate',pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'.'+d.getUTCFullYear());
-  put('hPos',dmm(FIX.lat,2,'N','S')+'  '+dmm(FIX.lon,3,'E','W'));
+  /* 22.9: המיקום עוקב אחרי השעון. בעבר — מהארכיון (אינטרפולציה בין שעות), ולכן הוא צבוע כמו שאר הערכים שנגררו */
+  var ps=(LIVE&&EXO.pose)?EXO.pose:FIX;
+  put('hPos',dmm(ps.lat,2,'N','S')+'  '+dmm(ps.lon,3,'E','W'));
   /* גיל נקודת הציון נמדד מההווה האמיתי ולא מהשעון המוצג: גרירה של יום קדימה לא מיישנת את המעקב */
   var fx=new Date(FIX.at*1000), age=(Date.now()/1000-FIX.at)/3600;
   var ageTxt=age<1?'לפני פחות משעה':age<24?'לפני '+heb(age,'שעה','שעתיים','שע׳'):'לפני '+heb(age/24,'יום','יומיים','ימים');
@@ -104,7 +106,8 @@ function hudOpen(on,keep){ var b=document.body; clearTimeout(hudTm);
   if(keep) hudPinned=true;
   if(b.classList.contains('hfold')===!on) return;
   b.classList.toggle('hfold',!on); if(hudDot) hudDot.setAttribute('aria-expanded',on?'true':'false');
-  measureTop(); setTimeout(measureTop,320); }
+  /* 22.9: בקיפול, התוויות עולות רק אחרי שהפס סיים לדעוך (0.28 שנ׳). קודם הן עלו מיד ועברו דרכו — נתפס בצילום בטלפון */
+  if(on) measureTop(); setTimeout(measureTop,on?320:300); }
 window.__exoHudOpen=hudOpen;
 if(hudDot) hudDot.addEventListener('click',function(){ hudPinned=true; hudOpen(document.body.classList.contains('hfold')); });
 if(hudBand) hudBand.addEventListener('click',function(){ hudPinned=true; hudOpen(false); });
@@ -141,12 +144,15 @@ var DEG12=['N','030','060','E','120','150','S','210','240','W','300','330'];
 DEG12.map(function(tx,i){ return ['g'+i,tx,'deg'+(i===0?' north':(i%3===0?' cardinal':''))]; }).concat([
  ['wind','','dat wind'],['wave','','dat wave'],['cur','','dat cur'],['gate','','dat gate'],['beacon','','beacon']])
 .forEach(function(a){ var e=document.createElement('div'); e.className='lb '+a[2]; e.textContent=a[1]; e.hidden=true; labelsHost.appendChild(e); LB[a[0]]=e; });
-function labelTexts(s){ var c=s.cond;
+function toGateNow(){ var ps=(LIVE&&EXO.pose)?EXO.pose:null; if(!ps||ps.src==='fix') return FIX.toGate;
+  var p1=ps.lat*D2R, p2=GATE[0]*D2R, dl=(GATE[1]-ps.lon)*D2R;
+  return Math.round(Math.acos(Math.max(-1,Math.min(1,Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl))))*R2D*60); }
+function labelTexts(s){ var c=s.cond, tg=toGateNow();
   LB.wind.innerHTML='רוח <span class="n">'+Math.round(c.wind)+' kn</span>';
   LB.wave.innerHTML='גל <span class="n">'+c.waveH.toFixed(1)+' m · '+Math.round(c.waveT)+' s</span>';
   LB.cur.innerHTML='זרם <span class="n">'+c.cur.toFixed(1)+' kn</span>';
-  LB.gate.innerHTML=compact?(FIX.gate+' <span class="n">'+thou(FIX.toGate)+'</span>'):(FIX.gate+' <span class="n">'+deg3(s.gateBrg)+' · '+thou(FIX.toGate)+'</span> מייל');
-  LB.beacon.innerHTML=FIX.gate+' · <span class="n">'+thou(FIX.toGate)+'</span> מייל · <span class="n">'+deg3(s.gateBrg)+'</span>';
+  LB.gate.innerHTML=compact?(FIX.gate+' <span class="n">'+thou(tg)+'</span>'):(FIX.gate+' <span class="n">'+deg3(s.gateBrg)+' · '+thou(tg)+'</span> מייל');
+  LB.beacon.innerHTML=FIX.gate+' · <span class="n">'+thou(tg)+'</span> מייל · <span class="n">'+deg3(s.gateBrg)+'</span>';
 }
 function place(name,x,y,op){ var e=LB[name]; if(x===null){ if(!e.hidden) e.hidden=true; return; }
   if(e.hidden) e.hidden=false;
@@ -483,8 +489,19 @@ var TS={cv:$('tsCv'), rng:$('tsRange'), box:$('tstrip')};
 var TS_HALF=3.5*86400000, TS_T0=0, TS_T1=0, TS_D0=0, TS_D1=0, tsScrub=false, tsW=0, tsH=0, tsPaint=0, tsLast=0;
 var TS_PAST='143,227,222', TS_FUT='241,207,138';
 function tsReady(){ return !!(TS.cv&&TS.rng&&typeof COND!=='undefined'&&COND.length>2); }
-function tsSpan(){ var n=Date.now(); TS_T0=n-TS_HALF; TS_T1=n+TS_HALF;
-  TS_D0=Date.parse(COND[0][0]+'Z'); TS_D1=Date.parse(COND[COND.length-1][0]+'Z'); tsSun=null; }
+/* 22.9: השורות הן הארכיון (לפני COND) ואז COND. "כיסוי" = קטעים שבהם שורות סמוכות רחוקות זו מזו עד שלוש שעות.
+   גרירה נעצרת בקצוות הכיסוי ולא נכנסת לפער: שם אין ים שנשמר, ולא ממציאים אותו. */
+var TS_COV=[];
+function tsRows(){ return (LIVE&&EXO.condAll)?EXO.condAll():COND; }
+function tsSpan(){ var n=Date.now(), R=tsRows(), i, a=null, b=null; TS_T0=n-TS_HALF; TS_T1=n+TS_HALF; TS_COV=[];
+  for(i=0;i<R.length;i++){ var t=Date.parse(R[i][0]+'Z'); if(a===null){ a=b=t; continue; }
+    if(t-b>3*3600000){ TS_COV.push([a,b]); a=t; } b=t; }
+  if(a!==null) TS_COV.push([a,b]);
+  TS_D0=TS_COV.length?TS_COV[0][0]:n; TS_D1=TS_COV.length?TS_COV[TS_COV.length-1][1]:n; tsSun=null; }
+function tsSnap(t){ var best=t, bd=Infinity, i;
+  for(i=0;i<TS_COV.length;i++){ var c=TS_COV[i]; if(t>=c[0]&&t<=c[1]) return t;
+    var d0=Math.abs(t-c[0]), d1=Math.abs(t-c[1]); if(d0<bd){ bd=d0; best=c[0]; } if(d1<bd){ bd=d1; best=c[1]; } }
+  var now=Date.now(); if(Math.abs(t-now)<=bd) return now; return best; }
 function tsTimeOf(v){ return TS_T0+(TS_T1-TS_T0)*(v/1000); }
 function tsValOf(t){ return clamp(Math.round((t-TS_T0)/(TS_T1-TS_T0)*1000),0,1000); }
 function tsLive(){ return LIVE?(Date.now()+(EXO.clockOff?EXO.clockOff():0)):Date.now(); }
@@ -511,13 +528,13 @@ function tsDraw(){
   for(i=d0;i<=d1;i++){ px=X(i*86400000-off); x.fillRect(px-0.5,0,1,H); }
   /* הרוח, הגל והלחץ — רק בטווח שיש עליו נתונים */
   function series(col,cap,wid,fill){
-    var lo=1e9, hi=-1e9, v=[]; for(i=0;i<COND.length;i++){ var q=col(COND[i]); v.push(q); if(q!=null){ if(q<lo) lo=q; if(q>hi) hi=q; } }
+    var RR=tsRows(), lo=1e9, hi=-1e9, v=[], tp=null; for(i=0;i<RR.length;i++){ var tt=Date.parse(RR[i][0]+'Z'); var q=(tt>=TS_T0-3600000&&tt<=TS_T1+3600000)?col(RR[i]):null; v.push(q); if(q!=null){ if(q<lo) lo=q; if(q>hi) hi=q; } }
     if(hi<=-1e8) return; if(hi-lo<1e-6) hi=lo+1;
     var pad2=(hi-lo)*0.18; lo-=pad2; hi+=pad2;
     x.beginPath(); var x0=null, xl=0;
-    for(i=0;i<COND.length;i++){ if(v[i]==null) continue;
-      px=X(Date.parse(COND[i][0]+'Z')); var py=H-2-(v[i]-lo)/(hi-lo)*(H-6);
-      if(x0===null){ x.moveTo(px,py); x0=px; } else x.lineTo(px,py); xl=px; }
+    for(i=0;i<RR.length;i++){ if(v[i]==null) continue; var ti=Date.parse(RR[i][0]+'Z');
+      px=X(ti); var py=H-2-(v[i]-lo)/(hi-lo)*(H-6);
+      if(x0===null||(tp!==null&&ti-tp>3*3600000)){ if(fill&&x0!==null){ x.lineTo(xl,H); x.lineTo(x0,H); x.closePath(); } x.moveTo(px,py); x0=px; } else x.lineTo(px,py); xl=px; tp=ti; }
     if(fill){ x.lineTo(xl,H); x.lineTo(x0,H); x.closePath(); x.fillStyle=fill; x.fill(); }
     else { x.strokeStyle=cap; x.lineWidth=wid; x.lineJoin='round'; x.stroke(); } }
   series(function(c){ return c.length>=15?c[9]:null; },'rgba(207,230,255,.34)',1,null);
@@ -525,8 +542,10 @@ function tsDraw(){
   series(function(c){ return c[1]; },'rgba(244,249,252,.90)',1.1,null);
   series(function(c){ return c[4]; },'rgba(143,227,222,.95)',1.25,null);
   /* מחוץ לנתונים: מעומעם. השבוע נראה, אבל ברור איפה עוד אין מה לגרור */
-  var a0=clamp(X(TS_D0),0,W), a1=clamp(X(TS_D1),0,W);
-  x.fillStyle='rgba(3,9,15,.62)'; if(a0>0) x.fillRect(0,0,a0,H); if(a1<W) x.fillRect(a1,0,W-a1,H);
+  x.fillStyle='rgba(3,9,15,.62)'; var ce=TS_T0;
+  for(i=0;i<=TS_COV.length;i++){ var cs=i<TS_COV.length?TS_COV[i][0]:TS_T1;
+    if(cs>ce){ var g0=clamp(X(ce),0,W), g1=clamp(X(cs),0,W); if(g1>g0) x.fillRect(g0,0,g1-g0,H); }
+    if(i<TS_COV.length) ce=Math.max(ce,TS_COV[i][1]); }
   /* ההווה: באמצע, תמיד. גומה קטנה למעלה ולמטה */
   var cx=X(Date.now()), tn=tsLive(), sx=clamp(X(tn),0,W), dir=tn<Date.now()-60000?-1:tn>Date.now()+60000?1:0, rgb=dir<0?TS_PAST:dir>0?TS_FUT:'255,255,255';
   /* השטח שבין ההווה לזמן שנבחר, בצבע של הכיוון */
@@ -554,7 +573,7 @@ function tsInput(){
   var t=tsTimeOf(+TS.rng.value), now=Date.now(), W=tsW||TS.box.clientWidth||400;
   /* גומה סביב ההווה: 4 פיקסלים לכל צד נצמדים לזמן אמת */
   if(Math.abs(t-now)<(TS_T1-TS_T0)*4/W) t=now;
-  var c=clamp(t,Math.min(TS_D0,now),Math.max(TS_D1,now));
+  var c=tsSnap(t);
   if(c!==t){ t=c; TS.rng.value=tsValOf(t); }
   tsSet(t===now?0:t-now,true); }
 function tsInit(){
@@ -581,6 +600,16 @@ if(LIVE){ EXO.on(function(s){ renderHud(s); drawMini(); if(s.qualityAuto) paintL
 else { renderHud(staticState()); setInterval(function(){ renderHud(staticState()); },30000); }
 window.addEventListener('resize',function(){ measure(); frameScene(); SZ={}; if(LIVE&&EXO.state) renderHud(EXO.state); measureTop(); });
 tsInit(); setTimeout(measureTop,300); setTimeout(measureTop,2500);
+/* 22.9: ארכיון מזג האוויר של אקסודוס (assets/cond/wNN.json, שבוע לכל קובץ מ-6.9, נכתב על ידי הבוט).
+   נטען ברקע אחרי שהסצנה רצה, רק השבועות שנכנסים לרצועה. קובץ שעוד לא קיים — פשוט אין שם כיסוי. */
+if(LIVE&&EXO.setArchive&&typeof COND!=='undefined'&&COND.length) idle(function(){
+  var W0=Date.UTC(2026,8,6), wk=function(t){ return Math.floor((t-W0)/(7*86400000))+1; }, now=Date.now(), c0=Date.parse(COND[0][0]+'Z');
+  var a=Math.max(1,wk(now-TS_HALF)), b=wk(Math.min(now,c0)), L=[], k;
+  for(k=a;k<=b;k++) L.push(fetch('assets/cond/w'+(k<10?'0':'')+k+'.json',{cache:'no-cache'}).then(function(r){ return r.ok?r.json():null; }).catch(function(){ return null; }));
+  Promise.all(L).then(function(A){ var rows=[];
+    A.forEach(function(d){ if(d&&d.boats&&d.boats['4']) rows=rows.concat(d.boats['4']); });
+    if(!rows.length) return;
+    EXO.setArchive(rows); tsSpan(); TS.rng.value=tsValOf(tsLive()); tsDraw(); }); },3000);
 vigTick(); setInterval(vigTick,60000); if(window.EXO) EXO.vigTick=vigTick;   /* נחשף לבדיקות: audit_contrast.py מזיז את השעון ישירות */
 /* קטלוג הכוכבים: רק אחרי שהסצנה כבר רצה. המנוע מזהה אותו לבד בפריים הבא; בלעדיו נשארים כוכבי הרעש */
 if(LIVE) idle(function(){ loadScript('assets/v2n/stars.js').then(function(){ if(EXO.kick) EXO.kick(); }).catch(function(){}); },2600);

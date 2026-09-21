@@ -33,15 +33,16 @@ var LAB=EXO.lab={ compass:'world', wind:'sails', wave:'arcs', cur:'ribbon', line
 function pickCond(now){
   if(!COND||!COND.length) return { pres:null,presTrend:null,airT:null,seaT:null,cloud:null,visKm:null,precip:null,
     wind:0,gust:0,windDir:0,waveH:0.25,waveT:6,waveDir:0,cur:0,curDir:0,forecast:false,past:false,missing:true };
-  var best=COND[0], bi=0, i;
-  for(i=0;i<COND.length;i++) if(Date.parse(COND[i][0]+'Z')<=now){ best=COND[i]; bi=i; }
-  var nx=COND[Math.min(bi+1,COND.length-1)];
+  poseAt(now);
+  var T=CONDX||COND, best=T[0], bi=0, i;
+  for(i=0;i<T.length;i++) if(Date.parse(T[i][0]+'Z')<=now){ best=T[i]; bi=i; }
+  var nx=T[Math.min(bi+1,T.length-1)];
   var t0=Date.parse(best[0]+'Z'), t1=Date.parse(nx[0]+'Z');
   var f=(t1>t0)?Math.max(0,Math.min(1,(now-t0)/(t1-t0))):0;
   function L(a,b){return a+(b-a)*f;}
   function A(a,b){var d=((b-a+540)%360)-180;return (a+d*f+360)%360;}
   function X(i){ var a=best[i], b=nx[i]; if(a==null||b==null) return (a==null?(b==null?null:b):a); return L(a,b); }
-  function at3(i){ var t=now-3*3600000, k, r0=null, r1=null; for(k=0;k<COND.length;k++){ var tk=Date.parse(COND[k][0]+'Z'); if(tk<=t) r0=COND[k]; else { r1=COND[k]; break; } }
+  function at3(i){ var t=now-3*3600000, k, r0=null, r1=null; for(k=0;k<T.length;k++){ var tk=Date.parse(T[k][0]+'Z'); if(tk<=t) r0=T[k]; else { r1=T[k]; break; } }
     if(!r0||r0[i]==null) return null; if(!r1||r1[i]==null) return r0[i]; var a0=Date.parse(r0[0]+'Z'), a1=Date.parse(r1[0]+'Z'); return r0[i]+(r1[i]-r0[i])*Math.max(0,Math.min(1,(t-a0)/(a1-a0||1))); }
   var ext=(best.length>=15), pNow=ext?X(9):null, pOld=ext?at3(9):null;
   return { pres:pNow, presTrend:(pNow!=null&&pOld!=null)?(pNow-pOld):null, airT:ext?X(10):null, seaT:ext?X(11):null,
@@ -49,8 +50,43 @@ function pickCond(now){
            wind:L(best[1],nx[1]), gust:L(best[2],nx[2]), windDir:A(best[3],nx[3]),
            waveH:L(best[4],nx[4]), waveT:L(best[5],nx[5]), waveDir:A(best[6],nx[6]),
            cur:L(best[7],nx[7]), curDir:A(best[8],nx[8]),
-           forecast: now>OBS_UNTIL, past: now>Date.parse(COND[COND.length-1][0]+'Z') };
+           forecast: now>OBS_UNTIL, past: now>Date.parse(COND[COND.length-1][0]+'Z'),
+           archive: now<Date.parse(COND[0][0]+'Z'), gap: (t1-t0)>3*3600000||now<Date.parse(T[0][0]+'Z') };
 }
+/* ===== P: הארכיון ותנוחת הסירה לפי השעון ===== */
+var CONDX=null, ARCH=[];
+var BP={lat:FIX.lat, lon:FIX.lon, cog:FIX.cog, sog:FIX.sog, src:'fix'};
+EXO.pose=BP;
+EXO.setArchive=function(rows){ try{
+  var c0=(COND&&COND.length)?Date.parse(COND[0][0]+'Z'):Infinity, seen={};
+  ARCH=(rows||[]).filter(function(r){ var t=Date.parse(r[0]+'Z'); if(!(t<c0)||seen[r[0]]||r[15]==null||r[16]==null) return false; seen[r[0]]=1; return true; })
+    .sort(function(a,b){ return a[0]<b[0]?-1:1; });
+  CONDX=ARCH.length?ARCH.map(function(r){ return r.slice(0,15); }).concat(COND||[]):null;
+  var n=clockNow(); cond=pickCond(n); condAt=n; applyConditions(cond); emitState(cond,n); kick(); }catch(e){} };
+/* כל השורות, בסדר זמן — לרצועה */
+EXO.condAll=function(){ return CONDX||COND||[]; };
+function trackPts(){ var fx=FIX.at*1000, P=[], i;
+  for(i=0;i<ARCH.length;i++){ var t=Date.parse(ARCH[i][0]+'Z'); if(t<fx) P.push([t,ARCH[i][15],ARCH[i][16]]); }
+  P.push([fx,FIX.lat,FIX.lon]); return P; }
+function posOn(P,t){ if(t<=P[0][0]) return [P[0][1],P[0][2]];
+  for(var i=1;i<P.length;i++) if(t<=P[i][0]){ var a=P[i-1], b=P[i], f=(t-a[0])/Math.max(1,b[0]-a[0]);
+    var dl=b[2]-a[2]; if(dl>180) dl-=360; if(dl<-180) dl+=360;
+    return [a[1]+(b[1]-a[1])*f, ((a[2]+dl*f+540)%360)-180]; }
+  var z=P[P.length-1]; return [z[1],z[2]]; }
+function poseAt(now){
+  var fx=FIX.at*1000;
+  if(!ARCH.length||!(now<fx-60000)||now<Date.parse(ARCH[0][0]+'Z')){
+    if(BP.src!=='fix'){ BP.lat=FIX.lat; BP.lon=FIX.lon; BP.cog=FIX.cog; BP.sog=FIX.sog; BP.src='fix'; GATE_BRG=bearingTo(BP.lat,BP.lon,GATE[0],GATE[1]); }
+    return BP; }
+  var P=trackPts(), p=posOn(P,now), a=posOn(P,now-3600000), b=posOn(P,Math.min(fx,now+3600000));
+  var dt=(Math.min(fx,now+3600000)-(now-3600000))/3600000;
+  var dy=(b[0]-a[0])*60, dxl=b[1]-a[1]; if(dxl>180) dxl-=360; if(dxl<-180) dxl+=360;
+  var dx=dxl*60*Math.cos((a[0]+b[0])/2*D2R), dist=Math.hypot(dx,dy);
+  BP.lat=p[0]; BP.lon=p[1]; BP.src='archive';
+  if(dist>0.05) BP.cog=(Math.atan2(dx,dy)*R2D+360)%360;
+  BP.sog=dt>0?dist/dt:0;
+  GATE_BRG=bearingTo(BP.lat,BP.lon,GATE[0],GATE[1]);
+  return BP; }
 
 /* ===== astronomy ===== */
 function days(n){ return n/86400000 + 2440587.5 - 2451545.0; }
@@ -90,7 +126,7 @@ function bearingTo(la1,lo1,la2,lo2){ var p=D2R;
   var y=Math.sin((lo2-lo1)*p)*Math.cos(la2*p);
   var x=Math.cos(la1*p)*Math.sin(la2*p)-Math.sin(la1*p)*Math.cos(la2*p)*Math.cos((lo2-lo1)*p);
   return (Math.atan2(y,x)*R2D+360)%360; }
-var GATE_BRG=bearingTo(FIX.lat,FIX.lon,GATE[0],GATE[1]);
+var GATE_BRG=bearingTo(BP.lat,BP.lon,GATE[0],GATE[1]);
 function bearing2(deg){ var a=deg*D2R; return [Math.sin(a),-Math.cos(a)]; }
 function norm3(v){ var l=Math.hypot(v[0],v[1],v[2])||1; return [v[0]/l,v[1]/l,v[2]/l]; }
 function cross3(a,b){ return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
@@ -749,7 +785,7 @@ function setU(u,quiet){ if(cam.u===undefined) cam.u=uOfR(cam.r);
   u=Math.max(U_FOV,Math.min(uCeil(),u));
   /* מתקרבים אל הסיפון: המבט מתיישר בהדרגה אל האופק, כדי לא להגיע להגה כשמסתכלים על הרצפה */
   /* והוא פונה בהדרגה אל החרטום: מגיעים להגה כשמסתכלים קדימה, כמו מי שעומד שם */
-  if(!quiet&&u<cam.u&&cam.u<0.35&&u>U_DECK-0.01){ var k=Math.min(1,(cam.u-u)*1.4); cam.el+=(0.20-cam.el)*k; cam.az+=(nearestAz(-FIX.cog*D2R)-cam.az)*k; }
+  if(!quiet&&u<cam.u&&cam.u<0.35&&u>U_DECK-0.01){ var k=Math.min(1,(cam.u-u)*1.4); cam.el+=(0.20-cam.el)*k; cam.az+=(nearestAz(-BP.cog*D2R)-cam.az)*k; }
   if(u>cam.u&&u>U_MAX&&cam.u<U_XF){ var a0=Math.max(cam.u,U_MAX), kN=Math.min(1,(u-a0)/Math.max(1e-4,U_XF-a0)); cam.az+=(nearestAz(0)-cam.az)*kN; cam.vaz=0; }
   cam.u=u; cam.r=cam._r=rOfU(u); if(!quiet){ zoomT=performance.now(); camGlide=null; } }
 function zoomAxisFrame(now){
@@ -771,7 +807,7 @@ var WATER={
 /* צבע המים לפי המקום: סובטרופי, טרופי (לפי טמפרטורת המים כשיש, אחרת לפי קו הרוחב), ואפור־ירקרק בקווי הרוחב הגבוהים */
 var _wFor=null, _wVal=null;
 function mixW(a,b,f){ var o={}, k; for(k in a){ o[k]=[a[k][0]+(b[k][0]-a[k][0])*f, a[k][1]+(b[k][1]-a[k][1])*f, a[k][2]+(b[k][2]-a[k][2])*f]; } return o; }
-function waterNow(c){ if(_wFor===c&&_wVal) return _wVal; var la=Math.abs(FIX.lat);
+function waterNow(c){ if(_wFor===c&&_wVal) return _wVal; var la=Math.abs(BP.lat);
   var tw=(c.seaT!=null)?smooth(21.5,27.5,c.seaT):smooth(28,10,la), sw=(c.seaT!=null)?smooth(17,8,c.seaT):smooth(34,48,la);
   _wFor=c; _wVal=mixW(mixW(WATER.subtropic,WATER.tropic,tw),WATER.south,sw); return _wVal; }
 function probit(p){ p=Math.max(0.002,Math.min(0.998,p));
@@ -812,7 +848,7 @@ function airRibbon(p,eye,w,a){
     fv(ax-s0x,ay-s0y,az-s0z,a0,0); fv(bx+s1x,by+s1y,bz+s1z,a1,0); fv(bx-s1x,by-s1y,bz-s1z,a1,0); }
 }
 function buildAir(c,t,dt,eye,wx,wz,wspd){
-  var i,k,p, nx=-wz, nz=wx, hr=FIX.cog*D2R, bfx=Math.sin(hr), bfz=-Math.cos(hr), cx=bfx*1.5, cz=bfz*1.5;
+  var i,k,p, nx=-wz, nz=wx, hr=BP.cog*D2R, bfx=Math.sin(hr), bfz=-Math.cos(hr), cx=bfx*1.5, cz=bfz*1.5;
   var QF=(EXO.quality==='lite'?0.5:1), nUse=Math.round(NAIR*QF*Math.min(1,0.45+c.wind/22));
   airAcc+=dt; var tick=false; if(airAcc>=0.07){ airAcc=0; tick=true; }
   for(i=0;i<nUse;i++){ p=PAIR[i]; if(LAB.wind==='sails'&&!p.corridor) continue;
@@ -909,7 +945,7 @@ function worldRing(c,t){
   /* צפון: משולש אדום מחוץ למעגל, כמו בכרטיס מצפן */
   (function(){ var q=rp(R,0), u=pxAt(q[0],q[1]); wtri(rp(R+19*u,0),rp(R+4*u,0,-7*u),rp(R+4*u,0,7*u),(0.16+0.84*hot)*RK,8,t); })();
   /* קו החרטום (כיוון ההתקדמות) וקשתות שמאל־ימין: אדום לשמאל, ירוק לימין, כמו במכשירי רוח */
-  if(LAB.lines!=='water'){ var H=FIX.cog, qh=rp(R,H), uh=pxAt(qh[0],qh[1]);
+  if(LAB.lines!=='water'){ var H=BP.cog, qh=rp(R,H), uh=pxAt(qh[0],qh[1]);
     var am=(0.05+0.95*hot)*RK;                     /* הסמלים דועכים יחד עם השנתות */
     bseg(rp(R-15*uh,H,-2.6*uh),rp(R+11*uh,H,-2.6*uh),1.8,am,am,6,t); bseg(rp(R-15*uh,H,2.6*uh),rp(R+11*uh,H,2.6*uh),1.8,am,am,6,t);
     /* היעד הבא: מעוין על המעגל */
@@ -918,7 +954,7 @@ function worldRing(c,t){
   var LY=EXO.layers, hk=(0.05+0.95*hot)*RK;
   /* רוח: מצביע על המעגל + נוצת רוח. מוט לכיוון שאליו הרוח נושבת, נוצה מלאה = 10 קשר, חצי = 5, דגלון = 50.
      הנוצות פונות אל הלחץ הנמוך: בחצי הכדור הצפוני עם כיוון השעון, בדרומי נגדו. */
-  if(LY.wind){ var W=c.windDir, qw=rp(R,W), uw=pxAt(qw[0],qw[1]), side=(FIX.lat>=0?1:-1);
+  if(LY.wind){ var W=c.windDir, qw=rp(R,W), uw=pxAt(qw[0],qw[1]), side=(BP.lat>=0?1:-1);
     wtri(rp(R-17*uw,W),rp(R+3*uw,W,-7*uw),rp(R+3*uw,W,7*uw),Math.min(1,hk+0.2),0,t);
     var s0=band(0.02), s1=band(0.40), L=s0-s1, n5=Math.round(c.wind/5), pen=Math.floor(n5/10), full=Math.floor((n5-pen*10)/2), half=(n5-pen*10)%2, pos=0, fl=L*0.42, j;
     var seg=7; for(j=0;j<seg;j++){ var f0=j/seg, f1=(j+1)/seg, ph=((f0-t*(0.30+c.wind/26))%1+1)%1, pu=Math.pow(Math.cos(6.2831853*ph)*0.5+0.5,2);
@@ -950,7 +986,7 @@ function labAnchors(VP,t){
   for(i=0;i<12;i++){ var q=rp(R,i*30), u=pxAt(q[0],q[1]); put('g'+i,R-(i%3===0?40:34)*u,i*30); }
   var qs=rp(R,c.windDir), us=pxAt(qs[0],qs[1]);
   put('wind',band(0.20),c.windDir,false,46*us); put('wave',band(0.56),c.waveDir,false,-52*us); put('cur',band(0.85),(c.curDir+180)%360,false,46*us);
-  put('gate',R-30*us,GATE_BRG,false,-8*us); put('cog',R-30*us,FIX.cog,false,30*us); put('beacon',1400,GATE_BRG,true);
+  put('gate',R-30*us,GATE_BRG,false,-8*us); put('cog',R-30*us,BP.cog,false,30*us); put('beacon',1400,GATE_BRG,true);
   /* המשואה נעלמה בזומים ובכיוונים רבים (הערה בתחנה, 21.9): נקודת האופק שלה יצאה מהמסך — מעל הקצה העליון
      בטלפון לאורך, או לצד/מאחורי המצלמה — ו-project החזיר null. עכשיו נשמר גם המיקום הגולמי, עם הצד הנכון
      גם כשהנקודה מאחורי המצלמה (חלוקה ב-|w|), וה-HUD מצמיד את המשואה לשפת המסך במקום להעלים אותה. */
@@ -1007,7 +1043,7 @@ function starsInit(){
 
 /* מטריצת הסיבוב ממערכת המשווה השמימי אל העולם של הסצנה (X מזרח, Y למעלה, Z דרום), בסדר עמודות */
 function celestialRot(nowMs){
-  var d=days(nowMs), lst=(((18.697374558+24.06570982441908*d)%24)*15+FIX.lon)*D2R, sL=Math.sin(lst), cL=Math.cos(lst), la=FIX.lat*D2R, sp=Math.sin(la), cp=Math.cos(la);
+  var d=days(nowMs), lst=(((18.697374558+24.06570982441908*d)%24)*15+BP.lon)*D2R, sL=Math.sin(lst), cL=Math.cos(lst), la=BP.lat*D2R, sp=Math.sin(la), cp=Math.cos(la);
   return [-sL,cp*cL,sp*cL,  cL,cp*sL,sp*sL,  0,sp,-cp]; }
 
 /* כוכבי הלכת: יסודות מסלול ממוצעים ל-J2000 וקצב השינוי שלהם למאה (Standish, JPL), פתרון קפלר, ומעבר לקו המשווה השמימי */
@@ -1078,7 +1114,7 @@ function crestShift(x,z,t,d0){
 function hullHalfBeam(a){ var q=1-(a/(LOA*0.485))*(a/(LOA*0.485)); return q<=0?0:BEAM*0.45*Math.pow(q,0.6); }
 function crestLines(c,t,dt,eye){
   var d0=wDir[0], L=Math.max(wLen[0],9), cph=wSpd[0], k0=6.2831853/L, nx=-d0[1], nz=d0[0];
-  var hr=FIX.cog*D2R, bfx=Math.sin(hr), bfz=-Math.cos(hr);
+  var hr=BP.cog*D2R, bfx=Math.sin(hr), bfz=-Math.cos(hr);
   var lite=(EXO.quality==='lite'), Rv=Math.min(78,Math.max(30,2.1*L));
   var nMid=Math.round((-cph*t*k0-Math.PI/2)/6.2831853), cand=[], j;
   for(j=-4;j<=4;j++){ var n=nMid+j, s=(Math.PI/2+6.2831853*n)/k0+cph*t; if(Math.abs(s)<Rv) cand.push([Math.abs(s),n,s]); }
@@ -1840,12 +1876,12 @@ function buildSurface(c,t,dt,eye){
       d2=e2+(dot?3.1:0); }
   }
   if(LAB.lines==='water') lane(GATE_BRG,90,0.27,0.70,2,true);      /* אל נקודת החובה הבאה: נקודות לבנות */
-  if(LAB.lines==='water') lane(FIX.cog,58,0.16,0.62,3,false);      /* לאן החרטום מצביע: קו כתום רציף */
+  if(LAB.lines==='water') lane(BP.cog,58,0.16,0.62,3,false);      /* לאן החרטום מצביע: קו כתום רציף */
 
   /* --- her wake: two feathered strips, bright at the centreline --- */
-  var hr=FIX.cog*D2R, bx=Math.sin(hr), bz=-Math.cos(hr);
+  var hr=BP.cog*D2R, bx=Math.sin(hr), bz=-Math.cos(hr);
   var kx=-bx, kz=-bz, jx=-kz, jz=kx;
-  var spd=Math.min(1,FIX.sog/7.3);
+  var spd=Math.min(1,BP.sog/7.3);
   function wy2(x,z){ return waveY(x,z,t)+0.06; }
   for(i=0;i<NWAKE;i++){
     var dd0=4.6+i*(34/NWAKE), dd1=4.6+(i+1)*(34/NWAKE);
@@ -1975,7 +2011,7 @@ function frameBody(){
 
   var bodyY=waveY(0,0,t);
   /* תנוחת הסירה והמפרשים מחושבת מוקדם: מצלמת הסיפון והרוח שסביב המפרשים צריכות אותה */
-  var hRad=FIX.cog*D2R;
+  var hRad=BP.cog*D2R;
   var fx=Math.sin(hRad),fz=-Math.cos(hRad),sx=Math.cos(hRad),sz=Math.sin(hRad);
   var yB=waveY(fx*LOA/2,fz*LOA/2,t), yS=waveY(-fx*LOA/2,-fz*LOA/2,t), yP=waveY(sx*BEAM/2,sz*BEAM/2,t);
   var pTgt=Math.atan2(yB-yS,LOA)*0.74, rTgt=-Math.atan2(yP-(yB+yS)/2,BEAM/2)*0.60;
@@ -1985,7 +2021,7 @@ function frameBody(){
   var pitch=LAB._pit, roll=LAB._rol;
   var boatM=mMul(mMul(mMul(mTrans(0,(yB+yS)/2-0.12,0),mRotY(Math.PI/2-hRad)),mRotZ(pitch)),mRotX(roll));
 
-  var rel=((c.windDir-FIX.cog+540)%360)-180, twa=Math.abs(rel), sgn=rel>=0?1:-1;
+  var rel=((c.windDir-BP.cog+540)%360)-180, twa=Math.abs(rel), sgn=rel>=0?1:-1;
   var boomA=Math.max(14,Math.min(84,twa*0.52))*D2R*sgn;
   var jibA=(twa>158?-1:1)*Math.max(10,Math.min(62,twa*0.42))*D2R*sgn;
   var flatS=c.wind<4?0.5:1;
@@ -2027,7 +2063,7 @@ function frameBody(){
   var fwd=norm3([ctr[0]-eye[0],ctr[1]-eye[1],ctr[2]-eye[2]]);
   var right=norm3(cross3(fwd,[0,1,0])), upv=cross3(right,fwd);
 
-  var sp=sunPos(nowMs,FIX.lat,FIX.lon), mp=moonPos(nowMs,FIX.lat,FIX.lon);
+  var sp=sunPos(nowMs,BP.lat,BP.lon), mp=moonPos(nowMs,BP.lat,BP.lon);
   lastSun=sp; lastMoon=mp;
   var sAlt=sp.alt*R2D, mAlt=mp.alt*R2D;
   var dayF=smooth(-6,7,sAlt), duskF=Math.exp(-Math.pow(sAlt/7.5,2)), nightF=1-dayF;
@@ -2153,7 +2189,7 @@ function frameBody(){
   drawMesh(M_SPREAD,boatM, COL.spar);
   if(plan==='spin'||plan==='heavy') drawMesh(M_FURL, mMul(mMul(boatM,mTrans(5.42,FREE+0.58,0)),mRotZ(Math.PI/2)), COL.tops);
   drawMesh(M_VANEP,boatM, COL.spar);
-  drawMesh(M_VANE, mMul(mMul(mMul(boatM,mTrans(-5.62,FREE+0.62,0)),mRotZ(-0.16)),mRotY(Math.sin(t*0.37)*0.20+((c.windDir-FIX.cog+540)%360-180)*D2R*0.10)), COL.vane);
+  drawMesh(M_VANE, mMul(mMul(mMul(boatM,mTrans(-5.62,FREE+0.62,0)),mRotZ(-0.16)),mRotY(Math.sin(t*0.37)*0.20+((c.windDir-BP.cog+540)%360-180)*D2R*0.10)), COL.vane);
   drawMesh(M_PADL, boatM, COL.bott);
   drawMesh(M_GENP, boatM, COL.spar);
   drawMesh(M_GEN,  boatM, COL.vane);
@@ -2216,7 +2252,7 @@ function frameBody(){
     drawSail(jB?M_YANK:M_YANKX, yankM, TEX_PLAIN, flatS);
   }
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
-  var enR=(((c.windDir+180)-FIX.cog+540)%360-180)*D2R, enW=Math.min(1,c.wind/16);
+  var enR=(((c.windDir+180)-BP.cog+540)%360-180)*D2R, enW=Math.min(1,c.wind/16);
   var enM=mMul(mMul(mMul(boatM,mTrans(-1.32,FREE+10.30,0)),mRotY(-enR+Math.sin(t*1.7)*0.09*enW)),mRotZ(-0.37+Math.sin(t*2.3+1.1)*0.05*enW));
   gl.uniform1f(SAILP.u('uTwo'),1); drawSail(M_ENSIGN, enM, TEX_FLAG, 1);
   gl.uniform1f(SAILP.u('uTwo'),0);
@@ -2295,18 +2331,18 @@ function nextFixTxt(nowMs){
   return nx.getTime();
 }
 function emitState(c,nowMs){
-  var loc=new Date(nowMs+FIX.lon/15*3600000);
-  var sp=sunPos(nowMs,FIX.lat,FIX.lon), mp=moonPos(nowMs,FIX.lat,FIX.lon), sAlt=sp.alt*R2D;
-  var ev=sunEvents(nowMs,FIX.lat,FIX.lon);
-  var rel=((c.windDir-FIX.cog+540)%360)-180, twa=Math.abs(rel);
-  function hm(ts){ if(!ts) return null; var x=new Date(ts+FIX.lon/15*3600000);
+  var loc=new Date(nowMs+BP.lon/15*3600000);
+  var sp=sunPos(nowMs,BP.lat,BP.lon), mp=moonPos(nowMs,BP.lat,BP.lon), sAlt=sp.alt*R2D;
+  var ev=sunEvents(nowMs,BP.lat,BP.lon);
+  var rel=((c.windDir-BP.cog+540)%360)-180, twa=Math.abs(rel);
+  function hm(ts){ if(!ts) return null; var x=new Date(ts+BP.lon/15*3600000);
     return pad(x.getUTCHours())+':'+pad(x.getUTCMinutes()); }
   EXO.state={
     now:nowMs, simulated:EXO.simulated, cond:c,
     localHM:pad(loc.getUTCHours())+':'+pad(loc.getUTCMinutes()),
     sun:{az:sp.az, alt:sAlt}, moon:{az:mp.az, alt:mp.alt*R2D, illum:mp.illum, waxing:mp.waxing},
     rise:ev.rise, set:ev.set, riseHM:hm(ev.rise), setHM:hm(ev.set),
-    riseAz:ev.rise?sunPos(ev.rise,FIX.lat,FIX.lon).az:null, setAz:ev.set?sunPos(ev.set,FIX.lat,FIX.lon).az:null,
+    riseAz:ev.rise?sunPos(ev.rise,BP.lat,BP.lon).az:null, setAz:ev.set?sunPos(ev.set,BP.lat,BP.lon).az:null,
     sky: sAlt>6?'יום':sAlt>-0.5?'שמש על האופק':sAlt>-6?'דמדומים':sAlt>-12?'בין ערביים':'לילה',
     twa:twa, twaSide:rel>=0?1:-1,
     pointOfSail: twa>150?'גבית':twa>110?'רוח מלאה':twa>75?'בטן־רוח':twa>50?'קרוב מלא':'קרוב־רוח',
@@ -2361,7 +2397,7 @@ EXO.zoomAxis={DECK:U_DECK,MAX:U_MAX,TOP:U_TOP,XF:U_XF,GLOBE:U_GLOBE,uOfR:uOfR,uO
   uOfW:function(w){ return uOfRFull(Math.max(1,w/(2*Math.tan(LAB._hfx||0.30)))); },
   wOfU:function(u){ return 2*rOfU(u)*Math.tan(LAB._hfx||0.30); }, K:2.4};
 EXO.setCam=function(mode){ cam.auto=false; camFly=null; cam.tilt=0; cam.vaz=cam.vel=0;
-  if(mode==='deck'){ cam.az=-FIX.cog*D2R; cam.el=0.20; EXO.glideTo(U_DECK,1400); } else { cam.el=0.26; EXO.glideTo(uOfR(homeR()),1400); } kick(); };
+  if(mode==='deck'){ cam.az=-BP.cog*D2R; cam.el=0.20; EXO.glideTo(U_DECK,1400); } else { cam.el=0.26; EXO.glideTo(uOfR(homeR()),1400); } kick(); };
 EXO.dive=function(down){ LAB.cam='orbit'; EXO.lookToward((((-cam.az*R2D)%360)+360)%360,{el:down?-0.40:0.26,dur:1500}); };
 EXO.setZoom=function(r){ setU(uOfR(clamp(r,9,150)),true); camGlide=null; kick(); };
 EXO.setEl=function(v){ cam.el=v; kick(); };
