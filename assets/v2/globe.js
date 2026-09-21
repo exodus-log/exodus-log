@@ -58,13 +58,43 @@ function headingAt(pts){ var n=pts.length; if(n<2) return FIX.cog; var a=pts[Mat
   var y=Math.sin((b[0]-a[0])*D2R)*Math.cos(b[1]*D2R), x=Math.cos(a[1]*D2R)*Math.sin(b[1]*D2R)-Math.sin(a[1]*D2R)*Math.cos(b[1]*D2R)*Math.cos((b[0]-a[0])*D2R);
   return (Math.atan2(y,x)*R2D+360)%360; }
 
-/* המסלול שנותר: מהסירה אל הקטע הקרוב בקו המסלול הרשמי, ומשם עד קו הסיום */
-function remaining(from){ var c=parseLL(COURSE), best=0, bd=1e9, i;
+/* המסלול שנותר: מהסירה אל הקטע הקרוב בקו המסלול הרשמי, ומשם עד קו הסיום.
+   קו המסלול של המעקב הוא ציור, לא חובה: נקודות הביניים שלו אינן נקודות חובה. לכן מדלגים על נקודות ביניים
+   כל עוד הקו הישר מהסירה אל הנקודה שאחריהן עובר בים פתוח, ולעולם לא עוברים על פני נקודה שמייצגת נקודת חובה או כף. */
+var landRings=null;
+function landIndex(){ if(landRings) return landRings;
+  if(typeof LAND50==='undefined') return [];   /* קו החוף עוד לא נטען: לא שומרים, ננסה שוב בקריאה הבאה */
+  landRings=[];
+  for(var i=0;i<LAND50.length;i++) for(var j=0;j<LAND50[i].length;j++){ var f=LAND50[i][j], r=[], x=0, y=0, k, b=[1e9,1e9,-1e9,-1e9];
+    for(k=0;k<f.length;k+=2){ x+=f[k]; y+=f[k+1]; var p=[x/100,y/100]; r.push(p);
+      if(p[0]<b[0]) b[0]=p[0]; if(p[1]<b[1]) b[1]=p[1]; if(p[0]>b[2]) b[2]=p[0]; if(p[1]>b[3]) b[3]=p[1]; }
+    landRings.push({r:r,b:b,hole:j>0}); }
+  return landRings; }
+function onLand(p){ var L=landIndex(), inside=false, i, k, n;
+  for(i=0;i<L.length;i++){ var b=L[i].b; if(p[0]<b[0]||p[0]>b[2]||p[1]<b[1]||p[1]>b[3]) continue;
+    var r=L[i].r, c=false; for(k=0,n=r.length-1;k<r.length;n=k++){ var a=r[k], d=r[n];
+      if(((a[1]>p[1])!==(d[1]>p[1]))&&(p[0]<(d[0]-a[0])*(p[1]-a[1])/(d[1]-a[1])+a[0])) c=!c; }
+    if(c) inside=!inside; }
+  return inside; }
+function openSea(a,b){ var n=Math.max(2,Math.ceil(gcNm(a,b)/12)), dl=b[0]-a[0], s;
+  if(dl>180) dl-=360; if(dl<-180) dl+=360;
+  for(s=1;s<n;s++){ var f=s/n, lo=a[0]+dl*f; lo=((lo+540)%360)-180; if(onLand([lo,a[1]+(b[1]-a[1])*f])) return false; }
+  return true; }
+var courseStops=null;
+function stopsOn(c){ if(courseStops) return courseStops; courseStops={};
+  (typeof MARKS!=='undefined'?MARKS:[]).forEach(function(m){ var p=[m[1],m[0]], bi=0, bd=1e9;
+    c.forEach(function(q,i){ var d=gcNm(p,q); if(d<bd){ bd=d; bi=i; } }); courseStops[bi]=true; });
+  return courseStops; }
+var remMemo={};
+function remaining(from){ var key=from[0].toFixed(2)+','+from[1].toFixed(2); if(remMemo[key]) return remMemo[key];
+  var c=parseLL(COURSE), best=0, bd=1e9, i;
   for(i=0;i<c.length-1;i++){ var mid=[(c[i][0]+c[i+1][0])/2,(c[i][1]+c[i+1][1])/2], d=gcNm(from,c[i])+gcNm(from,c[i+1])-gcNm(c[i],c[i+1]);
     if(Math.abs(c[i][0]-c[i+1][0])>180) continue; if(d<bd&&i<c.length/2){ bd=d; best=i; } }
-  var rest=unwrap([from].concat(c.slice(best+1))), cut=rest.length-1;
+  var nxt=best+1, stop=stopsOn(c), coast=typeof LAND50!=='undefined';   /* בלי קו חוף לא מקצרים */
+  while(coast && nxt+1<c.length/2 && !stop[nxt] && openSea(from,c[nxt+1])) nxt++;
+  var rest=unwrap([from].concat(c.slice(nxt))), cut=rest.length-1;
   for(i=rest.length-1;i>0;i--){ if(rest[i][1]<0){ cut=i; break; } }       /* חציית קו המשווה בדרך הביתה */
-  return [rest.slice(0,cut+1), rest.slice(cut)]; }
+  var out=[rest.slice(0,cut+1), rest.slice(cut)]; if(coast) remMemo[key]=out; return out; }
 
 /* ---------- לילה: שלושה מצולעים (שמש מתחת ל-0°, ‎−6°, ‎−12°) שיוצרים קצה רך ---------- */
 function nightPolys(ms){
