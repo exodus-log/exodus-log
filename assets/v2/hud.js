@@ -17,8 +17,16 @@ function clamp(v,a,b){ return v<a?a:v>b?b:v; }
 function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} return null; }
 
 /* ---------- קומפוזיציה: הסירה במרכז החלון ---------- */
+/* הסירה במרכז השטח הפנוי, לא במרכז המסך. oy הוא היסט במרחב הגזירה (NDC, למעלה חיובי), ועד כה
+   הוא היה קבוע — 0.06 בטלפון, 0 במחשב — בלי קשר לכמה מקום תופסים הנתונים למעלה ומספרי המרוץ
+   למטה. בטלפון לרוחב, 390 פיקסל גובה, השורות והרצועה תופסות 27% מלמעלה, והתורן והמפרשים ישבו
+   מאחוריהן. עכשיו: ההיסט העיצובי הקודם, ועוד המרחק בין מרכז המסך למרכז הרצועה שבין --top ל---bot. */
+function frameOffset(){ if(!LIVE||!EXO.view) return; var h=stage.clientHeight||window.innerHeight, w=stage.clientWidth||window.innerWidth, portrait=w/h<0.8;
+  var cs=getComputedStyle(document.documentElement), top=parseFloat(cs.getPropertyValue('--top'))||70, bot=parseFloat(cs.getPropertyValue('--bot'))||44;
+  var free=-(top-bot)/h;
+  EXO.view.oy=(h<=520?0.06:portrait?0.06:0.0)+Math.max(-0.26,Math.min(0.02,free)); }
 function frameScene(){ if(!LIVE) return; var w=stage.clientWidth, h=stage.clientHeight, portrait=w/h<0.8;
-  EXO.view.ox=0; EXO.view.oy=(h<=520?0.06:portrait?0.06:0.0); EXO.view.ty=portrait?5.2:4.4; EXO.view.r=portrait?44:33;
+  EXO.view.ox=0; frameOffset(); EXO.view.ty=portrait?5.2:4.4; EXO.view.r=portrait?44:33;
   if(frameScene.p!==portrait){ frameScene.p=portrait; if(EXO.setEl&&LAB.cam!=='deck') EXO.setEl(portrait?0.55:0.30); }
   if(EXO.reframe&&LAB.cam!=='deck') EXO.reframe(); }
 
@@ -35,13 +43,30 @@ var compact=false; function measure(){ compact=stage.clientWidth<=700; }
 
 function renderHud(s){
   var c=s.cond, d=new Date(s.now);
-  put('hDay','יום '+FIX.dayN);
+  /* יום המרוץ נגזר מהשעון המוצג ולא מנקודת הציון: גרירה של 30 שעות קדימה החליפה את התאריך
+     ל-22.09 והשאירה "יום 15". אותה נוסחה שרצועת הימים בגלובוס משתמשת בה. */
+  var dayN=(typeof RACE_START!=='undefined')?Math.floor((s.now/1000-RACE_START)/86400)+1:FIX.dayN;
+  put('hDay','יום '+dayN);
   put('hDate',pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'.'+d.getUTCFullYear());
   put('hPos',dmm(FIX.lat,2,'N','S')+'  '+dmm(FIX.lon,3,'E','W'));
   var fx=new Date(FIX.at*1000), age=(s.now/1000-FIX.at)/3600;
   var ageTxt=age<1?'לפני פחות משעה':age<24?'לפני '+heb(age,'שעה','שעתיים','שע׳'):'לפני '+heb(age/24,'יום','יומיים','ימים');
   var hf=$('hFix'); hf.textContent='נ״צ '+pad(fx.getUTCHours())+':'+pad(fx.getUTCMinutes())+' UTC · '+ageTxt; hf.className=age>12?'stale':'dim';
-  if(c){
+  /* מספרי המרוץ הם תמונת המצב של נקודת הציון. מעל 12 שעות זה כבר לא "עכשיו", והשורה אומרת זאת. */
+  var stale=age>12, aw=$('vAgeW');
+  if(aw){ aw.hidden=!stale; if(stale){ put('vAge',ageTxt); aw.className='stale'; } }
+  /* "תחזית" רק כשהזמן המוצג נמצא אחרי ההווה האמיתי — כלומר גררו קדימה. forecast של pickCond
+     (אחרי OBS_UNTIL) נכון כמעט כל היום, כי הרענון רץ פעמיים ביום: בזמן אמת הערך הוא ההערכה
+     הטובה ביותר של *עכשיו*, לא ניבוי של העתיד, וכיתוב "תחזית" עליו היה מטעה בכיוון ההפוך. */
+  var ahead=(LIVE&&EXO.clockOff)?EXO.clockOff():0;
+  var fw=$('hFcastW'); if(fw) fw.hidden=!(c&&!c.missing&&ahead>5*60000);
+  if(c&&c.missing){
+    /* אין טבלת מזג אוויר. לא ממציאים מספר: מקף במקום ערך, והשורה השלישית נעלמת. */
+    put('hWind','—'); put('hBft',''); put('hWave','—'); put('hSea',''); put('hCur','—');
+    show('hRow3',false);
+    if(!renderHud._noCond){ renderHud._noCond=true;
+      setTimeout(function(){ toast('נתוני מזג האוויר לא נטענו. המיקום והמספרים מהמעקב נכונים; הרוח, הגל והזרם אינם מוצגים',8000); },2400); }
+  } else if(c){
     var S=compact?' ':' · ', U=compact?'':' ';
     put('hWind',deg3(c.windDir)+S+Math.round(c.wind)+U+'kn'+S+'G'+Math.round(c.gust)); put('hBft','בופור '+beaufort(c.wind));
     put('hWave',c.waveH.toFixed(1)+U+'m'+S+Math.round(c.waveT)+U+'s'+S+deg3(c.waveDir)); put('hSea','מצב ים '+douglas(c.waveH));
@@ -67,7 +92,34 @@ function renderHud(s){
 /* ================= תוויות על הסצנה: מעלות הטבעת, רוח, גל, זרם, היעד ================= */
 var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
 function measureTop(){ var a=document.querySelector('.topr'), b=document.querySelector('.clocks'); safeTop=Math.max(a?a.getBoundingClientRect().bottom:0,b?b.getBoundingClientRect().bottom:0)+6;
-  document.documentElement.style.setProperty('--top',Math.round(safeTop)+'px'); }
+  document.documentElement.style.setProperty('--top',Math.round(safeTop)+'px'); measureBot(); }
+/* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
+   הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
+   והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
+/* עומק ההצללה מאחורי שורות הנתונים, לפי גובה השמש בנקודה של דניאל — אותו מדרג שמצייר את
+   רקע הרצועה השעתית, כדי ששניהם יספרו את אותו סיפור. נמדד: בלילה רקע בבהירות 0.006 וכל
+   הטקסט מעל 6.4:1; ביום הרקע מגיע ל-0.35 ואפילו הערכים הלבנים יורדים ל-2.4:1. */
+function vigTick(){
+  var a; try{ a=tsSunAt(tsLive()); }catch(e){ return; }
+  var d=Math.max(0,Math.min(1,(a+4)/10)), st=document.documentElement.style;
+  st.setProperty('--vg1',(0.55+0.19*d).toFixed(3));
+  st.setProperty('--vg2',(0.16+0.44*d).toFixed(3));
+  st.setProperty('--vg3',(0.03+0.24*d).toFixed(3));
+  st.setProperty('--vgb',(0.55+0.28*d).toFixed(3));
+  /* בין #879caa ל-#ccd8e1, ובין #bccad3 ל-#e2ebf1 */
+  st.setProperty('--ink3d',mixHex('#879caa','#ccd8e1',d));
+  st.setProperty('--ink2d',mixHex('#bccad3','#e2ebf1',d));
+  st.setProperty('--shd',d<0.15?'var(--sh)':
+    '0 0 2px rgba(3,10,16,'+(0.9+0.06*d).toFixed(2)+'),0 0 6px rgba(3,10,16,'+(0.70+0.28*d).toFixed(2)+'),0 1px 3px rgba(3,10,16,'+(0.6+0.35*d).toFixed(2)+')');
+}
+function mixHex(a,b,t){ function p(h){ return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)]; }
+  var x=p(a), y=p(b), o='#';
+  for(var i=0;i<3;i++){ var v=Math.round(x[i]+(y[i]-x[i])*t).toString(16); o+=(v.length<2?'0':'')+v; }
+  return o; }
+function measureBot(){ var v=document.querySelector('.hud.vit'); if(!v) return;
+  var r=v.getBoundingClientRect(), h=window.innerHeight||document.documentElement.clientHeight;
+  var band=Math.max(0,Math.round(h-r.top))+4;
+  document.documentElement.style.setProperty('--bot',band+'px'); frameOffset(); }
 var DEG12=['N','030','060','E','120','150','S','210','240','W','300','330'];
 DEG12.map(function(tx,i){ return ['g'+i,tx,'deg'+(i===0?' north':(i%3===0?' cardinal':''))]; }).concat([
  ['wind','','dat wind'],['wave','','dat wave'],['cur','','dat cur'],['gate','','dat gate'],['beacon','','beacon']])
@@ -280,6 +332,11 @@ var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e
    כך הוא מוכן ברגע שמתרחקים עד הסוף. אם מתרחקים לפני שהוא מוכן, הוא נפתח ומתמלא כשהטעינה מסתיימת. */
 var popSkip=0;      /* history.back() שאנחנו יזמנו: ה-popstate שלו לא סוגר שום דבר נוסף */
 var G=$('globeLayer'), gOpen=false, gBuild=null, gPushed=false, gFailed=false;
+/* שכבת הגלובוס נשארת בעמוד גם כשהיא סגורה — MapLibre חייב אותה כדי להיבנות ברקע. עד כאן זה
+   אמר שהכפתורים שבתוכה, ובראשם "Toggle attribution" של MapLibre, נשארו בסדר ה-Tab: ההקשה
+   הראשונה של משתמש מקלדת נחתה על כפתור בלתי נראה בתוך שכבה מוסתרת. inert מוציא את כל תוכנה
+   מהפוקוס ומעץ הנגישות בלי לפרק אותה. */
+try{ G.inert=true; }catch(e){}
 function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendor/maplibre-gl.css'),loadScript('assets/vendor/maplibre-gl.js'),
     (typeof LAND50!=='undefined')?Promise.resolve():loadScript('assets/geo/land50.js'),
     loadScript('assets/v2/names.js').catch(function(){}),
@@ -288,12 +345,12 @@ function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendo
 function openGlobe(how){
   if(gFailed){ toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); return; }
   if(jOpen) closeJourney(false);
-  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
+  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); G.inert=false; document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
   try{ $('gBack').focus({preventScroll:true}); }catch(e){} }
-function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
+function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); G.inert=true; document.body.classList.remove('g-open');
   G.style.opacity=''; gxOn=false; gRet=false; document.body.classList.remove('g-x');
   if(LIVE){ EXO.pause(false); if(!stay&&EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.XF-0.02); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
   if(!fromPop&&gPushed){ gPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
@@ -336,9 +393,13 @@ function fleetTable(){ var host=$('fleetTbl'); if(!host||host.firstChild||typeof
   var h='<table><thead><tr><th>מקום</th><th>סירה</th><th class="nu">עד קו הסיום</th><th class="nu">פער מהמוביל</th><th class="nu">24 שעות</th></tr></thead><tbody>';
   FLEET.forEach(function(b){ var gap=Math.round(b[5]-lead); h+='<tr'+(b[1]===4?' class="me"':'')+'><td>'+b[0]+'</td><td>'+String(b[4]).replace(/&/g,'&amp;').replace(/</g,'&lt;')+(b[1]===4?' · אקסודוס':'')+'</td><td class="nu">'+thou(b[5])+'</td><td class="nu">'+(gap<=0?'—':thou(gap))+'</td><td class="nu">'+(b[6]!=null?Math.round(b[6]):'—')+'</td></tr>'; });
   host.innerHTML=h+'</tbody></table>'; }
+/* מי פתח את המסע: אחרי הסגירה הפוקוס חוזר אליו. עד כה הוא נפל אל body, ומשתמש מקלדת
+   או קורא מסך התחיל שוב מראש הדף בכל פעם. */
+var jOpener=null;
 function openJourney(section){
   if(gOpen) closeGlobe(false);
-  if(!jOpen){ jOpen=true; J.hidden=false; document.body.classList.add('j-open'); if(LIVE) EXO.pause(true);
+  if(!jOpen){ jOpener=(document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
+    jOpen=true; J.hidden=false; document.body.classList.add('j-open'); if(LIVE) EXO.pause(true);
     if(AU&&auOn) AU.master.gain.setTargetAtTime(0.05,AU.ac.currentTime,0.3);
     try{ history.pushState({exoJourney:1},''); jPushed=true; }catch(e){ jPushed=false; }
     fleetTable();
@@ -350,11 +411,25 @@ function openJourney(section){
 }
 function closeJourney(fromPop){ if(!jOpen) return; jOpen=false; J.hidden=true; document.body.classList.remove('j-open'); if(LIVE&&!gOpen) EXO.pause(false);
   if(AU&&auOn) AU.master.gain.setTargetAtTime(0.9,AU.ac.currentTime,0.3);
-  if(!fromPop&&jPushed){ jPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
+  if(!fromPop&&jPushed){ jPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } }
+  var back=jOpener||document.querySelector('.mini'); jOpener=null; if(back&&back.focus) try{ back.focus({preventScroll:true}); }catch(e){} }
 window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return; } if(jOpen){ jPushed=false; closeJourney(true); } else if(gOpen){ gPushed=false; closeGlobe(true); } });
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); menuBtn.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+/* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
+   מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
+   במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
+   המאיץ, המסירה אל הגלובוס והחזרה ממנו. Ctrl/Cmd עם +/− הם זום הדפדפן ונשארים שלו. */
+document.addEventListener('keydown',function(ev){
+  if(ev.ctrlKey||ev.metaKey||ev.altKey||jOpen||menuOpen) return;
+  var t=ev.target; if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  var k=ev.key, dir=(k==='-'||k==='_'||k==='Subtract')?1:(k==='+'||k==='='||k==='Add')?-1:0; if(!dir) return;
+  var surf=gOpen?document.getElementById('globe'):document.getElementById('sea'); if(!surf) return;
+  ev.preventDefault();
+  var r=surf.getBoundingClientRect();
+  surf.dispatchEvent(new WheelEvent('wheel',{deltaY:dir*120,deltaMode:0,clientX:r.left+r.width/2,clientY:r.top+r.height/2,bubbles:true,cancelable:true}));
+});
 /* קישורים ישנים אל מקטעי הדף הקודם ממשיכים לעבוד; "המסע" הישן היה הגלובוס */
 (function(){ var h=(location.hash||'').replace('#','');
   if(h==='voyage'||h==='globe') setTimeout(function(){ openGlobe('boat'); },400);
@@ -425,6 +500,7 @@ function tsLabel(t){ var d=new Date(t+FIX.lon/15*3600000);
 function tsSet(off,fromUser){
   if(!LIVE||!EXO.setClock) return;
   EXO.setClock(off);
+  vigTick();                 /* גרירה אל שעות היום מבהירה את הים — ההצללה חייבת לעקוב מיד */
   tsScrub=(off!==0);
   TS.box.classList.toggle('scrub',tsScrub);
   if(TS.now) TS.now.hidden=!tsScrub;
@@ -455,6 +531,7 @@ if(LIVE){ EXO.on(function(s){ renderHud(s); drawMini(); if(s.qualityAuto) paintL
 else { renderHud(staticState()); setInterval(function(){ renderHud(staticState()); },30000); }
 window.addEventListener('resize',function(){ measure(); frameScene(); SZ={}; if(LIVE&&EXO.state) renderHud(EXO.state); measureTop(); });
 tsInit(); setTimeout(measureTop,300); setTimeout(measureTop,2500);
+vigTick(); setInterval(vigTick,60000); if(window.EXO) EXO.vigTick=vigTick;   /* נחשף לבדיקות: audit_contrast.py מזיז את השעון ישירות */
 /* קטלוג הכוכבים: רק אחרי שהסצנה כבר רצה. המנוע מזהה אותו לבד בפריים הבא; בלעדיו נשארים כוכבי הרעש */
 if(LIVE) idle(function(){ loadScript('assets/v2/stars.js').then(function(){ if(EXO.kick) EXO.kick(); }).catch(function(){}); },2600);
 idle(function(){ loadScript('assets/v2/coast.js').then(function(){ NEAR=null; drawMini(); }).catch(function(){}); },1800);

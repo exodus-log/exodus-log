@@ -158,7 +158,9 @@ function draw(t,live){
   boat.setLngLat(pos).setRotation(live?FIX.cog:headingAt(pts)); meMarker.setLngLat(pos);
   if(!live||todoMoved){ todoMoved=!live; map.getSource('todo').setData(todoFC(pos)); }
   var day=Math.floor((t-T0)/86400)+1, d=new Date(t*1000);
-  out.innerHTML=live?('עכשיו · יום <span class="num">'+FIX.dayN+'</span> · מקום <span class="num">'+FIX.rank+'</span>')
+  var fxAgeH=((EXO&&EXO.state?EXO.state.now:Date.now())/1000-FIX.at)/3600, fxD=new Date(FIX.at*1000);
+  var nowLbl=fxAgeH<1?'עכשיו':('נ״צ <span class="num">'+('0'+fxD.getUTCHours()).slice(-2)+':'+('0'+fxD.getUTCMinutes()).slice(-2)+'</span>');
+  out.innerHTML=live?(nowLbl+' · יום <span class="num">'+FIX.dayN+'</span> · מקום <span class="num">'+FIX.rank+'</span>')
     :('<span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span> · יום <span class="num">'+day+'</span> · מקום <span class="num">'+(me?me.rank:'—')+'</span>');
   nightAt(live?((EXO&&EXO.state)?EXO.state.now:Date.now()):t*1000); trailsAt(t); backKick();
   return pos;
@@ -237,18 +239,28 @@ function addGrid(){
   map.addLayer({id:'grid30',type:'line',source:'grid',filter:['==',['get','k'],'g30'],paint:{'line-color':GC,'line-width':0.7,'line-opacity':0.12}},'night');
   map.addLayer({id:'gridMain',type:'line',source:'grid',filter:['==',['get','k'],'main'],paint:{'line-color':GC,'line-width':0.8,'line-opacity':0.28}},'night');
 }
+/* הילה קרטוגרפית לשמות שעל המפה: טבעת כהה צמודה לאות ועוד זוהר רך מסביב. זוהר רך לבדו
+   לא מחזיק שם לבן מעל אריח מדברי בהיר — נמדד 2.6:1 מול רקע בבהירות 0.30. */
 function addNames(){
   var st=document.createElement('style'); st.textContent=
     /* --o היא האטימות של השם עצמו, --bk הדעיכה לפי הצד האחורי. המכפלה היא מה שנראה. */
-    '.gl-name{--o:.45;font:300 12px Heebo,sans-serif;letter-spacing:.16em;color:#e9f1f6;opacity:calc(var(--o)*var(--bk,1));white-space:nowrap;pointer-events:none;direction:rtl;text-shadow:0 0 3px rgba(2,8,14,.9),0 0 9px rgba(2,8,14,.8)}'
+    '.gl-name{--o:.45;font:300 12px Heebo,sans-serif;letter-spacing:.16em;color:#e9f1f6;opacity:calc(var(--o)*var(--bk,1));white-space:nowrap;pointer-events:none;direction:rtl;text-shadow:-1px -1px 0 rgba(2,8,14,.92),1px -1px 0 rgba(2,8,14,.92),-1px 1px 0 rgba(2,8,14,.92),1px 1px 0 rgba(2,8,14,.92),0 -1px 0 rgba(2,8,14,.92),0 1px 0 rgba(2,8,14,.92),-1px 0 0 rgba(2,8,14,.92),1px 0 0 rgba(2,8,14,.92),0 0 7px rgba(2,8,14,.85)}'
    +'.gl-name.ocean{font-size:13px;letter-spacing:.30em;--o:.55;color:#d3e6f2}.gl-name.cont{font-size:13px;letter-spacing:.24em;--o:.45}'
    +'.gl-name.sea{font-size:11.5px;color:#cfe3ef;--o:.45}.gl-name.land{font-size:11.5px;--o:.45}.gl-name.isle{font-size:11px;letter-spacing:.08em;--o:.5}'
    +'.gl-name.t1,.gl-name.t2,.gl-deg{display:none}.z25 .gl-name.t1{display:block}.z38 .gl-name.t2{display:block}.z2 .gl-deg{display:block}'
    +'.z38 .gl-name.cont,.z5 .gl-name.ocean{display:none}'
-   +'.gl-deg{--o:.34;font:400 9.5px "B612 Mono",monospace;color:#dfe9ef;opacity:calc(var(--o)*var(--bk,1));letter-spacing:.02em;white-space:nowrap;pointer-events:none;direction:ltr;text-shadow:0 0 3px rgba(2,8,14,.9)}'
+   +'.gl-deg{--o:.34;font:400 9.5px "B612 Mono",monospace;color:#dfe9ef;opacity:calc(var(--o)*var(--bk,1));letter-spacing:.02em;white-space:nowrap;pointer-events:none;direction:ltr;text-shadow:-1px -1px 0 rgba(2,8,14,.9),1px -1px 0 rgba(2,8,14,.9),-1px 1px 0 rgba(2,8,14,.9),1px 1px 0 rgba(2,8,14,.9),0 0 6px rgba(2,8,14,.8)}'
    +'.gl-back{display:none!important}'
-   +'.gl-rim{position:absolute;left:0;top:0;width:15px;height:15px;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 3px rgba(2,8,14,.8))}'
-   +'.gl-rim svg{width:15px;height:15px;display:block}';
+   /* gl-hid: הסתרה מטעם פריסה (בתוך פס ממשק, חפיפה עם שם אחר, או חריגה משפת הכדור).
+      נפרדת מ-gl-back כדי ששתי הסיבות לא ידרסו זו את זו. */
+   +'.gl-hid{display:none!important}'
+   /* משואת השפה: עבדה מסבב Z (נמדד: במקום הנכון, בכיוון הנכון, גלויה), אבל משולש לבן של 15 פיקסל
+      על רקע שחור נקרא ככתם אבק. 22 פיקסל, הילה טורקיזית רכה ופעימה איטית אחת לשלוש שניות —
+      מספיק כדי שהעין תמצא אותה, ובלי תנועה בכלל למי שביקש להפחית תנועה. */
+   +'.gl-rim{position:absolute;left:0;top:0;width:22px;height:22px;pointer-events:none;z-index:3;filter:drop-shadow(0 0 4px rgba(67,214,207,.55)) drop-shadow(0 1px 3px rgba(2,8,14,.8))}'
+   +'.gl-rim svg{width:22px;height:22px;display:block;animation:glRim 3s ease-in-out infinite}'
+   +'@keyframes glRim{0%,100%{opacity:1}50%{opacity:.55}}'
+   +'@media (prefers-reduced-motion:reduce){.gl-rim svg{animation:none}}';
   document.head.appendChild(st);
   function mk(cls,txt,ll,anchor,off){ var e=document.createElement('div'); e.className=cls; e.textContent=txt;
     return backWatch(new maplibregl.Marker({element:e,anchor:anchor||'center',offset:off||[0,0],opacityWhenCovered:'0'}).setLngLat(ll).addTo(map)); }
@@ -456,8 +468,50 @@ function rimShow(on,cv,bv){
   rimEl.style.display='block';
   rimEl.style.transform='translate(-50%,-50%) translate('+s.x.toFixed(1)+'px,'+s.y.toFixed(1)+'px) rotate('+ang.toFixed(1)+'deg)';
 }
+/* ===== סינון לפי פריסה =====
+   שלוש תקלות שנראו בצילומים, וכולן אותו שורש: שם על המפה שמצויר במקום שבו יושב משהו אחר.
+   (א) שמות שנופלים בדיוק מאחורי פס הממשק — הכפתור "חזרה אל הסירה", המקרא, שורות הנתונים
+       שלמעלה, רצועת הימים, המפה הקטנה — ומתערבבים באותיות שלהם עד שאי אפשר לקרוא אף אחד.
+   (ב) שמות שנערמים זה על זה, בעיקר סביב הזינוק שבו כמה נקודות צפופות.
+   (ג) שמות ארוכים שהעוגן שלהם עוד על הכדור אבל הטקסט עצמו כבר גולש אל השחור שמעבר לשפה.
+
+   התיבה של כל שם מחושבת מההיטל של הנקודה ועוד היסט וגודל שנמדדו פעם אחת (measure למטה),
+   ולא ב-getBoundingClientRect בכל פריים: בגרירה זה כ-110 מדידות פריסה לפריים. */
+/* הבוררים חייבים להצביע על הבלוק שבאמת נראה, לא על המעטפת שלו: ל-.g-ui ול-.vit יש
+   left:0;right:0, ולכן התיבה שלהם היא כל רוחב המסך — שמירה עליה מחקה כל שם באותו גובה,
+   ובכלל זה "אקסודוס" כשהסירה הייתה שם. לכן הילדים, לא ההורה. */
+var KEEP_SEL = '.g-ui > *,.g-scrub,header.topr,.clocks,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
+function rankOf(cn){ cn=cn||'';
+  if(cn.indexOf('gl-boat')>=0) return 0;
+  if(cn.indexOf('k-me')>=0) return 1;
+  if(cn.indexOf('gl-label')>=0) return 2;
+  if(cn.indexOf('gl-deg')>=0) return 5;
+  if(cn.indexOf('ocean')>=0||cn.indexOf('cont')>=0) return 4;
+  return 3; }
+function hits(a,b){ return a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3]; }
+function keepRects(){
+  var out=[], n=document.querySelectorAll(KEEP_SEL), i, r;
+  for(i=0;i<n.length;i++){
+    if(n[i].offsetParent===null&&n[i].style.display==='none') continue;
+    r=n[i].getBoundingClientRect(); if(!r.width||!r.height) continue;
+    out.push([r.left-3,r.top-3,r.right+3,r.bottom+3]); }
+  return out; }
+/* רדיוס הדיסקה של הכדור, כשהיא נראית כולה: המרחק בהיטל מהמרכז אל נקודה ב-89° ממנו. */
+function discR(cv){
+  if(map.getZoom()>4.2) return 0;
+  var up=[0,0,1], d=cv[2], t=[up[0]-cv[0]*d,up[1]-cv[1]*d,up[2]-cv[2]*d];
+  var n=Math.sqrt(t[0]*t[0]+t[1]*t[1]+t[2]*t[2]);
+  if(n<1e-6){ t=[1,0,0]; n=1; }
+  var ct=Math.cos(89*D2R), st=Math.sin(89*D2R)/n;
+  var p=[cv[0]*ct+t[0]*st, cv[1]*ct+t[1]*st, cv[2]*ct+t[2]*st];
+  try{
+    var c0=map.project(map.getCenter()), pe=map.project([Math.atan2(p[1],p[0])*R2D, Math.asin(Math.max(-1,Math.min(1,p[2])))*R2D]);
+    var R=Math.hypot(pe.x-c0.x,pe.y-c0.y)/Math.sin(89*D2R);
+    return (R>20&&R<40000)?R:0;
+  }catch(e){ return 0; } }
+
 function backTick(){ bkRaf=0; if(!BK) return;
-  var c=map.getCenter(), cv=llVec(c.lng,c.lat), i, it, d, q, boatHid=false, bv=null;
+  var c=map.getCenter(), cv=llVec(c.lng,c.lat), i, it, d, q, boatHid=false, bv=null, live=[];
   for(i=0;i<BK.length;i++){ it=BK[i];
     var l; try{ l=it.m.getLngLat(); }catch(e){ continue; }
     if(l!==it.ll||!it.v){ it.ll=l; it.v=llVec(l.lng,l.lat); }
@@ -467,7 +521,40 @@ function backTick(){ bkRaf=0; if(!BK) return;
       if(q<=0) it.e.classList.add('gl-back');
       else { it.e.classList.remove('gl-back');
         if(q>=10) it.e.style.removeProperty('--bk'); else it.e.style.setProperty('--bk',(q/10).toFixed(1)); } }
-    if(it.k==='boat'){ boatHid=(q<=0); bv=it.v; } }
+    if(it.k==='boat'){ boatHid=(q<=0); bv=it.v; }
+    if(q>0) live.push(it); }
+
+  /* מדידה חד-פעמית של גודל כל תווית וההיסט שלה מנקודת ההיטל */
+  var c0=null;
+  for(i=0;i<live.length;i++){ it=live[i];
+    if(it.w===undefined&&!it.e.classList.contains('gl-hid')){
+      var r=it.e.getBoundingClientRect(); if(!r.width){ continue; }
+      var pp; try{ pp=map.project(it.ll); }catch(e){ continue; }
+      var bx=box.getBoundingClientRect();
+      it.w=r.width; it.h=r.height; it.dx=r.left-bx.left-pp.x; it.dy=r.top-bx.top-pp.y; } }
+
+  var keep=keepRects(), bx2=box.getBoundingClientRect(), R=discR(cv);
+  try{ c0=map.project(c); }catch(e){ c0=null; }
+  live.sort(function(a,b){ return rankOf(a.e.className)-rankOf(b.e.className); });
+  var placed=[];
+  for(i=0;i<live.length;i++){ it=live[i];
+    if(it.w===undefined){ continue; }
+    var p; try{ p=map.project(it.ll); }catch(e){ continue; }
+    var rb=[p.x+it.dx, p.y+it.dy, p.x+it.dx+it.w, p.y+it.dy+it.h];
+    var hide=false;
+    if(rankOf(it.e.className)>0){
+      /* (ג) גלישה מעבר לשפת הכדור */
+      if(R&&c0){ var corners=[[rb[0],rb[1]],[rb[2],rb[1]],[rb[0],rb[3]],[rb[2],rb[3]]], j;
+        for(j=0;j<4;j++) if(Math.hypot(corners[j][0]-c0.x,corners[j][1]-c0.y)>R-3){ hide=true; break; } }
+      /* (א) פסי הממשק — בקואורדינטות החלון */
+      if(!hide){ var wb=[rb[0]+bx2.left,rb[1]+bx2.top,rb[2]+bx2.left,rb[3]+bx2.top], k;
+        for(k=0;k<keep.length;k++) if(hits(wb,keep[k])){ hide=true; break; } }
+      /* (ב) חפיפה עם שם בעל עדיפות גבוהה יותר שכבר נשמר.
+         "אקסודוס" (k-me) פטור: הוא יושב בהגדרה צמוד לסמן הסירה, וכל בדיקת חפיפה תמחק אותו. */
+      if(!hide&&rankOf(it.e.className)>=2){ var m; for(m=0;m<placed.length;m++) if(hits(rb,placed[m])){ hide=true; break; } } }
+    if(hide) it.e.classList.add('gl-hid');
+    else { it.e.classList.remove('gl-hid'); placed.push(rb); } }
+
   rimShow(boatHid&&!!bv,cv,bv);
 }
 function backKick(){ if(!bkRaf) bkRaf=requestAnimationFrame(backTick); }
