@@ -332,6 +332,11 @@ var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e
    כך הוא מוכן ברגע שמתרחקים עד הסוף. אם מתרחקים לפני שהוא מוכן, הוא נפתח ומתמלא כשהטעינה מסתיימת. */
 var popSkip=0;      /* history.back() שאנחנו יזמנו: ה-popstate שלו לא סוגר שום דבר נוסף */
 var G=$('globeLayer'), gOpen=false, gBuild=null, gPushed=false, gFailed=false;
+/* שכבת הגלובוס נשארת בעמוד גם כשהיא סגורה — MapLibre חייב אותה כדי להיבנות ברקע. עד כאן זה
+   אמר שהכפתורים שבתוכה, ובראשם "Toggle attribution" של MapLibre, נשארו בסדר ה-Tab: ההקשה
+   הראשונה של משתמש מקלדת נחתה על כפתור בלתי נראה בתוך שכבה מוסתרת. inert מוציא את כל תוכנה
+   מהפוקוס ומעץ הנגישות בלי לפרק אותה. */
+try{ G.inert=true; }catch(e){}
 function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendor/maplibre-gl.css'),loadScript('assets/vendor/maplibre-gl.js'),
     (typeof LAND50!=='undefined')?Promise.resolve():loadScript('assets/geo/land50.js'),
     loadScript('assets/v2n/names.js').catch(function(){}),
@@ -340,12 +345,12 @@ function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendo
 function openGlobe(how){
   if(gFailed){ toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); return; }
   if(jOpen) closeJourney(false);
-  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
+  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); G.inert=false; document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
   try{ $('gBack').focus({preventScroll:true}); }catch(e){} }
-function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); document.body.classList.remove('g-open');
+function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); G.inert=true; document.body.classList.remove('g-open');
   G.style.opacity=''; gxOn=false; gRet=false; document.body.classList.remove('g-x');
   if(LIVE){ EXO.pause(false); if(!stay&&EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.XF-0.02); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }
   if(!fromPop&&gPushed){ gPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } } }
