@@ -254,8 +254,13 @@ function addNames(){
    /* gl-hid: הסתרה מטעם פריסה (בתוך פס ממשק, חפיפה עם שם אחר, או חריגה משפת הכדור).
       נפרדת מ-gl-back כדי ששתי הסיבות לא ידרסו זו את זו. */
    +'.gl-hid{display:none!important}'
-   +'.gl-rim{position:absolute;left:0;top:0;width:15px;height:15px;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 3px rgba(2,8,14,.8))}'
-   +'.gl-rim svg{width:15px;height:15px;display:block}';
+   /* משואת השפה: עבדה מסבב Z (נמדד: במקום הנכון, בכיוון הנכון, גלויה), אבל משולש לבן של 15 פיקסל
+      על רקע שחור נקרא ככתם אבק. 22 פיקסל, הילה טורקיזית רכה ופעימה איטית אחת לשלוש שניות —
+      מספיק כדי שהעין תמצא אותה, ובלי תנועה בכלל למי שביקש להפחית תנועה. */
+   +'.gl-rim{position:absolute;left:0;top:0;width:22px;height:22px;pointer-events:none;z-index:3;filter:drop-shadow(0 0 4px rgba(67,214,207,.55)) drop-shadow(0 1px 3px rgba(2,8,14,.8))}'
+   +'.gl-rim svg{width:22px;height:22px;display:block;animation:glRim 3s ease-in-out infinite}'
+   +'@keyframes glRim{0%,100%{opacity:1}50%{opacity:.55}}'
+   +'@media (prefers-reduced-motion:reduce){.gl-rim svg{animation:none}}';
   document.head.appendChild(st);
   function mk(cls,txt,ll,anchor,off){ var e=document.createElement('div'); e.className=cls; e.textContent=txt;
     return backWatch(new maplibregl.Marker({element:e,anchor:anchor||'center',offset:off||[0,0],opacityWhenCovered:'0'}).setLngLat(ll).addTo(map)); }
