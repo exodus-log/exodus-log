@@ -190,7 +190,7 @@ if(LIVE) EXO.onFrame(function(f){
   } else { for(var gi=0;gi<12;gi++) place('g'+gi,null); dat.forEach(function(n){ place(n,null); }); }
   beaconPlace(A,f);
   audioFrame(f);
-  globeX(f);
+  globeX(f); gxT=!!f.touching; gxX=f.gX||0;
 });
 
 /* ================= מפת המיקומים הקטנה: הצי מסביב, כ-900 מייל. קו החוף נטען אחרי שהסצנה כבר רצה ================= */
@@ -402,9 +402,13 @@ function tsVeil(X){ if(!TS||!TS.box) return; var v=Math.round(Math.max(0,Math.mi
   if(v===tsV) return; tsV=v;      /* נקרא בכל פריים של ההצלבה: כותבים רק כשבאמת השתנה */
   TS.box.style.opacity=v>=0.999?'':v.toFixed(3);
   TS.box.style.pointerEvents=v<0.5?'none':''; }
+var gxT=false, gxX=0;
 function globeX(f){ var X=f.gX||0; tsVeil(gOpen?1:X);
   if(!gOpen){
-    if(X>0&&!gxOn&&window.__exoGlobeArm){ gxOn=true; document.body.classList.add('g-x'); window.__exoGlobeArm(f.camBearing); }
+    if(X>0&&!gxOn&&window.__exoGlobeArm){ gxOn=true; document.body.classList.add('g-x'); window.__exoGlobeArm(f.camBearing);
+      /* 22.9: הסירה הפכה לסמל לבן — מכאן ההמשך אוטומטי ורך, עד הפריים הראשון שבו רואים עוד משהו */
+      if(!f.touching&&window.__exoAutoOut&&!(window.__exoAutoRunning&&window.__exoAutoRunning())) window.__exoAutoOut('region'); }
+    else if(gxOn&&gxT&&!f.touching&&X>gxX&&X<0.999&&window.__exoAutoOut&&!(window.__exoAutoRunning&&window.__exoAutoRunning())) window.__exoAutoOut('region');      /* האצבעות עזבו באמצע ההצלבה, בדרך החוצה */
     if(gxOn){ G.style.opacity=X.toFixed(3);
       if(window.__exoGlobeTrack&&f.groundW) window.__exoGlobeTrack(f.groundW,f.camBearing);
       if(X>=0.999){ gxOn=false; document.body.classList.remove('g-x'); openGlobe('handoff'); G.style.opacity=''; if(!f.touching&&window.__exoGlobeSettle) window.__exoGlobeSettle(); }
@@ -583,4 +587,37 @@ if(LIVE) idle(function(){ loadScript('assets/v2n/stars.js').then(function(){ if(
 idle(function(){ loadScript('assets/v2n/coast.js').then(function(){ NEAR=null; drawMini(); }).catch(function(){}); },1800);
 if(LIVE&&!store('exo.hint.v2')){ setTimeout(function(){ toast('גרירה מסובבת לכל כיוון, גם אל מתחת למים. צביטה או גלגלת: פנימה עד הסיפון, החוצה עד הגלובוס',7000); store('exo.hint.v2','1'); },1600); }
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ SZ={}; measureTop(); });
+/* ================= שלושת המבטים: סירה / אזור / כל המרוץ (22.9.2026) =================
+   סרגל אנכי דק בשולי המסך השמאליים. כל עצירה עפה בתנועה אחת רכה לרמה שלה, והמחוון (טבעת קטנה על הקו)
+   נע ברציפות עם כל זום — בגלגלת, בצביטה או בכפתור — כך שהסרגל הוא גם "איפה אני" ולא רק כפתורים.
+   המדד הוא רוחב השטח שעל המסך במטרים, אותו מדד שמחבר את ההדמיה לגלובוס. */
+(function(){
+  var nav=$('vw'); if(!nav||!LIVE) return;
+  var knob=nav.querySelector('.vw-knob'), btns=nav.querySelectorAll('button[data-v]'), lastY=-1, lastA='';
+  function wBoat(){ var Z=EXO.zoomAxis; return (Z&&Z.wOfU&&Z.uOfR)?Z.wOfU(Z.uOfR(64)):120; }
+  function stops(){ var s=window.__exoViewStops?window.__exoViewStops():null;
+    return [Math.log(wBoat()), Math.log(s?s.region:74000), Math.log(s?s.race:2.2e7)]; }
+  function nowW(){ var Z=EXO.zoomAxis;
+    if(gOpen&&window.__exoGlobeWidth) return window.__exoGlobeWidth();
+    return (Z&&Z.wOfU&&EXO.frame&&EXO.frame.u!==undefined)?Z.wOfU(EXO.frame.u):wBoat(); }
+  function pos(){ var S=stops(), l=Math.log(Math.max(1,nowW()));
+    if(l<=S[0]) return 0; if(l>=S[2]) return 2;
+    return l<S[1]?(l-S[0])/(S[1]-S[0]):1+(l-S[1])/(S[2]-S[1]); }
+  function tick(){ try{
+    var p=pos(), h=nav.clientHeight, gap=(btns.length>1)?(btns[2].offsetTop-btns[0].offsetTop)/2:40;
+    var y=Math.round((btns[0].offsetTop+btns[0].offsetHeight/2+p*gap)*2)/2;
+    if(y!==lastY){ lastY=y; knob.style.transform='translate(-50%,'+(y-4.5)+'px)'; }
+    var a=Math.abs(p-Math.round(p))<0.14?['boat','region','race'][Math.round(p)]:'';
+    if(a!==lastA){ lastA=a; for(var i=0;i<btns.length;i++) btns[i].setAttribute('aria-pressed',btns[i].getAttribute('data-v')===a?'true':'false'); }
+  }catch(e){} requestAnimationFrame(tick); }
+  requestAnimationFrame(tick);
+  function go(v){
+    if(v==='boat'){ if(gOpen) closeGlobe(false);
+      else if(EXO.glideTo&&EXO.zoomAxis){ EXO.glideTo(EXO.zoomAxis.uOfR(64),1300); } return; }
+    if(gOpen){ if(window.__exoGlobeView) window.__exoGlobeView(v); return; }
+    var ok=EXO.globeReady&&EXO.quality!=='lite'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches&&window.__exoAutoOut;
+    if(ok&&window.__exoAutoOut(v)) return;      /* מהמקום הנוכחי, דרך ההצלבה, בתנועה אחת */
+    openGlobe(v==='race'?'race':'out'); }
+  for(var i=0;i<btns.length;i++) btns[i].addEventListener('click',function(){ go(this.getAttribute('data-v')); });
+})();
 })();

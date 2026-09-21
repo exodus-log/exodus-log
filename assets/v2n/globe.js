@@ -318,7 +318,7 @@ window.__exoGlobeTrack=function(widthM,brg){ try{
   var z=Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),zForWidth(widthM)));
   map.jumpTo({center:here,zoom:z,bearing:armB?armB*Math.max(0,Math.min(1,(z-5.4)/3.0)):map.getBearing()});
   tracking=false; }catch(e){ tracking=false; } };
-window.__exoGlobeSettle=function(){ armB=0; try{ bandGo(-1); }catch(e){} };
+window.__exoGlobeSettle=function(){ armB=0; if(autoRun) return; try{ bandGo(-1); }catch(e){} };
 /* כל כתיבה אל המפה נדחית לפריים הבא: setCenter או setBearing בתוך אירוע zoom של אותה מפה
    מאלצים חישוב טרנספורם נוסף באמצע הציור, וזה היה מקור לחלק מהקפיצות בהתרחקות. */
 var pendC=null, pendB=null, pRaf=0;
@@ -354,6 +354,7 @@ window.__exoGlobeDrive=function(widthM){ try{ if(window.__exoGlobeZoomStop) wind
 /* כניסה מתוך ההתרחקות מהסירה */
 window.__exoGlobeEnter=function(how){ if(!window.__exoGlobeLoaded){ window.__exoGlobeWant=how; return; } try{ map.resize(); stop(); range.value=1000; draw(T1,true);
   if(how==='handoff'){ return; }
+  if(how==='race'){ armB=0; map.jumpTo({center:here,zoom:zFleet()}); tweenTo(zRace(),0); return; }
   if(how==='out'){ armB=0; var zf=zFleet(); map.jumpTo({center:here,zoom:zf+2.2}); map.easeTo({center:here,zoom:zf,duration:reduce?0:1500,essential:true}); }      /* 21.9 לילה: נוחתים במבט הצי ולא בכל האוקיינוס */
   else if(typeof fly==='function') fly(how||'boat'); }catch(e){} };
 
@@ -512,7 +513,7 @@ function rimShow(on,cv,bv){
 /* הבוררים חייבים להצביע על הבלוק שבאמת נראה, לא על המעטפת שלו: ל-.g-ui ול-.vit יש
    left:0;right:0, ולכן התיבה שלהם היא כל רוחב המסך — שמירה עליה מחקה כל שם באותו גובה,
    ובכלל זה "אקסודוס" כשהסירה הייתה שם. לכן הילדים, לא ההורה. */
-var KEEP_SEL = '.gl-scale,.g-ui > *,.g-scrub,header.topr,#hudDot,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
+var KEEP_SEL = '.vw,.gl-scale,.g-ui > *,.g-scrub,header.topr,#hudDot,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
 function rankOf(cn){ cn=cn||'';
   if(cn.indexOf('gl-boat')>=0) return 0;
   if(cn.indexOf('k-me')>=0) return 1;
@@ -664,13 +665,26 @@ map.on('zoom',function(){
    עכשיו הרצועה הזאת היא מעבר ולא מקום: אחרי המסירה הגלובוס מחליק לבד אל "מבט הצי" — הזום שבו
    שלושת המתחרים הקרובים על המסך. מי שמתקרב משם אל הסירה מחליק באותה תנועה חזרה אל הסיפון.
    מחוץ לסירה (גררו את המפה הצידה) הרצועה לא קיימת והזום רגיל. */
-function zFleet(){ var me=here, ds=[];
-  try{ fleetAt(T1).forEach(function(o){ if(o.id!==4) ds.push(gcNm(me,[o.lon,o.lat])); }); }catch(e){}
-  ds.sort(function(a,b){ return a-b; });
-  var d=ds.length?ds[Math.min(2,ds.length-1)]:40;                     /* השלישי הקרוב, או השני/הראשון אם אין יותר */
-  var wNm=Math.max(12,Math.min(900,d*2.5)), dim=Math.max(1,Math.min(box.clientWidth,box.clientHeight));
-  var z=Math.log(78271.517*Math.cos(here[1]*Math.PI/180)*dim/(wNm*1852))/Math.LN2;
-  return Math.max(3.2,Math.min(10.5,z)); }
+/* "מבט האזור" (מ-22.9): הזום של הפריים הראשון שבו נכנס למסך משהו חוץ מאקסודוס — סירה אחרת, קו חוף, נקודת חובה
+   או שם גאוגרפי שמוצג בזום הזה. לכל מועמד מחשבים באיזה קנה מידה הוא נכנס למסגרת (עם שוליים: בגובה פחות, בגלל
+   פס הנתונים למעלה ורצועת הימים למטה), והראשון שנכנס קובע. מחושב פעם אחת לכל נקודת ציון ולכל גודל מסך. */
+var zfC=null;
+function zFleet(){ var W=Math.max(1,box.clientWidth), H=Math.max(1,box.clientHeight), key=T1+'|'+W+'|'+H;
+  if(zfC&&zfC.k===key&&(zfC.land||typeof LAND50==='undefined')) return zfC.z;
+  var la0=here[1], cs=Math.cos(la0*D2R), best=1e12, land=false;
+  function cand(lon,lat){ var dl=lon-here[0]; if(dl>180) dl-=360; if(dl<-180) dl+=360;
+    var dx=Math.abs(dl)*60*cs*1852, dy=Math.abs(lat-la0)*60*1852;
+    if(dx+dy<400) return;                                           /* אקסודוס עצמה */
+    var m=Math.max(dx/(0.42*W),dy/(0.30*H)); if(m<best) best=m; }
+  try{ fleetAt(T1).forEach(function(o){ if(o.id!==4) cand(o.lon,o.lat); }); }catch(e){}
+  try{ MARKS.forEach(function(m){ if(m[2]) cand(m[1],m[0]); }); }catch(e){}
+  try{ if(typeof GEO_NAMES!=='undefined') GEO_NAMES.forEach(function(n){ if(n[3]>0) cand(n[1],n[0]); }); }catch(e){}
+  try{ if(typeof landIndex==='function'&&typeof LAND50!=='undefined'){ land=true;
+    landIndex().forEach(function(R){ var b=R.b; if(b[3]<la0-14||b[1]>la0+14) return;
+      for(var k=0;k<R.r.length;k++){ var q=R.r[k]; if(Math.abs(q[1]-la0)<14) cand(q[0],q[1]); } }); } }catch(e){}
+  var z=best<1e12?Math.log(78271.517*cs/best)/Math.LN2-0.15:8;       /* ‏-0.15: עוד נשימה, כדי שהדבר הראשון לא יישב על הקצה */
+  z=Math.max(3.2,Math.min(11,z)); zfC={k:key,z:z,land:land}; return z; }
+function zRace(){ try{ return worldZoom(); }catch(e){ return 1.2; } }
 var bandTw=0, bandDir=0;
 function bandStop(){ if(bandTw){ cancelAnimationFrame(bandTw); bandTw=0; } }
 /* dir -1 = החוצה אל מבט הצי, +1 = פנימה אל הסיפון. fromWheel: רק אם כבר בתוך הרצועה או על הסף שלה */
@@ -704,13 +718,13 @@ function bandGo(dir,fromWheel){
 })();
 
 /* ===================== סרגל קנה מידה =====================
-   עדין, בשולי המסך השמאליים ובגובה האמצע — הרחק מכפתור החזרה, מרצועת הימים ומהמפה הקטנה.
+   עדין, בשולי המסך השמאליים, מתחת לכפתורי המבט — הרחק מכפתור החזרה, מרצועת הימים ומהמפה הקטנה.
    באורך "עגול" (1, 2 או 5 כפול חזקת עשר) שנכנס עד 96 פיקסלים; במייל ימי, ומתחת למייל במטרים.
    נכבה כשהכדור קטן מכדי שלקנה מידה אחד תהיה משמעות. */
 function addScale(){
   var lay=document.getElementById('globeLayer'); if(!lay) return;
   var st=document.createElement('style'); st.textContent=
-    '.gl-scale{position:absolute;z-index:3;left:calc(var(--e-l,14px) + 2px);top:50%;transform:translateY(-50%);pointer-events:none;direction:ltr;opacity:.62;transition:opacity .4s}'
+    '.gl-scale{position:absolute;z-index:3;left:calc(var(--e-l,14px) + 2px);top:calc(50% + 78px);pointer-events:none;direction:ltr;opacity:.62;transition:opacity .4s}'
    +'.gl-scale i{display:block;height:5px;border:1px solid rgba(233,241,246,.9);border-top:0;box-shadow:0 1px 2px rgba(2,8,14,.7);transition:width .12s linear}'
    +'.gl-scale b{display:block;margin-top:4px;font:400 10px "B612 Mono",monospace;color:#e3edf3;letter-spacing:.03em;white-space:nowrap;direction:rtl;text-align:left;'
    +'text-shadow:-1px -1px 0 rgba(2,8,14,.9),1px -1px 0 rgba(2,8,14,.9),-1px 1px 0 rgba(2,8,14,.9),1px 1px 0 rgba(2,8,14,.9),0 0 6px rgba(2,8,14,.8)}'
@@ -731,6 +745,52 @@ function addScale(){
   function q(){ if(!raf) raf=requestAnimationFrame(upd); }
   map.on('zoom',q); map.on('move',q); map.on('resize',q); upd();
 }
+
+
+/* ===================== 22.9.2026 — ההתרחקות האוטומטית ושלושת המבטים =====================
+   מרגע שהסירה הופכת לסמל לבן (תחילת ההצלבה) ההמשך הוא תנועה אחת רכה, בלי גלגול: דרך ההצלבה, אל הגלובוס,
+   ועד מבט האזור. אותה תנועה משרתת את הכפתורים "אזור" ו"כל המרוץ". התנועה היא על לוגריתם הרוחב במטרים —
+   המדד המשותף להדמיה ולגלובוס — ולכן אין בה תפר: עד U_GLOBE היא מזיזה את ציר ההדמיה, ואחריו את הגלובוס.
+   גלגול באותו כיוון לא מפריע לה; גלגול הפוך או נגיעה עוצרים אותה במקום. */
+var autoRun=0;
+function autoStop(){ if(autoRun){ cancelAnimationFrame(autoRun); autoRun=0; } }
+function tgtZ(name){ return name==='race'?zRace():zFleet(); }
+function tweenTo(zTo,durMin){
+  if(window.__exoGlobeZoomStop) window.__exoGlobeZoomStop(); bandStop(); autoStop();
+  var z0=map.getZoom(), dz=Math.abs(zTo-z0), dur=reduce?0:Math.max(durMin||0,Math.min(2600,700+170*dz)), t0=0, c0=map.getCenter();
+  function ease(t){ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+  function step(ts){ if(!t0) t0=ts; var k=dur?Math.min(1,(ts-t0)/dur):1, e=ease(k);
+    try{ map.jumpTo({center:[c0.lng+(here[0]-c0.lng)*e,c0.lat+(here[1]-c0.lat)*e]}); driveZoom(z0+(zTo-z0)*e); }catch(x){ k=1; }
+    autoRun=(k<1&&document.body.classList.contains('g-open'))?requestAnimationFrame(step):0; }
+  autoRun=requestAnimationFrame(step); }
+window.__exoGlobeView=function(name){ try{ tweenTo(tgtZ(name)); }catch(e){} };
+window.__exoAutoOut=function(name){ try{
+  var Z=window.EXO&&EXO.zoomAxis; if(!Z||!Z.wOfU||!EXO.frame) return false;
+  if(document.body.classList.contains('g-open')){ tweenTo(tgtZ(name)); return true; }
+  if(window.__exoGlobeZoomStop) window.__exoGlobeZoomStop(); bandStop(); autoStop();
+  var zT=tgtZ(name), l0=Math.log(Math.max(1,Z.wOfU(EXO.frame.u))), l1=Math.log(widthForZ(zT)), lG=Math.log(Z.wOfU(Z.GLOBE));
+  if(l1<=l0) return false;
+  var dz=(l1-l0)/Math.LN2, dur=reduce?0:Math.min(2800,1000+130*dz), el=0, last=0;
+  function ease(t){ return (1-Math.cos(Math.PI*t))/2; }                  /* רכה משני הצדדים: "בעדינות" */
+  function step(ts){ var dt=last?Math.min(250,ts-last):16; last=ts;
+    var open=document.body.classList.contains('g-open');
+    var lw=l0+(l1-l0)*ease(dur?Math.min(1,el/dur):1);
+    if(!open&&lw>=lG-1e-3){ EXO.setU(Z.GLOBE); }                        /* ממתינים למסירה בלי להתקדם בזמן: אין קפיצה */
+    else { el+=dt; lw=l0+(l1-l0)*ease(dur?Math.min(1,el/dur):1);
+      if(!open) EXO.setU(Math.min(Z.GLOBE,Z.uOfW(Math.exp(lw)))); else driveZoom(zForWidth(Math.exp(lw))); }
+    if(open&&el>=dur){ autoRun=0; return; }
+    if(el>dur+4000){ autoRun=0; return; }                                /* המסירה לא קרתה (גלובוס שנכשל): לא נתקעים */
+    autoRun=requestAnimationFrame(step); }
+  autoRun=requestAnimationFrame(step); return true; }catch(e){ return false; } };
+window.__exoAutoRunning=function(){ return !!autoRun; };
+/* גלגול באותו כיוון נבלע כל עוד התנועה רצה; הפוך — עוצר אותה ועובר הלאה כרגיל. נגיעה — עוצרת. */
+window.addEventListener('wheel',function(e){ if(!autoRun||e.ctrlKey) return;
+  if(e.deltaY>0){ e.preventDefault(); e.stopImmediatePropagation(); } else autoStop(); },{capture:true,passive:false});
+window.addEventListener('touchstart',function(){ if(autoRun) autoStop(); },{capture:true,passive:true});
+window.addEventListener('pointerdown',function(e){ if(autoRun&&e.pointerType==='mouse'&&!(e.target&&e.target.closest&&e.target.closest('.vw'))) autoStop(); },{capture:true,passive:true});
+/* המחוון של כפתורי המבט צריך לדעת איפה אנחנו ואיפה שלוש העצירות, באותו מדד — רוחב במטרים */
+window.__exoGlobeWidth=function(){ return widthForZ(map.getZoom()); };
+window.__exoViewStops=function(){ return {region:widthForZ(zFleet()), race:widthForZ(zRace())}; };
 
 map.on('load',function(){
   draw(T1,true);

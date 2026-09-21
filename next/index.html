@@ -191,6 +191,27 @@ body.t-fut #hDay,body.t-fut #hDate,body.t-fut .topr .r2 b,body.t-fut .topr .r3 b
 .mini{color:var(--ink2d)} .mini span{font-size:11px;text-shadow:var(--shd,var(--sh))}
 .mini:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:12px}
 
+/* שלושת המבטים: קו שיער אנכי, שלוש נקודות ושמות קטנים. רחוק מהסירה, בלי רקע ובלי מסגרת.
+   אזור המגע של כל עצירה 44 פיקסל גובה; מה שנראה הוא נקודה של 5 פיקסלים ומילה אחת. */
+.vw{position:absolute;left:var(--e-l);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;direction:ltr;
+  -webkit-user-select:none;user-select:none;filter:drop-shadow(0 0 3px rgba(3,10,16,.55))}
+.vw::before{content:"";position:absolute;left:4px;top:22px;bottom:22px;width:1px;background:rgba(225,236,243,.26);pointer-events:none}
+.vw button{position:relative;display:flex;align-items:center;gap:11px;height:44px;margin:0;padding:0 12px 0 0;border:0;background:none;
+  color:var(--ink2d,var(--ink2));font:300 12px var(--ui);letter-spacing:.05em;cursor:pointer;text-shadow:var(--shd,var(--sh));
+  opacity:.52;transition:opacity .35s;-webkit-tap-highlight-color:transparent}
+.vw button::before{content:"";flex:none;width:5px;height:5px;margin-left:2px;box-sizing:border-box;border:1px solid currentColor;border-radius:50%;transition:background-color .35s}
+.vw button span{direction:rtl;white-space:nowrap}
+.vw button:hover{opacity:.85} .vw button[aria-pressed=true]{opacity:1;color:var(--ink)} .vw button[aria-pressed=true]::before{background:currentColor}
+.vw button:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:2px;border-radius:3px}
+.vw-knob{position:absolute;left:4.5px;top:0;width:9px;height:9px;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:50%;pointer-events:none;will-change:transform}
+body.j-open .vw{display:none}
+/* טלפון לרוחב: אין גובה לאמצע המסך — הסרגל נשען מעל מפת המיקומים, בצפיפות, וסרגל קנה המידה מעליו */
+@media (max-height:520px){
+  .vw{top:auto;transform:none;bottom:calc(var(--row2) + var(--ms) + 14px)}
+  .vw button{height:34px} .vw::before{top:17px;bottom:17px}
+  #globeLayer .gl-scale{top:auto;bottom:calc(var(--row2) + var(--ms) + 14px + 112px)}
+}
+
 /* כפתור השכבות: עיגול אחד, שלושה שלישים (רוח, גל, זרם), והתפריט בטבור. קווי מתאר דקים, בלי רקע */
 /* אזור המגע 44x44 (מתחת לזה אצבע מחטיאה), והטבעת הנראית נשארת 34 — דרך ::before */
 #sndBtn{position:absolute;right:var(--e-r);bottom:calc(var(--row2) + var(--ls) + var(--gut));
@@ -431,6 +452,14 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   <button type="button" class="mini" id="mini" aria-label="מפת המיקומים, הצי מסביב ב-900 מייל. הקשה פותחת את המסע והניתוח: הסיפור, הצי, התחזית, הסקסטנט והניתוח המלא">
     <canvas id="miniCv" width="300" height="300"></canvas><span>המסע והניתוח</span>
   </button>
+
+  <!-- שלושת המבטים (22.9): סרגל אנכי דק בשוליים השמאליים. הטבעת הקטנה נעה עם כל זום ומראה איפה אנחנו -->
+  <nav class="vw" id="vw" aria-label="מבט">
+    <button type="button" data-v="boat" aria-pressed="true"><span>סירה</span></button>
+    <button type="button" data-v="region" aria-pressed="false"><span>אזור</span></button>
+    <button type="button" data-v="race" aria-pressed="false"><span>כל המרוץ</span></button>
+    <i class="vw-knob" aria-hidden="true"></i>
+  </nav>
 
   <!-- רצועת הזמן: שבוע, וההווה תמיד באמצע. בתחתית המסך, מקצה לקצה. בלי כיתובים: הצבע אומר איפה אתה בזמן -->
   <div class="tstrip" id="tstrip">

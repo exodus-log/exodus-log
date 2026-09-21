@@ -76,5 +76,7 @@ window.REVIEW_FEATURES = [
   {n:64, key:'whale',     scr:'sim', chip:true, name:'הלוויתן: שחייה רחוקה, נשימה, נשיפה וזנב'},
   /* 21.9 לילה */
   {n:65, key:'gl-scale',  scr:'globe', sel:'.gl-scale',        name:'סרגל קנה המידה בשולי הגלובוס'},
-  {n:66, key:'fleet-view',scr:'globe', chip:true, name:'מבט הצי: ההתרחקות מדלגת על הים הריק ונוחתת כשהמתחרים הקרובים על המסך'}
+  {n:66, key:'fleet-view',scr:'globe', chip:true, name:'ההתרחקות האוטומטית: מהסמל הלבן ועד הפריים הראשון שבו רואים עוד משהו'},
+  /* 22.9 לילה */
+  {n:67, key:'vw',        scr:'sim', sel:'#vw',               name:'שלושת המבטים: סירה / אזור / כל המרוץ, והטבעת שנעה עם הזום'}
 ];
