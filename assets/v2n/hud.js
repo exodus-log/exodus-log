@@ -22,7 +22,7 @@ function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); loca
    למטה. בטלפון לרוחב, 390 פיקסל גובה, השורות והרצועה תופסות 27% מלמעלה, והתורן והמפרשים ישבו
    מאחוריהן. עכשיו: ההיסט העיצובי הקודם, ועוד המרחק בין מרכז המסך למרכז הרצועה שבין --top ל---bot. */
 function frameOffset(){ if(!LIVE||!EXO.view) return; var h=stage.clientHeight||window.innerHeight, w=stage.clientWidth||window.innerWidth, portrait=w/h<0.8;
-  var cs=getComputedStyle(document.documentElement), top=parseFloat(cs.getPropertyValue('--top'))||70, bot=parseFloat(cs.getPropertyValue('--bot'))||44;
+  var cs=getComputedStyle(document.documentElement), top=parseFloat(cs.getPropertyValue('--topf'))||parseFloat(cs.getPropertyValue('--top'))||70, bot=parseFloat(cs.getPropertyValue('--bot'))||44;
   var free=-(top-bot)/h;
   EXO.view.oy=(h<=520?0.06:portrait?0.06:0.0)+Math.max(-0.26,Math.min(0.02,free)); }
 function frameScene(){ if(!LIVE) return; var w=stage.clientWidth, h=stage.clientHeight, portrait=w/h<0.8;
@@ -49,7 +49,8 @@ function renderHud(s){
   put('hDay','יום '+dayN);
   put('hDate',pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'.'+d.getUTCFullYear());
   put('hPos',dmm(FIX.lat,2,'N','S')+'  '+dmm(FIX.lon,3,'E','W'));
-  var fx=new Date(FIX.at*1000), age=(s.now/1000-FIX.at)/3600;
+  /* גיל נקודת הציון נמדד מההווה האמיתי ולא מהשעון המוצג: גרירה של יום קדימה לא מיישנת את המעקב */
+  var fx=new Date(FIX.at*1000), age=(Date.now()/1000-FIX.at)/3600;
   var ageTxt=age<1?'לפני פחות משעה':age<24?'לפני '+heb(age,'שעה','שעתיים','שע׳'):'לפני '+heb(age/24,'יום','יומיים','ימים');
   var hf=$('hFix'); hf.textContent='נ״צ '+pad(fx.getUTCHours())+':'+pad(fx.getUTCMinutes())+' UTC · '+ageTxt; hf.className=age>12?'stale':'dim';
   /* מספרי המרוץ הם תמונת המצב של נקודת הציון. מעל 12 שעות זה כבר לא "עכשיו", והשורה אומרת זאת. */
@@ -91,8 +92,24 @@ function renderHud(s){
 
 /* ================= תוויות על הסצנה: מעלות הטבעת, רוח, גל, זרם, היעד ================= */
 var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
-function measureTop(){ var a=document.querySelector('.topr'), b=document.querySelector('.clocks'); safeTop=Math.max(a?a.getBoundingClientRect().bottom:0,b?b.getBoundingClientRect().bottom:0)+6;
-  document.documentElement.style.setProperty('--top',Math.round(safeTop)+'px'); measureBot(); }
+/* --top: התחתית של מה שבאמת פתוח למעלה (הפס, או רק הנקודה). ההצללה והתוויות נשענות עליו.
+   --topf: תמיד לפי הנקודה — המסגור של הסירה לא קופץ כשפותחים ומקפלים את הפס; הפס צף מעל. */
+var hudBand=$('hudBand'), hudDot=$('hudDot');
+function measureTop(){ var d=hudDot?hudDot.getBoundingClientRect().bottom-8:0, open=!document.body.classList.contains('hfold');
+  var a=open&&hudBand?hudBand.getBoundingClientRect().bottom-2:0;
+  safeTop=Math.max(a,d)+6;
+  var st=document.documentElement.style; st.setProperty('--top',Math.round(safeTop)+'px'); st.setProperty('--topf',Math.round(d+6)+'px'); measureBot(); }
+var hudTm=0, hudPinned=false;
+function hudOpen(on,keep){ var b=document.body; clearTimeout(hudTm);
+  if(keep) hudPinned=true;
+  if(b.classList.contains('hfold')===!on) return;
+  b.classList.toggle('hfold',!on); if(hudDot) hudDot.setAttribute('aria-expanded',on?'true':'false');
+  measureTop(); setTimeout(measureTop,320); }
+window.__exoHudOpen=hudOpen;
+if(hudDot) hudDot.addEventListener('click',function(){ hudPinned=true; hudOpen(document.body.classList.contains('hfold')); });
+if(hudBand) hudBand.addEventListener('click',function(){ hudPinned=true; hudOpen(false); });
+/* בכניסה הפס פתוח כמה שניות ומתקפל לנקודה — כך רואים לאן הוא הולך. נגיעה בו לפני כן משאירה אותו */
+hudTm=setTimeout(function(){ if(!hudPinned&&!tsScrub) hudOpen(false); },5200);
 /* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
    הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
    והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
@@ -137,6 +154,22 @@ function place(name,x,y,op){ var e=LB[name]; if(x===null){ if(!e.hidden) e.hidde
   var bx=x-z.w/2, by=(name==='beacon')?(y-z.h):(y-z.h/2);
   if(name==='beacon'){ var flip=(by<safeTop); if(flip!==!!e._flip){ e._flip=flip; e.classList.toggle('below',flip); } if(flip) by=y; bx=clamp(bx,6,stage.clientWidth-z.w-6); }
   e.style.transform='translate('+bx.toFixed(1)+'px,'+by.toFixed(1)+'px)'; e.style.opacity=op; }
+/* המשואה לא נעלמת לעולם (כל עוד לא מתחת למים): כשכיוון היעד מחוץ למסך היא נצמדת לשפה הקרובה עם חץ,
+   וכשהאופק מעל הקצה העליון (טלפון לאורך, מבט מלמעלה) היא יורדת אל מתחת לשורות הנתונים. */
+function beaconPlace(A,f){ var e=LB.beacon, ex=A.beaconEx;
+  if(f.under||(!A.beacon&&!ex)){ place('beacon',null); return; }
+  var W=stage.clientWidth, H=stage.clientHeight, edge=0, x, y;
+  if(A.beacon&&A.beacon[0]>=0&&A.beacon[0]<=W){ x=A.beacon[0]; y=A.beacon[1]; }
+  else if(ex&&!ex[2]&&ex[0]>=0&&ex[0]<=W){ x=ex[0]; y=Math.max(ex[1],safeTop); }
+  else if(ex){ edge=(ex[0]<W/2)?-1:1; y=ex[2]?H*0.42:clamp(ex[1],safeTop+34,H*0.55); x=edge<0?0:W; }
+  else { place('beacon',null); return; }
+  if(e._edge!==edge){ e._edge=edge; e.classList.toggle('edge',!!edge); e.classList.toggle('el',edge<0); e.classList.toggle('er',edge>0); SZ.beacon=null; }
+  if(edge){ var z=SZ.beacon; if(!z||z.t!==e.textContent){ z=SZ.beacon={w:e.offsetWidth,h:e.offsetHeight,t:e.textContent}; }
+    var m=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge'))||14)+2;
+    var bx=edge<0?m:W-z.w-m; if(e.hidden) e.hidden=false;
+    if(e._flip){ e._flip=false; e.classList.remove('below'); }
+    e.style.transform='translate('+bx.toFixed(1)+'px,'+(y-z.h/2).toFixed(1)+'px)'; e.style.opacity=0.9; return; }
+  place('beacon',x,y,1); }
 function declutter(list){ list.sort(function(a,b){ return a[2]-b[2]; });
   for(var i=1;i<list.length;i++) for(var j=0;j<i;j++){
     var wi=(SZ[list[i][0]]||{w:110}).w, wj=(SZ[list[j][0]]||{w:110}).w;
@@ -151,11 +184,11 @@ if(LIVE) EXO.onFrame(function(f){
     for(var k=0;k<placed.length;k++) if(Math.abs(placed[k][0]-x)<minD&&Math.abs(placed[k][1]-y)<minD*0.55){ place('g'+i,null); return; }
     placed.push([x,y]); place('g'+i,x,y,op); }
   if(!f.under){
-    dat.forEach(function(n){ var q=A[n], on=q&&((n==='gate')?!A.beacon:EXO.layers[n]); if(on) list.push([n,q[0],q[1]]); else place(n,null); });
+    dat.forEach(function(n){ var q=A[n], on=q&&((n==='gate')?!(A.beacon||A.beaconEx):EXO.layers[n]); if(on) list.push([n,q[0],q[1]]); else place(n,null); });
     declutter(list).forEach(function(it){ place(it[0],it[1],it[2],idleD); var z=SZ[it[0]]||{w:110,h:16}; rects.push([it[1]-z.w/2-18,it[2]-z.h/2-9,it[1]+z.w/2+18,it[2]+z.h/2+9]); });
     [0,3,6,9,1,2,4,5,7,8,10,11].forEach(function(i){ var p=A['g'+i]; tryGrad(i,p?p[0]:null,p?p[1]:null,(i===0?0.16+0.84*hot:(i%3===0?0.06:0.03)+0.94*hot)*rk,(i%3===0?22:34)); });
   } else { for(var gi=0;gi<12;gi++) place('g'+gi,null); dat.forEach(function(n){ place(n,null); }); }
-  var bc=A.beacon; if(bc&&!f.under) place('beacon',bc[0],bc[1],1); else place('beacon',null);
+  beaconPlace(A,f);
   audioFrame(f);
   globeX(f);
 });
@@ -435,19 +468,22 @@ document.addEventListener('keydown',function(ev){
   if(h==='voyage'||h==='globe') setTimeout(function(){ openGlobe('boat'); },400);
   else if(['journey','race','scale','ahead','sextant','more'].indexOf(h)>=0) setTimeout(function(){ openJourney(h==='journey'?null:h); },400); })();
 
-/* ================= רצועת הזמן: תנאי הסביבה לאורך כל היממות שיש עליהן נתונים =================
-   דקה וקבועה, ממש מתחת לשורות הנתונים. הרקע הוא אור היום, מחושב מגובה השמש בנקודה של דניאל:
-   לילה כהה, דמדומים חמימים, יום בהיר. מעליו שטח הרוח, קו הגל וקו הלחץ. קו אנכי מפריד בין
-   מה שנמדד למה שחזוי. גרירה מזיזה את השעון של כל הדף — השמיים, הים, המפרשים והשורות שלמעלה. */
-var TS={cv:$('tsCv'), rng:$('tsRange'), read:$('tsRead'), now:$('tsNow'), box:$('tstrip')};
-var TS_T0=0, TS_T1=0, TS_OBS=0, tsScrub=false, tsW=0, tsH=0, tsPaint=0;
+/* ================= רצועת הזמן: שבוע, וההווה תמיד באמצע =================
+   מ-21.9 בערב (הערות בתחנה): בתחתית המסך, מקצה לקצה; שבוע שלם, 3.5 ימים לכל צד של ההווה; בלי כיתובים.
+   הרקע הוא אור היום בנקודה של דניאל לאורך כל השבוע. הרוח, הגל והלחץ מצוירים רק איפה שיש להם נתונים
+   (COND, בערך יומיים), ומחוץ לזה הרצועה מעומעמת והגרירה נעצרת בקצה הנתונים — לא ממציאים ים שלא נשמר.
+   ארכיון מזג אוויר לכל המרוץ הוא הסבב הבא (claude/ציר-הזמן-הצעה.md), ואז הקצוות ייפתחו.
+   מה שאומר איפה אתה בזמן הוא הצבע: הסמן, השטח שבינו לבין ההווה, והערכים בשורות — טורקיז לעבר,
+   ענבר לתחזית, לבן להווה. חזרה להווה: הקשה במרכז (יש שם "גומה" של כמה פיקסלים), או הקשה כפולה. */
+var TS={cv:$('tsCv'), rng:$('tsRange'), box:$('tstrip')};
+var TS_HALF=3.5*86400000, TS_T0=0, TS_T1=0, TS_D0=0, TS_D1=0, tsScrub=false, tsW=0, tsH=0, tsPaint=0, tsLast=0;
+var TS_PAST='143,227,222', TS_FUT='241,207,138';
 function tsReady(){ return !!(TS.cv&&TS.rng&&typeof COND!=='undefined'&&COND.length>2); }
-function tsSpan(){ TS_T0=Date.parse(COND[0][0]+'Z'); TS_T1=Date.parse(COND[COND.length-1][0]+'Z');
-  TS_OBS=(typeof OBS_UNTIL!=='undefined')?OBS_UNTIL:TS_T1; }
+function tsSpan(){ var n=Date.now(); TS_T0=n-TS_HALF; TS_T1=n+TS_HALF;
+  TS_D0=Date.parse(COND[0][0]+'Z'); TS_D1=Date.parse(COND[COND.length-1][0]+'Z'); tsSun=null; }
 function tsTimeOf(v){ return TS_T0+(TS_T1-TS_T0)*(v/1000); }
 function tsValOf(t){ return clamp(Math.round((t-TS_T0)/(TS_T1-TS_T0)*1000),0,1000); }
 function tsLive(){ return LIVE?(Date.now()+(EXO.clockOff?EXO.clockOff():0)):Date.now(); }
-/* גובה השמש לאורך הרצועה. מחושב פעם אחת לכל עמודה ונשמר, כי הוא לא משתנה בין ציור לציור. */
 var tsSun=null;
 function tsSunAt(t){ if(LIVE&&EXO.astro&&EXO.astro.sunPos) return EXO.astro.sunPos(t,FIX.lat,FIX.lon).alt*R2D;
   return 20*Math.sin((t/3600000+FIX.lon/15-6)/12*Math.PI); }
@@ -458,66 +494,76 @@ function tsDraw(){
   if(W!==tsW||H!==tsH||cv.width!==Math.round(W*dpr)){ tsW=W; tsH=H; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); tsSun=null; }
   var x=cv.getContext('2d'); if(!x) return;
   x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
-  var span=TS_T1-TS_T0, i, px, t;
-  /* הרקע: אור היום. עמודה אחת לכל פיקסל, בלי מעבר חד בין לילה ליום */
+  var span=TS_T1-TS_T0, i, px;
+  function X(t){ return (t-TS_T0)/span*W; }
+  /* אור היום, עמודה לכל פיקסל */
   if(!tsSun||tsSun.length!==W){ tsSun=new Float32Array(W); for(i=0;i<W;i++) tsSun[i]=tsSunAt(TS_T0+span*(i+0.5)/W); }
   for(i=0;i<W;i++){ var a=tsSun[i], day=clamp((a+4)/10,0,1), dusk=Math.max(0,1-Math.abs(a+1)/8);
     var R=Math.round(5+day*36+dusk*54), G=Math.round(11+day*64+dusk*24), B=Math.round(20+day*92+dusk*3);
     x.fillStyle='rgb('+R+','+G+','+B+')'; x.fillRect(i,0,1.02,H); }
-  /* הגבול בין מה שנמדד למה שחזוי: קו מקווקו, והצד החזוי מעומעם קלות */
-  var obsX=(TS_OBS-TS_T0)/span*W;
-  if(obsX>0&&obsX<W){ x.fillStyle='rgba(2,8,14,.13)'; x.fillRect(obsX,0,W-obsX,H);
-    x.fillStyle='rgba(205,225,238,.50)'; for(i=0;i<H;i+=4) x.fillRect(obsX-0.5,i,1,2.4); }
-  /* חצות ואמצע היום, לפי השעון של דניאל */
-  x.fillStyle='rgba(205,225,238,.16)';
-  var h0=Math.ceil((TS_T0+FIX.lon/15*3600000)/3600000), h1=Math.floor((TS_T1+FIX.lon/15*3600000)/3600000);
-  for(i=h0;i<=h1;i++){ var hh=((i%24)+24)%24; if(hh!==0&&hh!==12) continue;
-    px=(i*3600000-FIX.lon/15*3600000-TS_T0)/span*W; x.fillRect(px-0.5,hh===0?0:H-4,1,hh===0?H:4); }
-  /* שלושה גדלים, כל אחד מנורמל לטווח שלו: רוח כשטח, גל וֹלחץ כקווים */
+  /* חצות, לפי השעון של דניאל: קו דק לכל יממה */
+  x.fillStyle='rgba(205,225,238,.20)';
+  var off=FIX.lon/15*3600000, d0=Math.ceil((TS_T0+off)/86400000), d1=Math.floor((TS_T1+off)/86400000);
+  for(i=d0;i<=d1;i++){ px=X(i*86400000-off); x.fillRect(px-0.5,0,1,H); }
+  /* הרוח, הגל והלחץ — רק בטווח שיש עליו נתונים */
   function series(col,cap,wid,fill){
     var lo=1e9, hi=-1e9, v=[]; for(i=0;i<COND.length;i++){ var q=col(COND[i]); v.push(q); if(q!=null){ if(q<lo) lo=q; if(q>hi) hi=q; } }
     if(hi<=-1e8) return; if(hi-lo<1e-6) hi=lo+1;
     var pad2=(hi-lo)*0.18; lo-=pad2; hi+=pad2;
-    x.beginPath();
+    x.beginPath(); var x0=null, xl=0;
     for(i=0;i<COND.length;i++){ if(v[i]==null) continue;
-      px=(Date.parse(COND[i][0]+'Z')-TS_T0)/span*W; var py=H-2-(v[i]-lo)/(hi-lo)*(H-5);
-      if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
-    if(fill){ x.lineTo(W,H); x.lineTo(0,H); x.closePath(); x.fillStyle=fill; x.fill(); }
+      px=X(Date.parse(COND[i][0]+'Z')); var py=H-2-(v[i]-lo)/(hi-lo)*(H-6);
+      if(x0===null){ x.moveTo(px,py); x0=px; } else x.lineTo(px,py); xl=px; }
+    if(fill){ x.lineTo(xl,H); x.lineTo(x0,H); x.closePath(); x.fillStyle=fill; x.fill(); }
     else { x.strokeStyle=cap; x.lineWidth=wid; x.lineJoin='round'; x.stroke(); } }
-  series(function(c){ return c.length>=15?c[9]:null; },'rgba(207,230,255,.34)',1,null);   /* לחץ, מאחור */
-  series(function(c){ return c[1]; },null,0,'rgba(231,241,248,.13)');            /* רוח: שטח */
-  series(function(c){ return c[1]; },'rgba(244,249,252,.90)',1.1,null);          /* רוח: קו */
-  series(function(c){ return c[4]; },'rgba(143,227,222,.95)',1.25,null);         /* גל */
+  series(function(c){ return c.length>=15?c[9]:null; },'rgba(207,230,255,.34)',1,null);
+  series(function(c){ return c[1]; },null,0,'rgba(231,241,248,.13)');
+  series(function(c){ return c[1]; },'rgba(244,249,252,.90)',1.1,null);
+  series(function(c){ return c[4]; },'rgba(143,227,222,.95)',1.25,null);
+  /* מחוץ לנתונים: מעומעם. השבוע נראה, אבל ברור איפה עוד אין מה לגרור */
+  var a0=clamp(X(TS_D0),0,W), a1=clamp(X(TS_D1),0,W);
+  x.fillStyle='rgba(3,9,15,.62)'; if(a0>0) x.fillRect(0,0,a0,H); if(a1<W) x.fillRect(a1,0,W-a1,H);
+  /* ההווה: באמצע, תמיד. גומה קטנה למעלה ולמטה */
+  var cx=X(Date.now()), tn=tsLive(), sx=clamp(X(tn),0,W), dir=tn<Date.now()-60000?-1:tn>Date.now()+60000?1:0, rgb=dir<0?TS_PAST:dir>0?TS_FUT:'255,255,255';
+  /* השטח שבין ההווה לזמן שנבחר, בצבע של הכיוון */
+  if(dir){ x.fillStyle='rgba('+rgb+',.20)'; x.fillRect(Math.min(cx,sx),0,Math.abs(sx-cx),H); }
+  x.fillStyle='rgba(255,255,255,'+(dir?'.55':'.0')+')'; x.fillRect(cx-0.5,0,1,H);
+  x.fillStyle='rgba(255,255,255,.85)';
+  x.beginPath(); x.moveTo(cx-4,0); x.lineTo(cx+4,0); x.lineTo(cx,4); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(cx-4,H); x.lineTo(cx+4,H); x.lineTo(cx,H-4); x.closePath(); x.fill();
   /* הסמן: איפה השעון של הדף עומד */
-  var tn=tsLive(); px=clamp((tn-TS_T0)/span*W,0,W);
-  x.fillStyle=tsScrub?'#8fe3de':'rgba(255,255,255,.92)'; x.fillRect(px-1,0,2,H);
-  x.beginPath(); x.arc(px,H-2.5,2.4,0,6.283); x.fill();
-  /* עכשיו האמיתי, כשמעיינים בעבר או בעתיד */
-  if(tsScrub){ var pr=clamp((Date.now()-TS_T0)/span*W,0,W);
-    x.fillStyle='rgba(255,255,255,.34)'; x.fillRect(pr-0.5,0,1,H); } }
-function tsLabel(t){ var d=new Date(t+FIX.lon/15*3600000);
-  return pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'  '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()); }
+  x.fillStyle='rgba('+rgb+',.96)'; x.fillRect(sx-1,0,2,H);
+  x.beginPath(); x.arc(sx,H/2,dir?3.2:2.6,0,6.283); x.fill(); }
+function tsClass(off){ var b=document.body.classList, p=off<-60000, f=off>60000;
+  if(b.contains('t-past')!==p) b.toggle('t-past',p); if(b.contains('t-fut')!==f) b.toggle('t-fut',f); }
 function tsSet(off,fromUser){
   if(!LIVE||!EXO.setClock) return;
   EXO.setClock(off);
-  vigTick();                 /* גרירה אל שעות היום מבהירה את הים — ההצללה חייבת לעקוב מיד */
+  vigTick();
   tsScrub=(off!==0);
   TS.box.classList.toggle('scrub',tsScrub);
-  if(TS.now) TS.now.hidden=!tsScrub;
-  if(TS.read) TS.read.textContent=tsScrub?tsLabel(Date.now()+off):'';
+  tsClass(off);
+  if(tsScrub&&window.__exoHudOpen) window.__exoHudOpen(true,true);   /* הערכים הצבועים הם התשובה לגרירה: פס הנתונים נפתח */
   if(!fromUser) TS.rng.value=tsValOf(tsLive());
   tsDraw(); }
+function tsInput(){
+  var t=tsTimeOf(+TS.rng.value), now=Date.now(), W=tsW||TS.box.clientWidth||400;
+  /* גומה סביב ההווה: 4 פיקסלים לכל צד נצמדים לזמן אמת */
+  if(Math.abs(t-now)<(TS_T1-TS_T0)*4/W) t=now;
+  var c=clamp(t,Math.min(TS_D0,now),Math.max(TS_D1,now));
+  if(c!==t){ t=c; TS.rng.value=tsValOf(t); }
+  tsSet(t===now?0:t-now,true); }
 function tsInit(){
   if(!tsReady()){ if(TS.box) TS.box.hidden=true; return; }
   tsSpan();
   if(!LIVE||!EXO.setClock){ TS.rng.disabled=true; TS.rng.tabIndex=-1; }
   TS.rng.value=tsValOf(tsLive());
-  TS.rng.addEventListener('input',function(){ tsSet(tsTimeOf(+TS.rng.value)-Date.now(),true); });
+  TS.rng.addEventListener('input',tsInput);
+  TS.rng.addEventListener('change',function(){ TS.rng.value=tsValOf(tsLive()); });
   TS.rng.addEventListener('dblclick',function(){ tsSet(0); });
-  if(TS.now) TS.now.addEventListener('click',function(){ tsSet(0); TS.rng.focus(); });
   tsDraw();
-  /* בזמן אמת הסמן זוחל לבד; פעם בדקה די והותר */
-  setInterval(function(){ if(!tsScrub&&!document.hidden){ TS.rng.value=tsValOf(tsLive()); tsDraw(); } },60000);
+  /* ההווה זז: פעם בדקה הציר מתמרכז מחדש, והסמן (שזוכר היסט ולא זמן) נשאר צמוד אליו */
+  setInterval(function(){ if(document.hidden) return; tsSpan(); TS.rng.value=tsValOf(tsLive()); tsDraw(); },60000);
   window.addEventListener('resize',function(){ clearTimeout(tsPaint); tsPaint=setTimeout(function(){ tsSun=null; tsDraw(); },160); });
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(tsDraw); }
 

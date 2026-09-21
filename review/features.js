@@ -9,11 +9,11 @@
    הדף "הניתוח המלא" (deep) ממוספר אוטומטית לפי סדר הפרקים: D1, D2...  */
 window.REVIEW_FEATURES = [
   /* --- ההדמיה --- */
-  {n:1,  key:'top-row1',  scr:'sim', sel:'.hud.topr .row.r1', name:'שורת הכותרת: שם היומן, יום המסע, תאריך, נ״צ וגיל הנתון'},
-  {n:2,  key:'top-row2',  scr:'sim', sel:'.hud.topr .row.r2', name:'רוח, גל וזרם בשורה העליונה'},
-  {n:3,  key:'top-row3',  scr:'sim', sel:'#hRow3',            name:'השורה השלישית: לחץ, עננות, ראות, גשם, אוויר ומים'},
-  {n:4,  key:'tstrip',    scr:'sim', sel:'#tstrip',           name:'רצועת הזמן: רוח, גל, לחץ ואור לאורך היממות'},
-  {n:5,  key:'clocks',    scr:'sim', sel:'.hud.clocks',       name:'שלושת השעונים'},
+  {n:1,  key:'top-row1',  scr:'sim', sel:'.hud.topr .row.r1 > span', multi:true, name:'שורת הכותרת: שם היומן, יום המסע, תאריך, נ״צ וגיל הנתון'},
+  {n:2,  key:'top-row2',  scr:'sim', sel:'.hud.topr .row.r2 > span:not([hidden])', multi:true, name:'רוח, גל וזרם בשורה העליונה'},
+  {n:3,  key:'top-row3',  scr:'sim', sel:'#hRow3 > span:not([hidden])', multi:true, name:'השורה השלישית: לחץ, עננות, ראות, גשם, אוויר ומים'},
+  {n:4,  key:'tstrip',    scr:'sim', sel:'#tstrip',           name:'רצועת הזמן: שבוע, ההווה באמצע, בתחתית המסך'},
+  {n:5,  key:'clocks',    scr:'sim', sel:'.topr .clocks > span', multi:true, name:'שלושת השעונים'},
   {n:6,  key:'vit',       scr:'sim', sel:'.hud.vit',          name:'שורת מספרי המרוץ'},
   {n:7,  key:'mini',      scr:'sim', sel:'#mini',             name:'מפת המיקומים — הכפתור אל המסע והניתוח'},
   {n:8,  key:'ly-wind',   scr:'sim', sel:'#lay .ly-wind',     name:'כפתור שכבת הרוח'},
@@ -70,5 +70,8 @@ window.REVIEW_FEATURES = [
   {n:59, key:'gobtn',     scr:'journey', sel:'#more .gobtn',       name:'הכפתור אל הניתוח המלא'},
   {n:60, key:'prov',      scr:'journey', sel:'#more .prov',        name:'"מה כאן נמדד, מה מחושב ומה מודל"'},
   {n:61, key:'j-foot',    scr:'journey', sel:'#journey > footer',  name:'השורה התחתונה: קרדיטים ומקורות'},
-  {n:62, key:'ahead-head',scr:'journey', sel:'#ahead > header',    name:'"24 השעות הקרובות" — כותרת ושורת הסיכום'}
+  {n:62, key:'ahead-head',scr:'journey', sel:'#ahead > header',    name:'"24 השעות הקרובות" — כותרת ושורת הסיכום'},
+  /* 21.9 בערב */
+  {n:63, key:'hudDot',    scr:'sim', sel:'#hudDot',            name:'הנקודה הזוהרת שפותחת ומקפלת את הנתונים שבראש המסך'},
+  {n:64, key:'whale',     scr:'sim', chip:true, name:'הלוויתן: שחייה רחוקה, נשימה, נשיפה וזנב'}
 ];

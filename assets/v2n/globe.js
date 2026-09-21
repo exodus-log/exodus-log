@@ -480,7 +480,7 @@ function rimShow(on,cv,bv){
 /* הבוררים חייבים להצביע על הבלוק שבאמת נראה, לא על המעטפת שלו: ל-.g-ui ול-.vit יש
    left:0;right:0, ולכן התיבה שלהם היא כל רוחב המסך — שמירה עליה מחקה כל שם באותו גובה,
    ובכלל זה "אקסודוס" כשהסירה הייתה שם. לכן הילדים, לא ההורה. */
-var KEEP_SEL = '.g-ui > *,.g-scrub,header.topr,.clocks,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
+var KEEP_SEL = '.g-ui > *,.g-scrub,header.topr,#hudDot,.mini,.hud.vit > span,#menuBtn,.lay,#toast';
 function rankOf(cn){ cn=cn||'';
   if(cn.indexOf('gl-boat')>=0) return 0;
   if(cn.indexOf('k-me')>=0) return 1;
