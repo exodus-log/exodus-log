@@ -156,6 +156,8 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
 .warn{background:rgba(255,122,107,.12);border:1px solid rgba(255,122,107,.4);color:#ffd2cc;border-radius:var(--r);padding:8px 10px;font-size:13.5px;margin:0 0 10px}
 #scrim{position:fixed;inset:0;z-index:19;background:rgba(0,0,0,.25)}
 #scrim[hidden]{display:none}
+/* במצב שימוש אין מסך כהה בשום גודל: החלון נשאר פתוח והאתר מגיב למגע מסביבו */
+body.use #scrim{display:none!important}
 #toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-150%);z-index:30;background:#12303f;border:1px solid #2c5568;
   padding:8px 14px;border-radius:18px;font-size:14px;transition:transform .25s ease;pointer-events:none;max-width:90vw}
 #toast.on{transform:translate(-50%,0)}
@@ -187,7 +189,9 @@ body.nodots .dt:not(.sel){opacity:0;pointer-events:none}
   #stageBox{grid-column:2;grid-row:1 / 4}
   .sheet{inset-inline-start:auto;width:min(460px,64vw);max-height:92dvh}
 }
-@media (min-width:900px) and (min-height:541px){
+/* עד 21.9 בערב התנאי כלל גם min-height:541. במחשב עם הגדלת תצוגה של Windows (150%–175%) הגובה ב-CSS יורד
+   מתחת לזה, המסך הכהה חזר, והקשה על "שימוש" נחתה עליו וסגרה את החלון. עכשיו הרוחב לבדו קובע. */
+@media (min-width:900px){
   .sheet{inset-inline:auto 16px;width:440px;bottom:16px;border-radius:14px;border:1px solid #2b4a5e;max-height:80dvh}
   /* במחשב החלון הוא פאנל בצד ולא מכסה את האתר: בלי מסך כהה שסוגר אותו בכל הקשה. כך הוא נשאר פתוח
      גם במעבר ל"שימוש" ובזמן שמשחקים עם הממשק (בקשה של שמוליק, 21.9). סוגרים ב-×. */
