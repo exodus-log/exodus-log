@@ -45,12 +45,15 @@ function renderHud(s){
   var c=s.cond, d=new Date(s.now);
   /* יום המרוץ נגזר מהשעון המוצג ולא מנקודת הציון: גרירה של 30 שעות קדימה החליפה את התאריך
      ל-22.09 והשאירה "יום 15". אותה נוסחה שרצועת הימים בגלובוס משתמשת בה. */
-  var dayN=(typeof RACE_START!=='undefined')?Math.floor((s.now/1000-RACE_START)/86400)+1:FIX.dayN;
+  /* 22.9: לפי התאריך ב-UTC, כמו בדוחות הרשמיים (יום 14 = 20.9) ובבוט. קודם התחלף ב-12:30, שעת הזינוק */
+  var dayN=(typeof RACE_START!=='undefined')?Math.floor(s.now/86400000)-Math.floor(RACE_START/86400):FIX.dayN;
   put('hDay','יום '+dayN);
   put('hDate',pad(d.getUTCDate())+'.'+pad(d.getUTCMonth()+1)+'.'+d.getUTCFullYear());
   /* 22.9: המיקום עוקב אחרי השעון. בעבר — מהארכיון (אינטרפולציה בין שעות), ולכן הוא צבוע כמו שאר הערכים שנגררו */
   var ps=(LIVE&&EXO.pose)?EXO.pose:FIX;
   put('hPos',dmm(ps.lat,2,'N','S')+'  '+dmm(ps.lon,3,'E','W'));
+  /* בעבר המיקום בא מהארכיון ולא מנקודת הציון, ולכן הוא וגם המרחק ליעד נצבעים כמו שאר הערכים שנגררו */
+  var arch=ps.src==='archive'; $('hPos').classList.toggle('pa',arch); if(LB.beacon) LB.beacon.classList.toggle('pa',arch); if(LB.gate) LB.gate.classList.toggle('pa',arch);
   /* גיל נקודת הציון נמדד מההווה האמיתי ולא מהשעון המוצג: גרירה של יום קדימה לא מיישנת את המעקב */
   var fx=new Date(FIX.at*1000), age=(Date.now()/1000-FIX.at)/3600;
   var ageTxt=age<1?'לפני פחות משעה':age<24?'לפני '+heb(age,'שעה','שעתיים','שע׳'):'לפני '+heb(age/24,'יום','יומיים','ימים');
@@ -433,8 +436,9 @@ idle(function(){ setTimeout(function(){ if(!LIVE||EXO.quality!=='lite') globeBui
 /* ================= "המסע והניתוח": הסיפור, הצי, קנה המידה, התחזית והסקסטנט — נפתחים מכפתור מפת המיקומים ================= */
 var J=$('journey'), jOpen=false, jReady=null, jPushed=false;
 function fleetTable(){ var host=$('fleetTbl'); if(!host||host.firstChild||typeof FLEET==='undefined') return; var lead=FLEET[0][5];
-  var h='<table><thead><tr><th>מקום</th><th>סירה</th><th class="nu">עד קו הסיום</th><th class="nu">פער מהמוביל</th><th class="nu">24 שעות</th></tr></thead><tbody>';
-  FLEET.forEach(function(b){ var gap=Math.round(b[5]-lead); h+='<tr'+(b[1]===4?' class="me"':'')+'><td>'+b[0]+'</td><td>'+String(b[4]).replace(/&/g,'&amp;').replace(/</g,'&lt;')+(b[1]===4?' · אקסודוס':'')+'</td><td class="nu">'+thou(b[5])+'</td><td class="nu">'+(gap<=0?'—':thou(gap))+'</td><td class="nu">'+(b[6]!=null?Math.round(b[6]):'—')+'</td></tr>'; });
+  var h='<table><thead><tr><th>מקום</th><th>סירה</th><th class="nu">עד קו הסיום, מייל</th><th class="nu">פער מהמוביל, מייל</th><th class="nu">24 שעות, מייל</th></tr></thead><tbody>';
+  /* b[7]=1: הסירה כבר לא מתחרה (פרשה לפי המעקב). היא בסוף הרשימה, בלי מקום ובלי פער */
+  FLEET.forEach(function(b){ var out=b[7]===1, gap=Math.round(b[5]-lead); h+='<tr'+(b[1]===4?' class="me"':out?' class="out"':'')+'><td>'+(out?'—':b[0])+'</td><td>'+String(b[4]).replace(/&/g,'&amp;').replace(/</g,'&lt;')+(b[1]===4?' · אקסודוס':'')+(out?' · פרשה':'')+'</td><td class="nu">'+thou(b[5])+'</td><td class="nu">'+(out||gap<=0?'—':thou(gap))+'</td><td class="nu">'+(b[6]!=null?Math.round(b[6]):'—')+'</td></tr>'; });
   host.innerHTML=h+'</tbody></table>'; }
 /* מי פתח את המסע: אחרי הסגירה הפוקוס חוזר אליו. עד כה הוא נפל אל body, ומשתמש מקלדת
    או קורא מסך התחיל שוב מראש הדף בכל פעם. */
@@ -443,6 +447,8 @@ function openJourney(section){
   if(gOpen) closeGlobe(false);
   if(!jOpen){ jOpener=(document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
     jOpen=true; J.hidden=false; document.body.classList.add('j-open'); if(LIVE) EXO.pause(true);
+    /* מה שמאחורי המסע יוצא ממסלול המקלדת: עד כאן Shift+Tab מ"חזרה" נחת על פקדים מוסתרים מאחורי השכבה */
+    var st=$('stage'); if(st) st.inert=true;
     if(AU&&auOn) AU.master.gain.setTargetAtTime(0.05,AU.ac.currentTime,0.3);
     try{ history.pushState({exoJourney:1},''); jPushed=true; }catch(e){ jPushed=false; }
     fleetTable();
@@ -453,6 +459,7 @@ function openJourney(section){
     try{ $('jBack').focus({preventScroll:true}); }catch(e){} });
 }
 function closeJourney(fromPop){ if(!jOpen) return; jOpen=false; J.hidden=true; document.body.classList.remove('j-open'); if(LIVE&&!gOpen) EXO.pause(false);
+  var st=$('stage'); if(st) st.inert=false;
   if(AU&&auOn) AU.master.gain.setTargetAtTime(0.9,AU.ac.currentTime,0.3);
   if(!fromPop&&jPushed){ jPushed=false; popSkip++; try{ history.back(); }catch(e){ popSkip--; } }
   var back=jOpener||document.querySelector('.mini'); jOpener=null; if(back&&back.focus) try{ back.focus({preventScroll:true}); }catch(e){} }

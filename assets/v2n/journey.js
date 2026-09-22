@@ -115,7 +115,7 @@ function renderRace(){
   s+='<path d="M'+(padL+54)+' 16 H'+(padL+6)+' m7 -5 l-7 5 l7 5" fill="none" stroke="#7f95a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
     +'<text x="'+(padL+62)+'" y="20" font-size="'+fs+'" fill="#7f95a3" font-family="Heebo,sans-serif">אל קו הסיום</text>';
   s+='<text x="'+(W-padR)+'" y="'+(axisY+38)+'" text-anchor="end" font-size="'+fs+'" fill="#7f95a3" font-family="Heebo,sans-serif">'+(narrow?'מיילים מאחורי המוביל':'מיילים מאחורי המוביל · הזנב שמאחורי כל סירה: הדרך שעשתה ב־24 השעות האחרונות')+'</text>';
-  items.forEach(function(it){ var y=top+it.r*rowH+R, tail=(W-padL-padR)*it.f[6]/maxGap;
+  items.forEach(function(it){ var y=top+it.r*rowH+R, tail=(W-padL-padR)*Math.max(0,it.f[6])/maxGap;
     var col=it.me?'#43d6cf':(it.f[0]===1?'#8fd0ff':'rgba(238,244,247,.78)');
     s+='<path d="M'+it.x.toFixed(1)+' '+y+' h'+Math.min(tail,W-padR-it.x).toFixed(1)+'" stroke="'+col+'" stroke-opacity="'+(it.me?.75:.26)+'" stroke-width="'+(it.me?4:2.5)+'" stroke-linecap="round"/>'; });
   items.forEach(function(it,idx){ var y=top+it.r*rowH+R;

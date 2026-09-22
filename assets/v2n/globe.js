@@ -187,7 +187,7 @@ function draw(t,live){
   map.getSource('fleet').setData(fleetFC(fl));
   boat.setLngLat(pos).setRotation(live?FIX.cog:headingAt(pts)); meMarker.setLngLat(pos);
   if(!live||todoMoved){ todoMoved=!live; map.getSource('todo').setData(todoFC(pos)); }
-  var day=Math.floor((t-T0)/86400)+1, d=new Date(t*1000);
+  var day=Math.floor(t/86400)-Math.floor(T0/86400), d=new Date(t*1000);
   var fxAgeH=((EXO&&EXO.state?EXO.state.now:Date.now())/1000-FIX.at)/3600, fxD=new Date(FIX.at*1000);
   var nowLbl=fxAgeH<1?'עכשיו':('נ״צ <span class="num">'+('0'+fxD.getUTCHours()).slice(-2)+':'+('0'+fxD.getUTCMinutes()).slice(-2)+'</span>');
   out.innerHTML=live?(nowLbl+' · יום <span class="num">'+FIX.dayN+'</span> · מקום <span class="num">'+FIX.rank+'</span>')

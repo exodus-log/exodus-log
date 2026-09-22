@@ -5,7 +5,7 @@
 <base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>יומן אקסודוס — דניאל פינסקי בגולדן גלוב</title>
-<meta name="description" content="איפה אקסודוס עכשיו: הסירה, הרוח, הגלים והזרם בזמן אמת, והמסע כולו על הגלובוס. דניאל פינסקי, הישראלי הראשון בגולדן גלוב.">
+<meta name="description" content="איפה אקסודוס עכשיו: הסירה, הרוח, הגלים והזרם לפי נקודת הציון האחרונה, והמסע כולו על הגלובוס. דניאל פינסקי, הישראלי הראשון בגולדן גלוב.">
 <meta name="theme-color" content="#06121b">
 <meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex">
@@ -56,6 +56,7 @@
   --ls:clamp(116px,11vw,150px);   /* קוטר כפתור השכבות: לא פחות מ-116, אחרת אין אזור מגע סביר לכל שליש */
   --tsh:26px;                     /* גובה רצועת הזמן שבתחתית */
   --tpast:#8fe3de; --tfut:#f1cf8a; /* עבר ותחזית ברצועה ובשורות. לא אדום-ירוק: גם מי שלא מבחין ביניהם רואה את ההבדל */
+  --accent:#43d6cf;               /* front.css מצייר בו את טבעת הפוקוס (:focus-visible). בלעדיו, מחוץ למסע, הטבעת נעלמה */
   --top:70px;                     /* התחתית של שורת הנתונים והשעונים; hud.js מודד ומעדכן */
   /* מערכת השוליים. עד כאן היו בקוד שבעה ערכים שונים לאותו תפקיד — 4, 6, 8, 10, 12, 14 ו-16 —
      ולכן השעונים, שורת הנתונים, המפה הקטנה וטור הבקרות ישבו כל אחד במרחק אחר מקצה המסך,
@@ -151,7 +152,9 @@ body.t-fut #hudDot::before{background:var(--tfut);box-shadow:0 0 5px 1px rgba(24
 .tstrip input[type=range]:focus-visible{opacity:1;outline:2px solid #8fe3de;outline-offset:-2px}
 .tstrip input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:var(--tsh);background:transparent}
 .tstrip input[type=range]::-moz-range-thumb{width:26px;height:var(--tsh);border:0;background:transparent}
-/* עבר ותחזית: רק הערכים שבאמת נגזרים מהשעון המוצג. המיקום ומספרי המרוץ הם של נקודת הציון ונשארים לבנים */
+/* עבר ותחזית: רק הערכים שבאמת נגזרים מהשעון המוצג. מספרי המרוץ הם של נקודת הציון ונשארים לבנים.
+   המיקום והמרחק ליעד נצבעים רק כשהם באים מהארכיון (.pa); בתחזית הם של נקודת הציון ונשארים לבנים */
+#hPos.pa,.lb.pa .n{color:var(--tpast)}
 #hDay,#hDate,.topr .r2 b,.topr .r3 b,.clocks b,.lb.dat .n{transition:color .35s}
 body.t-past #hDay,body.t-past #hDate,body.t-past .topr .r2 b,body.t-past .topr .r3 b,body.t-past .clocks b,body.t-past .lb.dat .n{color:var(--tpast)}
 body.t-fut #hDay,body.t-fut #hDate,body.t-fut .topr .r2 b,body.t-fut .topr .r3 b,body.t-fut .clocks b,body.t-fut .lb.dat .n{color:var(--tfut)}
@@ -336,10 +339,11 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 #fleetTbl{margin-top:18px;overflow-x:auto} #fleetTbl table{width:100%;border-collapse:collapse;font-size:.95rem}
 #fleetTbl th{font-weight:400;color:#7f95a3;font-size:.8rem;text-align:start;padding:6px 10px;border-bottom:1px solid rgba(190,220,240,.26)}
 #fleetTbl td{padding:7px 10px;border-bottom:1px solid rgba(190,220,240,.12);white-space:nowrap} #fleetTbl td.nu,#fleetTbl th.nu{text-align:end;font-variant-numeric:tabular-nums;direction:ltr}
-#fleetTbl tr.me td{color:#fff;font-weight:500;border-bottom-color:#43d6cf}
+#fleetTbl tr.me td{color:#fff;font-weight:500;border-bottom-color:#43d6cf} #fleetTbl tr.out td{color:#879caa}
 
 @media (max-width:700px), (max-height:520px){
   .topr em{display:none}
+  .topr #hFcast{display:inline}   /* "תחזית" נשאר גם בטלפון: צבע לבדו לא מספיק כדי לומר שזה לא עכשיו */
   /* המרחק מהתחתית נמדד עכשיו משורת מספרי המרוץ (--bot), ולכן אין יותר קבועים לכל רוחב */
   #menu{right:0;left:0;bottom:0;width:auto;max-height:72%;border-radius:10px 10px 0 0;border-bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   #toast{bottom:calc(var(--row2) + var(--ms) + 46px);font-size:12px}
@@ -555,13 +559,14 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <details class="prov">
       <summary>מה כאן נמדד, מה מחושב ומה מודל</summary>
       <ul>
-        <li><b>נמדד.</b> המיקום, הכיוון והמהירות, מקובץ המעקב הלווייני של המרוץ. דיווח כל ארבע שעות; מה שביניהם הוא השלמה.</li>
-        <li><b>מחושב במדויק.</b> השמש, הירח, שלושת השעונים וקו היום והלילה על הגלובוס: אסטרונומיה, לרגע שעל השעון של הדף. השעה ״אצל דניאל״ היא שעת השמש המקומית לפי קו האורך של הסירה.</li>
+        <li><b>נמדד.</b> המיקום, מקובץ המעקב הלווייני של המרוץ. דיווח כל ארבע שעות; מה שביניהם הוא השלמה.</li>
+        <li><b>מחושב.</b> הכיוון והמהירות: מהקטע שבין שתי נקודות הציון האחרונות, בדרך כלל ארבע שעות. המרחקים, המקום בצי והפער: מהמעקב, באותה שיטה כמו הלוח הרשמי.</li>
+        <li><b>מחושב במדויק.</b> השמש, הירח, שלושת השעונים וקו היום והלילה על הגלובוס: אסטרונומיה, לרגע שעל השעון של הדף. השעה ״אצל דניאל״ היא הזמן המקומי הממוצע לפי קו האורך של הסירה.</li>
         <li><b>מודל.</b> הרוח, הגלים, הזרם, הלחץ, העננות, הראות והטמפרטורות, ממודל אטמוספרי ואוקיינוגרפי ולא ממדידה בסירה. כיוון: ‎±20–30 מעלות. הגל בים פועם בזמן המחזור האמיתי שלו, ונחשי הזרם נעים במהירות האמיתית שלו.</li>
         <li><b>אחורה בזמן.</b> כשגוררים את רצועת הזמן לעבר, הרוח, הגל והזרם באים מארכיון של אותו מודל, שעה אחר שעה. המיקום הוא השלמה בין נקודות הציון, והכיוון והמהירות מחושבים ממנו. איפה שאין ארכיון הרצועה מעומעמת ואי אפשר לגרור לשם. מספרי המרוץ בתחתית נשארים של נקודת הציון האחרונה.</li>
         <li><b>סימנים.</b> על טבעת המצפן: נוצת רוח כמו במפות מזג אוויר (נוצה מלאה 10 קשר, חצי נוצה 5), חץ גלי לזרם כמו במפות ימיות, קשתות לגל, מעוין ליעד הבא וקו כפול לכיוון ההתקדמות.</li>
         <li><b>מוסק.</b> מצב המפרשים: אין עליו שום נתון. הוא נגזר מזווית הרוח ומעוצמתה. כרגע: <span id="pvSail">—</span>, רוח ב־<span class="num" id="pvTwa">—</span>°.</li>
-        <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, הסיפון הכתום, מעקה הטיק האפור, הסוכך הכתום, דגל ישראל על מפרשי החרטום והמספר 07. המידות: באבא 35, לפי השלט שעל הרציף.</li>
+        <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, הסיפון הקדמי הכתום, מעקה הטיק האפור, הסוכך הכתום, ה-7 והלוח הכתום על המפרש הראשי, ודגל ישראל על האחורן. המידות: באבא 35, לפי השלט שעל הרציף.</li>
         <li><b>סכמטי.</b> המסלול שנותר על הגלובוס הוא קו בין נקודות החובה, לא תחזית ניווט.</li>
       </ul>
     </details>

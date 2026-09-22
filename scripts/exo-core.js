@@ -12,21 +12,18 @@ var ME = 4, GHOST = 940;            /* פינסקי; נוישפר 2022, המנצ
 var NAMES = { 1:'כריסטנסן', 2:'קֶרְדֶלְיֶה', 3:'קנטיני', 4:'פינסקי', 5:'דה־בור', 6:'גִיוּ', 8:'יאלצ׳ין',
   9:'נימן', 10:'לולס', 11:'קווסת׳', 12:'ווטון', 13:'מסיקומר', 14:'רוסלי', 15:'וודסייד', 16:'לודולו', 17:'בֶּשְׂקַרְדֶש' };
 
-/* נקודות החובה לפי הסדר (Pre-NOR 2026 §C.1.3). name: בלי ה״א הידיעה — הדף כותב ל׳ לפניו.
-   נקודה בלי קואורדינטות לא מומצאת: מדלגים עליה לבאה ומתריעים. */
+/* היעד הבא במסלול: רק סימונים שמפליגים אליהם ומקיפים אותם, לפי הסדר (NOR 2026 §C.1.3, ובדיוק כמו שהם
+   רשומים במעקב הרשמי, RaceSetup.poi, נבדק 22.9.2026). name: בלי ה״א הידיעה — הדף כותב ל׳ לפניו.
+   מה שלא כאן, בכוונה:
+   - ‏45°S בין 40° ל-110° מזרח, 50°S 168°E, ‏49°S בין 150° ל-110° מערב, 50°S 90°W — אלה גבולות ("להשאיר מימין":
+     אזור אסור מדרום להם), לא יעדים. הם על הגלובוס (course.js), אבל "היעד הבא" לא מצביע עליהם.
+   - "שער קייפטאון" ו"שער פונטה דל אסטה" היו בהודעה המקדימה (Pre-NOR) ואינם במסלול הסופי ולא במעקב. */
 var MARKS = [
-  { name:'לנזרוטה',   lat:28.853,  lon:-13.821 },
-  { name:'טרינדאדה',  lat:-20.52,  lon:-29.32, note:'האי טרינדאדה, מול ברזיל, להשאיר משמאל' },
-  { name:'שער קייפטאון', lat:null, lon:null, note:'אין קואורדינטות ב-RaceSetup' },
-  { name:'נקודת הציון 45° דרום 40° מזרח',  lat:-45, lon:40 },
-  { name:'נקודת הציון 45° דרום 65° מזרח',  lat:-45, lon:65 },
-  { name:'נקודת הציון 45° דרום 90° מזרח',  lat:-45, lon:90 },
-  { name:'נקודת הציון 45° דרום 110° מזרח', lat:-45, lon:110 },
-  { name:'כף לואין',  lat:-34.38,  lon:115.15 },
-  { name:'הובארט',    lat:-42.99,  lon:147.33, note:'עצירת חובה של 90 דקות' },
-  { name:'נקודת הציון 50° דרום 168° מזרח', lat:-50, lon:168 },
-  { name:'כף הורן',   lat:-55.98,  lon:-67.27 },
-  { name:'שער פונטה דל אסטה', lat:null, lon:null, note:'אין קואורדינטות ב-RaceSetup' },
+  { name:'לנזרוטה',   lat:28.853,  lon:-13.821, note:'סימון החוף בקנריים' },
+  { name:'טרינדאדה',  lat:-20.503, lon:-29.327, note:'האי טרינדאדה, מול ברזיל, להשאיר משמאל' },
+  { name:'כף לואין',  lat:-34.375, lon:115.147, note:'להשאיר משמאל' },
+  { name:'הובארט',    lat:-42.98,  lon:147.335, note:'עצירת חובה של 90 דקות' },
+  { name:'כף הורן',   lat:-55.984, lon:-67.267, note:'להשאיר משמאל' },
   { name:'הסיום',     lat:46.48,   lon:-1.79 }
 ];
 
@@ -198,16 +195,20 @@ function compute(inp) {
   tr[ME] = me;
   var T = me[me.length - 1].at, now = at(me, T);
   var names = {}; (prev.FLEET || []).forEach(function (r) { names[r[1]] = r[4]; });
-  function nm(id) { return names[id] || NAMES[id] || String(id); }
+  /* בלי ניקוד (22.9): היה ניקוד בשלושה שמות מתוך שש־עשרה — לא עקבי. המקף העברי (־) נשאר */
+  function nm(id) { return String(names[id] || NAMES[id] || id).replace(/[\u0591-\u05BD\u05BF-\u05C7]/g, ''); }
 
   var racers = inp.setup.teams.filter(function (t) { return (t.tags || []).indexOf(84200) >= 0; }).map(function (t) { return t.id; });
   var status = {}; inp.setup.teams.forEach(function (t) { status[t.id] = t.status; });
 
   /* הצי: כל סירה בנקודה האחרונה שלה (לא מנחשים קדימה), dmg24 מ-24 שעות קודם לכן — כמו הלוח הרשמי */
+  /* סירה שכבר לא מתחרה (פרשה, נפסלה) יורדת לסוף הדירוג ומסומנת (FLEET[7]=1). סטטוס כמו במעקב: RACING,
+     FINISHED ואחרים. מי שסיימה נשארת בדירוג. */
+  function isOut(id) { var s = String(status[id] || 'RACING').toUpperCase(); return s !== 'RACING' && s !== 'FINISHED'; }
   var fleet = racers.filter(function (id) { return tr[id]; }).map(function (id) {
     var t = tr[id], l = t[t.length - 1], tl = l.at, p = at(t, tl), p24 = at(t, tl - DAY);
-    return { id: id, lat: p.lat, lon: p.lon, dtf: p.dtf, dmg24: p24.dtf - p.dtf, last: l.at, status: status[id] };
-  }).sort(function (a, b) { return a.dtf - b.dtf; });
+    return { id: id, lat: p.lat, lon: p.lon, dtf: p.dtf, dmg24: p24.dtf - p.dtf, last: l.at, status: status[id], out: isOut(id) };
+  }).sort(function (a, b) { return (a.out - b.out) || (a.dtf - b.dtf); });
   fleet.forEach(function (b, i) { b.rank = i + 1; });
   var mine = fleet.filter(function (b) { return b.id === ME; })[0];
 
@@ -221,9 +222,11 @@ function compute(inp) {
   var sailed = 0, from = null;
   me.forEach(function (p) { if (p.at < RACE_START) return; if (from) sailed += dist(from.lat, from.lon, p.lat, p.lon); from = p; });
 
-  /* הסירה הקרובה, בזמן T */
+  /* הסירה הקרובה. כל סירה נמדדת ברגע האחרון שיש לשתיהן נקודת ציון — לא נקודה של סירה אחת מול נקודה בת ארבע
+     שעות של השנייה (ב-22.9 זה נתן פעם 15 מייל ופעם 35 לאותו רגע) */
   var near = { d: 1e9, id: null };
-  fleet.forEach(function (b) { if (b.id === ME) return; var p = at(tr[b.id], T); var d = dist(now.lat, now.lon, p.lat, p.lon); if (d < near.d) near = { d: d, id: b.id }; });
+  fleet.forEach(function (b) { if (b.id === ME || b.out) return; var tb = Math.min(T, b.last), p = at(tr[b.id], tb), q = at(me, tb);
+    var d = dist(q.lat, q.lon, p.lat, p.lon); if (d < near.d) near = { d: d, id: b.id }; });
 
   /* רוח הרפאים: נוישפר 2022, באותו רגע. הזנת הרפאים מפגרת — משווים ברגע האחרון שיש לשתיהן */
   var ghost = null, g = tr[GHOST];
@@ -248,11 +251,13 @@ function compute(inp) {
   var FIX = {
     at: T, lat: +now.lat.toFixed(3), lon: +now.lon.toFixed(3), cog: cog, sog: +sog.toFixed(1),
     dtf: Math.round(now.dtf), rank: mine.rank, sailed: Math.round(sailed), dmg24: Math.round(mine.dmg24),
-    nearBoat: +near.d.toFixed(1), nearBoatName: nm(near.id),
+    nearBoat: Math.round(near.d), nearBoatName: nm(near.id),
     nearLand: land ? Math.round(land.nm) : (prev.FIX ? prev.FIX.nearLand : null),
     nearLandName: land ? (land.name || (prev.FIX && prev.FIX.nearLandName) || 'החוף הקרוב') : (prev.FIX ? prev.FIX.nearLandName : ''),
     toGate: gate ? Math.round(dist(now.lat, now.lon, gate.lat, gate.lon)) : 0, gate: gate ? gate.name : '',
-    dayN: Math.floor((T - RACE_START) / DAY) + 1,
+    /* יום המרוץ לפי התאריך ב-UTC, כמו בדוחות הרשמיים של GGR (יום 3 = 9.9, יום 14 = 20.9). עד 22.9 היום התחלף
+       ב-12:30 UTC, שעת הזינוק, ואחר הצהריים הדף הקדים את הדוח ואת הניתוח ביום. */
+    dayN: Math.floor(T / DAY) - Math.floor(RACE_START / DAY),
     totalNm: Math.floor(inp.setup.course.distance * 1000 / NM), ghost: ghost
   };
 
@@ -270,7 +275,7 @@ function compute(inp) {
   }
 
   var FLEET = fleet.map(function (b) {
-    return [b.rank, b.id, +b.lat.toFixed(3), +b.lon.toFixed(3), nm(b.id), Math.round(b.dtf), Math.round(b.dmg24), 0];
+    return [b.rank, b.id, +b.lat.toFixed(3), +b.lon.toFixed(3), nm(b.id), Math.round(b.dtf), Math.round(b.dmg24), b.out ? 1 : 0];
   });
 
   /* המסלול: מהזינוק, נקודה כל ~4 שעות (ליד שער המעקב שולח כל חצי שעה), ותמיד האחרונה */
