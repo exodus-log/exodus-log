@@ -115,7 +115,8 @@ window.__exoHudOpen=hudOpen;
 if(hudDot) hudDot.addEventListener('click',function(){ hudPinned=true; hudOpen(document.body.classList.contains('hfold')); });
 if(hudBand) hudBand.addEventListener('click',function(){ hudPinned=true; hudOpen(false); });
 /* בכניסה הפס פתוח כמה שניות ומתקפל לנקודה — כך רואים לאן הוא הולך. נגיעה בו לפני כן משאירה אותו */
-hudTm=setTimeout(function(){ if(!hudPinned&&!tsScrub) hudOpen(false); },5200);
+/* 23.9: בלי WebGL אין הדמיה שהפס מסתיר, והנתונים הם כל מה שיש בדף — אז הוא לא מתקפל */
+hudTm=setTimeout(function(){ if(LIVE&&!hudPinned&&!tsScrub) hudOpen(false); },5200);
 /* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
    הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
    והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
@@ -638,7 +639,8 @@ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ S
    נע ברציפות עם כל זום — בגלגלת, בצביטה או בכפתור — כך שהסרגל הוא גם "איפה אני" ולא רק כפתורים.
    המדד הוא רוחב השטח שעל המסך במטרים, אותו מדד שמחבר את ההדמיה לגלובוס. */
 (function(){
-  var nav=$('vw'); if(!nav||!LIVE) return;
+  var nav=$('vw'); if(!nav) return;
+  if(!LIVE){ nav.hidden=true; return; }      /* 23.9: בלי WebGL אין לאן לעוף (גם הגלובוס צריך אותו) — פקד מת מוסתר, לא מוצג */
   var knob=nav.querySelector('.vw-knob'), btns=nav.querySelectorAll('button[data-v]'), lastY=-1, lastA='';
   function wBoat(){ var Z=EXO.zoomAxis; return (Z&&Z.wOfU&&Z.uOfR)?Z.wOfU(Z.uOfR(64)):120; }
   function stops(){ var s=window.__exoViewStops?window.__exoViewStops():null;
