@@ -126,7 +126,8 @@ function renderRace(){
       +'<path d="M'+it.x.toFixed(1)+' '+(top-9)+' V'+(y-R-3)+'" stroke="'+(it.me?'#8fe3de':'#b9e0ff')+'" stroke-opacity=".6"/>'; });
   svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.innerHTML=s;
   var near=0; items.forEach(function(it){ if(!it.me&&Math.abs(it.f[5]-ME[5])<=25) near++; });
-  $('raceLine').innerHTML='אקסודוס '+NUM(FIX.rank)+' מתוך '+NUM(FLEET.length)+'. '+(near?heb(near,'סירה אחת','שתי סירות','סירות')+' בטווח של 25 מייל ממנה.':'אין סירה בטווח של 25 מייל ממנה.');
+  $('raceLine').innerHTML='אקסודוס '+NUM(FIX.rank)+' מתוך '+NUM(FLEET.length)+'. '+(near?heb(near,'סירה אחת','שתי סירות','סירות')+' בטווח של 25 מייל ממנה.':'אין סירה בטווח של 25 מייל ממנה.')
+    +((typeof FIX.ghost==='number')?' מול קירסטן נוישפר, המנצחת ב־2022, באותו רגע במרוץ שלה: '+NUM(thou(Math.abs(FIX.ghost)))+(FIX.ghost>=0?' מייל לפניה.':' מייל אחריה.'):'');
   var tip=$('raceTip');
   function show(ev){ var t=ev.target; if(!t.classList||!t.classList.contains('rb')){ tip.hidden=true; return; }
     var it=items[+t.getAttribute('data-i')], bb=box.getBoundingClientRect(), cb=t.getBoundingClientRect();
@@ -222,5 +223,5 @@ if(EXO){
 else { $('cards').parentNode.style.display='none'; renderAhead(); }
 var rz; window.addEventListener('resize',function(){ clearTimeout(rz); rz=setTimeout(function(){ renderRace(); if(EXO&&EXO.state){ renderAhead(); renderDay(EXO.state); } },180); });
 window.addEventListener('load',function(){ setTimeout(function(){ renderRace(); if(EXO&&EXO.state){ renderAhead(); renderDay(EXO.state); } },60); });   /* front.css נטען בלי לחסום; מודדים רוחב שוב אחריו */
-$('voyLine').innerHTML=NUM(thou(FIX.sailed))+' מייל ימי מאחוריו, '+NUM(thou(FIX.toGate))+' עד '+esc(FIX.gate)+'. '+NUM(((FIX.totalNm-FIX.dtf)/FIX.totalNm*100).toFixed(1)+'%')+' מההקפה.';
+$('voyLine').innerHTML=NUM(thou(FIX.sailed))+' מייל מאחוריו, '+NUM(thou(FIX.toGate))+' עד '+esc(FIX.gate)+'. '+NUM(((FIX.totalNm-FIX.dtf)/FIX.totalNm*100).toFixed(1)+'%')+' מההקפה.';
 })();
