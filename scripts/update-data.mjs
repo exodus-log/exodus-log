@@ -5,8 +5,12 @@
    שני מצבים, לפי EXO_MODE:
      compare (ברירת המחדל) — לא כותב כלום לאתר. מחשב פעמיים: פעם "כאילו" ברגע של data.js הנוכחי,
                              ומשווה שדה אחר שדה; ופעם את ההווה, ובודק אותו מול הלוח הרשמי. התוצאה בסיכום הריצה.
-     publish               — כותב assets/data.js כשיש נקודת ציון חדשה (לכל היותר פעם ב-50 דקות),
+     publish               — כותב assets/data.js כשיש נקודת ציון חדשה של אקסודוס (לכל היותר פעם בשעתיים),
                              אחרי שעבר את הבדיקות. את הקומיט עושה ה-workflow.
+   קצב (22.9.2026): כל קומיט הוא פרסום של Cloudflare Pages, ובמסלול החינמי יש 500 בחודש. עד כאן הבוט קימט
+   גם על כל תזוזה של סירה אחרת וגם על כל נקודה בהיסטוריית הצי — כ-40 ביום. עכשיו קומיט אחד לכל נקודת ציון
+   של אקסודוס (בדרך כלל כל ארבע שעות), ובו הכול: data.js, היסטוריית הצי, והארכיון (ה-workflow מוסיף אותו).
+   סירה שדיווחה באיחור נכנסת בקומיט הבא — הדף ממילא מציג תמונת מצב של נקודת הציון.
    משפט הסיפור לא בקובץ הזה: הוא ב-assets/story.js, ואותו כותב רק קלוד.
 
    הרצה מקומית:  node scripts/update-data.mjs            (compare, בלי מזג אוויר אם לא מבקשים)
@@ -87,11 +91,11 @@ async function main() {
   say(`נקודת הציון החדשה ביותר של אקסודוס: **${iso(F.at)}** (לפני ${((now - F.at) / 3600).toFixed(1)} שעות). ב-data.js הנוכחי: ${iso(prev.FIX.at)}.`);
   if (live.check) say(`מול הלוח הרשמי: DTF ${F.dtf} מול ${live.check.dtfLb.toFixed(1)} (הפרש ${live.check.dtfDiff.toFixed(1)}), מקום ${F.rank} מול ${live.check.rankLb}, 24 שעות ${F.dmg24} מול ${live.check.d24Lb.toFixed(1)}.`);
   for (const w of live.warn) say(`> ⚠ ${w}`);
-  fleetLog(parsed);
 
   const hardFail = live.check && (Math.abs(live.check.dtfDiff) > 3 || !live.check.rankOk);
 
   if (MODE === 'compare') {
+    fleetLog(parsed);
     /* מזג אוויר רק פעם בארבע שעות (או בבקשה), כדי לא לשרוף את המכסה החינמית של Open-Meteo */
     const h = new Date().getUTCHours(), m = new Date().getUTCMinutes();
     const wxNow = process.env.EXO_WEATHER === '1' || (h % 4 === 1 && m < 30);
@@ -120,17 +124,16 @@ async function main() {
   if (hardFail) throw new Error('החישוב לא מתיישב עם הלוח הרשמי — לא מפרסמים. כנראה שינוי בפורמט של המעקב.');
 
   const newFix = F.at > prev.FIX.at;
-  const fleetMoved = JSON.stringify(live.v.FLEET) !== JSON.stringify(prev.FLEET);
-  if (!newFix && !fleetMoved) { say('אין נקודת ציון חדשה. לא נכתב כלום.'); setOut('changed', 'false'); return; }
+  if (!newFix) { say('אין נקודת ציון חדשה של אקסודוס. לא נכתב כלום (סירות אחרות ייכנסו עם הנקודה הבאה שלה).'); setOut('changed', 'false'); return; }
   let lastCommit = 0;
   try { lastCommit = +execSync('git log -1 --format=%ct -- assets/data.js').toString().trim() || 0; } catch {}
-  if (now - lastCommit < 50 * 60) { say(`data.js עודכן לפני ${Math.round((now - lastCommit) / 60)} דקות. ממתינים (לכל היותר פרסום אחד ב-50 דקות).`); setOut('changed', 'false'); return; }
+  /* ליד שער המעקב שולח כל חצי שעה. שעתיים הן הרצפה, כדי שגם אז לא נעבור את מכסת הפרסומים */
+  if (now - lastCommit < 115 * 60) { say(`data.js עודכן לפני ${Math.round((now - lastCommit) / 60)} דקות. ממתינים (לכל היותר פרסום אחד בשעתיים).`); setOut('changed', 'false'); return; }
 
   let cond = prev.COND, wxOk = false;
-  if (newFix) {
-    try { cond = await weather(live.v.samples); wxOk = true; }
-    catch (e) { say(`> ⚠ מזג האוויר נכשל, נשארת הטבלה הקודמת: ${e.message}`); }
-  }
+  try { cond = await weather(live.v.samples); wxOk = true; }
+  catch (e) { say(`> ⚠ מזג האוויר נכשל, נשארת הטבלה הקודמת: ${e.message}`); }
+  fleetLog(parsed);
   const text = C.render(live.v, prev, cond);
   const errs = C.validate(text).filter(e => wxOk || !/COND לא מגיע/.test(e));
   if (errs.length) throw new Error('הקובץ נכשל בבדיקות: ' + errs.join('; '));
