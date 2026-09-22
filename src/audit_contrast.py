@@ -23,7 +23,7 @@ def _ocean():
 try: PIX=_ocean()
 except Exception: pass
 AP=argparse.ArgumentParser(); AP.add_argument('--root',default='www'); AP.add_argument('--port',type=int,default=8150)
-AP.add_argument('--out',default='audit-contrast'); AP.add_argument('--reduced',action='store_true')
+AP.add_argument('--out',default='audit-contrast'); AP.add_argument('--reduced',action='store_true'); AP.add_argument('--path',default='/')
 A=AP.parse_args(); os.makedirs(A.out,exist_ok=True)
 class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*a): pass
@@ -110,7 +110,7 @@ async def scene(b,name,w,h,mob,clock_off,globe):
     pg=await ctx.new_page(); errs=[]
     pg.on('pageerror', lambda e: errs.append(str(e)[:140]))
     pg.on('console', lambda m: errs.append('console: '+m.text[:120]) if m.type=='error' else None)
-    await pg.goto('http://127.0.0.1:%d/'%A.port); await pg.wait_for_timeout(5200)
+    await pg.goto('http://127.0.0.1:%d%s'%(A.port,A.path)); await pg.wait_for_timeout(5200)
     # 22.9: ב-/next/ פס הנתונים מתקפל לבד אחרי 5.2 שנ׳ — בדיוק ברגע האיסוף. לפעמים נאסף פתוח וצולם מקופל,
     # והטקסט נמדד מול רקע בלי ההצללה שלו (54 "כשלים" שלא היו). נועלים אותו פתוח: זה המצב שבו קוראים אותו.
     try: await pg.evaluate("if(window.__exoHudOpen) __exoHudOpen(true,true)")
