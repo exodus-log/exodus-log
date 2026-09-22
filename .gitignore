@@ -23,3 +23,15 @@ _private/
 # הערה: התעלמות לא מוציאה קובץ שכבר נמצא בריפו. claude/files.zip והתמונות שכבר ב-"Claude outputs"
 # ייצאו רק כשיוזזו מחוץ לתיקיית הפרויקט (אז הפרסום הבא רושם את ההסרה).
 Claude outputs/
+
+# src/: המקורות עולים לריפו, התוצרים ותיקיות הבדיקה לא
+src/out/
+src/out-preview/
+src/www/
+src/www-*/
+src/shots*/
+src/out-audit/
+src/audit-*/
+src/__pycache__/
+src/npm/
+src/coast.js
