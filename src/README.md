@@ -18,6 +18,6 @@ python3 src/build_site.py
 | `build_site.py` | הכול: מריץ את `build_engine.py`, בונה את הגלובוס (`globe_add.js` על `assets/globe.js`), את "המסע" (`assets/front.js`), ובודק כל קובץ ב-`node --check` |
 | `names.js`, `stars.js`, `journey.css` | שמות הגלובוס, קטלוג הכוכבים (Yale BSC5, נאפה ב-`bake_stars.py`), סגנון "המסע" |
 | `bake_coast.js`, `make_icons.py` | קו החוף של המפה הקטנה, סמלי האפליקציה |
-| `shotq.py`, `audit_*.py` | בדיקות: צילומים ושגיאות קונסול בעשרה תרחישים, פריסה, ניגודיות, משקל, מצבי קצה, מסמכים, מקלדת (Playwright). מריצים על `src/www/` — האתר ועוד `out/` ו-`out-preview/` מעליו |
+| `shotq.py`, `audit_*.py` | בדיקות: צילומים ושגיאות קונסול בעשרה תרחישים, פריסה, ניגודיות (האות מול מה שצמוד לה), משקל, מצבי קצה, מסמכים, מקלדת, וגאומטריה — `audit_mesh.py` מוודא שכל חלק של הסירה יושב על הסירה (Playwright). `audit_all.py` מריץ את כולן. מריצים על `src/www/` — האתר ועוד `out/` ו-`out-preview/` מעליו |
 
 `assets/deck.js`, `assets/front.js`, `assets/globe.js` ו-`assets/sextant.js` שבשורש הם חלק מהמקורות: הדף לא טוען אותם, אבל מהם נבנים קובצי `v2`.
