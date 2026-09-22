@@ -432,15 +432,19 @@ function mergeFleetLog(log, tracks, opt) {
   Object.keys(log).forEach(function (k) { ids[k] = 1; });
   Object.keys(tracks).forEach(function (k) { ids[k] = 1; });
   Object.keys(ids).forEach(function (k) {
-    var all = (log[k] || []).concat((tracks[k] || []).map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf }; }));
-    all.sort(function (a, b) { return a.at - b.at; });
+    /* 23.9: באותו רגע — הנקודה מהמעקב קודמת לזו שנשמרה. ב-22.9 16:00 UTC המעקב האריך את המסלול הרשמי בכ-850 מייל
+       וחישב מחדש את המרחק-לסיום לכל ההיסטוריה; הקובץ השמור החזיק את הערכים הישנים לפני הרגע הזה ואת החדשים אחריו,
+       והמיזוג העדיף תמיד את הישן. עכשיו מה שהמעקב אומר על נקודה שהוא עדיין זוכר — גובר. */
+    var all = (log[k] || []).map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, fresh: 0 }; })
+      .concat((tracks[k] || []).map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, fresh: 1 }; }));
+    all.sort(function (a, b) { return (a.at - b.at) || (b.fresh - a.fresh); });
     var keep = [];
     for (var i = 0; i < all.length; i++) {
       var p = all[i];
       if (!isFinite(p.at) || !isFinite(p.lat) || !isFinite(p.lon) || !isFinite(p.dtf)) continue;
       if (Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180) continue;
       var gap = (now - p.at > LOG_OLD ? LOG_OLD_STEP : LOG_STEP) - LOG_TOL;
-      if (!keep.length || p.at - keep[keep.length - 1].at >= gap) keep.push(p);
+      if (!keep.length || p.at - keep[keep.length - 1].at >= gap) keep.push({ at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf });
     }
     if (keep.length) out[k] = keep;
   });

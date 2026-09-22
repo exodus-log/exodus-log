@@ -141,14 +141,25 @@ say('  מקדמי הסירות: ' + Object.keys(POLAR.K).sort((a, b) => POLAR.K[
    נותן לכל נקודה: היעד הוא הצומת הראשון שהמרחק שלו לסיום קטן מזה של הסירה. */
 const CUM = new Array(COURSE.length); CUM[COURSE.length - 1] = 0;
 for (let i = COURSE.length - 2; i >= 0; i--) CUM[i] = CUM[i + 1] + dist(COURSE[i].lat, COURSE[i].lon, COURSE[i + 1].lat, COURSE[i + 1].lon);
-function nextNode(dtf) { for (let i = 0; i < COURSE.length; i++) if (CUM[i] < dtf - 8) return i; return COURSE.length - 1; }
+/* הצומת הבא: מבין הקטעים שהמרחק-לסיום שלהם קרוב לזה של הסירה (±400 מייל — הקו המפושט קצר מהמלא בכמה עשרות
+   מייל, ולכן לא משווים בית בבית), הקטע הקרוב ביותר גאוגרפית; היעד הוא סופו. */
+function nextNode(dtf, lat, lon) {
+  let best = 1e9, k = 0;
+  for (let i = 0; i < COURSE.length - 1; i++) {
+    if (Math.abs(CUM[i] - dtf) > 400) continue;
+    const a = COURSE[i], b = COURSE[i + 1], seg = dist(a.lat, a.lon, b.lat, b.lon);
+    const d = dist(lat, lon, a.lat, a.lon) + dist(lat, lon, b.lat, b.lon) - seg;   /* 0 על הקטע עצמו */
+    if (d < best) { best = d; k = i + 1; }
+  }
+  return k;
+}
 /* זווית מינימלית לרוח: 0 בכוונה. הפולאר נלמד מממוצעים של ארבע שעות, ולכן התא "0–35°" כבר מכיל את הזיגזג נגד
    הרוח כפי שהצי באמת עשה אותו (313 שעות מדידה, רובן במפרץ ביסקאיה) — מהירות "עשויה טוב" בכיוון המטרה. זווית
    מינימלית מעליו הייתה סופרת את ההפסד פעמיים. נבדק: 0/30/42/50 נותנים אותה טעות במבחן לאחור (עד כאן המרוץ
    כמעט כולו עם הרוח). EXO_MIN_TWA=42 מחזיר את החוק הפיזיקלי, לבדיקה כשיהיו ימים נגד הרוח. */
 const MIN_TWA = +(process.env.EXO_MIN_TWA ?? 0);
 function simulate(id, polar, t0, lat, lon, dtf0, hours) {
-  const out = []; let la = lat, lo = lon, k = nextNode(dtf0);
+  const out = []; let la = lat, lo = lon, k = nextNode(dtf0, lat, lon);
   for (let h = 1; h <= hours; h++) {
     const t = t0 + h * 3600, c = condAt(id, t); if (!c) return null;
     if (dist(la, lo, COURSE[k].lat, COURSE[k].lon) < 8 && k < COURSE.length - 1) k++;
@@ -192,7 +203,7 @@ for (let D = RACE_START + 3 * 86400 - (RACE_START % 86400) + 86400; D + 24 * 360
 if (process.env.EXO_TRACE) {   /* EXO_TRACE=4:2026-09-15 — מדפיס את התחזית שעה-שעה לסירה אחת מיום אחד */
   const [tid, day] = process.env.EXO_TRACE.split(':'); const D = Date.parse(day + 'T00:00Z') / 1000;
   const tr = log[tid].filter(p => p.at >= RACE_START), p0 = posAt(tr, D), polar = fitPolar(SAMPLES.filter(s => s.t1 <= D));
-  let la = p0.lat, lo = p0.lon, k = nextNode(p0.dtf);
+  let la = p0.lat, lo = p0.lon, k = nextNode(p0.dtf, p0.lat, p0.lon);
   for (let h = 1; h <= 72; h++) { const t = D + h * 3600, c = condAt(tid, t); if (dist(la, lo, COURSE[k].lat, COURSE[k].lon) < 8 && k < COURSE.length - 1) k++; const tgt = COURSE[k]; let hdg = brg(la, lo, tgt.lat, tgt.lon); const rel = ang(hdg, c.wdir); if (Math.abs(rel) < MIN_TWA) hdg = (c.wdir + Math.sign(rel || 1) * MIN_TWA + 360) % 360;
     const twa = Math.abs(ang(c.wdir, hdg)), v = polar.speed(tid, c.tws, twa, c.wave); const vx = v * Math.sin(hdg * rad) + c.cur * Math.sin(c.curTo * rad), vy = v * Math.cos(hdg * rad) + c.cur * Math.cos(c.curTo * rad);
     const p = dest(la, lo, (Math.atan2(vx, vy) / rad + 360) % 360, Math.hypot(vx, vy)); la = p[0]; lo = p[1]; const real = posAt(tr, t);
