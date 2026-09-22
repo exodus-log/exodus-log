@@ -951,6 +951,12 @@ function labAnchors(VP,t){
   var qs=rp(R,c.windDir), us=pxAt(qs[0],qs[1]);
   put('wind',band(0.20),c.windDir,false,46*us); put('wave',band(0.56),c.waveDir,false,-52*us); put('cur',band(0.85),(c.curDir+180)%360,false,46*us);
   put('gate',R-30*us,GATE_BRG,false,-8*us); put('cog',R-30*us,FIX.cog,false,30*us); put('beacon',1400,GATE_BRG,true);
+  /* המשואה נעלמה בזומים ובכיוונים רבים (הערה בתחנה, 21.9): נקודת האופק שלה יצאה מהמסך — מעל הקצה העליון
+     בטלפון לאורך, או לצד/מאחורי המצלמה — ו-project החזיר null. עכשיו נשמר גם המיקום הגולמי, עם הצד הנכון
+     גם כשהנקודה מאחורי המצלמה (חלוקה ב-|w|), וה-HUD מצמיד את המשואה לשפת המסך במקום להעלים אותה. */
+  (function(){ var qb=rp(1400,GATE_BRG), m=VP, px=qb[0], pz=qb[1], w=m[3]*px+m[11]*pz+m[15], aw=Math.max(Math.abs(w),1e-3);
+    var nx=(m[0]*px+m[8]*pz+m[12])/aw, ny=(m[1]*px+m[9]*pz+m[13])/aw;
+    A.beaconEx=[(nx*0.5+0.5)*cw,(1-(ny*0.5+0.5))*ch,w<=0.001?1:0]; })();
   EXO.frame.ringR=R;
 }
 
@@ -1449,8 +1455,10 @@ function clothMesh(x0,x1,y0,h,z,flip){
   for(i=0;i<N;i++){ var b=i*2; if(flip) idx.push(b,b+2,b+1,b+1,b+2,b+3); else idx.push(b,b+1,b+2,b+1,b+3,b+2); }
   return mesh(p,idx,uv); }
 var M_CLOTHS=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46, dW(-2.7)-0.04,false),
-    M_CLOTHP=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46,-(dW(-2.7)-0.04),true),
-    M_CLOTHT=clothMesh(-0.48,0.48,dY(-5.05)+0.26,0.28,-5.15,false);
+    M_CLOTHP=clothMesh(-4.10,-1.30,dY(-2.7)+0.16,0.46,-(dW(-2.7)-0.04),true);
+/* 22.9: היה כאן גם M_CLOTHT, "בד הירכתיים": clothMesh מותח את הבד לאורך ציר x, ולכן (-0.48..0.48, z=-5.15)
+   יצא לוח לבן שמרחף באוויר 5 מ׳ משמאל לאמצע הסירה ולא בד על מעקה הירכתיים. בתמונה 09 הבדים יושבים על מעקה הצד
+   ליד הקוקפיט (כבר קיימים כאן) ולא לרוחב הירכתיים — ולכן הוסר ולא הוזז. */
 
 /* ---------- הגוף: תפרי לוחות, פס שפשוף, והמדבקה של המספר ---------- */
 function hullPt(t,sv){ var x=(t-0.5)*LOA, w=hb(t), sh2=sheer(t), dp=dep(t);
@@ -1622,41 +1630,94 @@ function whaleFluke(){                               /* מדוכה רחבה עם
   gPush(g,[[Q[0][0],-0.07,0],[Q[1][0],-0.07,Q[1][2]],[Q[2][0],-0.05,Q[2][2]],[Q[3][0],-0.03,Q[3][2]],[Q[4][0],-0.03,Q[4][2]]],[[0,1,2],[0,2,3],[0,3,4]]);
   return gMesh(g); }
 var WHP=whaleParts(), M_FLUKE=whaleFluke();
-var WH={x:0,z:0,dep:14,hdg:0,spd:2.1,ph:0};
+/* ---- התנהגות (מ-21.9 בערב, הערה בתחנה: "פרס למי שמתמיד ומסתכל") ----
+   הלוויתן משחק רחוק מהסירה, 110 עד 300 מ׳. פעם בכמה דקות, כשהוא בטווח שרואים ממנו משהו, הוא עולה
+   לנשום: עלייה איטית, כמה נשיפות מעל הגב, ואז צלילה עם הזנב — הגוף מתכופף, המדוכה יוצאת מהמים
+   ויורדת לאט. מחזור השחייה נשאר כמו שהיה; רק העומק, ההטיה והזנב מונעים מהשלב. */
+var WH={x:0,z:0,dep:14,dep0:14,hdg:0,spd:2.1,ph:0, st:'deep', stT:0, next:0, pitch:0, curl:0, blows:[]};
 function whaleSeed(first){
-  var a=Math.random()*6.2831853, d=first?(70+Math.random()*90):(160+Math.random()*70);
+  var a=Math.random()*6.2831853, d=first?(110+Math.random()*90):(190+Math.random()*60);
   WH.x=Math.cos(a)*d; WH.z=Math.sin(a)*d;
   WH.hdg=Math.atan2(-WH.x,WH.z)+(Math.random()-0.5)*2.4;
-  WH.dep=6+Math.random()*15; WH.spd=1.5+Math.random()*1.1; WH.ph=Math.random()*6.283; }
+  WH.dep0=WH.dep=7+Math.random()*13; WH.spd=1.5+Math.random()*1.1; WH.ph=Math.random()*6.283;
+  if(first) WH.next=55+Math.random()*50; }
 whaleSeed(true);
+/* ענן הנשיפה: כדור נמוך־פוליגונים, לבן, שעולה, מתרחב ונמוג */
+var M_PUFF=(function(){ var g=G(), NR=7, NS=5, i, j;
+  for(i=0;i<=NS;i++){ var v=i/NS*Math.PI, y=Math.cos(v), r=Math.sin(v); for(j=0;j<NR;j++){ var a=j/NR*6.2831853; g.p.push(Math.cos(a)*r,y,Math.sin(a)*r); } }
+  for(i=0;i<NS;i++) for(j=0;j<NR;j++){ var q=i*NR+j, q2=i*NR+(j+1)%NR; g.i.push(q,q2,q+NR, q2,q2+NR,q+NR); }
+  return gMesh(g); })();
+function whBlow(W){ var hx=(0.84-0.44)*WH_LEN, c=[W[0]*hx+W[4]*1.1+W[12], W[1]*hx+W[5]*1.1+W[13], W[2]*hx+W[6]*1.1+W[14]];
+  for(var k=0;k<9;k++) WH.blows.push({x:c[0],y:Math.max(c[1],0.1),z:c[2],vx:(Math.random()-0.5)*1.1,vy:7.5+Math.random()*4.0,vz:(Math.random()-0.5)*1.1,age:-k*0.05,L:2.4+Math.random()*1.0}); }
+function whPhase(dt,dcam){
+  var S=WH, e=(S.stT+=dt), sm2=function(a,b,x){ return sm(a,b,x); };
+  if(S.st==='deep'){ S.next-=dt; S.dep+=(S.dep0-S.dep)*Math.min(1,dt*0.25); S.pitch*=0.98; S.curl*=0.98;
+    /* עולה רק כשהוא בטווח שאפשר לראות ממנו, ולא צמוד לסירה */
+    if(S.next<=0){ var r=Math.hypot(S.x,S.z); if(r>(S.force?20:70)&&r<240&&dcam<230){ S.st='rise'; S.stT=0; S.dep1=S.dep; } else S.next=8; } }
+  else if(S.st==='rise'){ var f=sm2(0,12,e); S.dep=S.dep1+(1.25-S.dep1)*f; S.pitch=0.10*Math.sin(Math.PI*Math.min(1,e/12)); if(e>=12){ S.st='surf'; S.stT=0; S.nb=0; } }
+  else if(S.st==='surf'){ S.dep=1.25+Math.sin(e*0.9)*0.08; S.pitch*=0.95;
+    var at=[1.2,5.6,10.2]; if(S.nb<at.length&&e>=at[S.nb]){ S.nb++; S.blowNow=true; }
+    if(e>=14){ S.st='dive'; S.stT=0; } }
+  else if(S.st==='dive'){
+    /* הגוף מתכופף אף־למטה, הזנב מתקמר והמדוכה עולה מעל המים, ואז יורדת לאט */
+    S.pitch=-0.46*sm2(0,3.2,e)*(1-0.55*sm2(7,11,e));
+    S.curl=sm2(1.2,4.2,e)*(1-sm2(7.5,11,e));
+    S.dep=1.25+Math.max(0,e-2.2)*0.55+Math.max(0,e-6)*0.35;
+    if(e>=11.5){ S.st='deep'; S.stT=0; S.dep0=8+Math.random()*12; S.next=150+Math.random()*120; } }
+}
+function drawBlows(dt,VP){
+  if(!WH.blows.length) return;
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  for(var k=WH.blows.length-1;k>=0;k--){ var b=WH.blows[k]; b.age+=dt; if(b.age<0) continue;
+    if(b.age>b.L){ WH.blows.splice(k,1); continue; }
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.z+=b.vz*dt; b.vy=Math.max(0.4,b.vy-5.2*dt); b.vx*=0.985; b.vz*=0.985;
+    var f=b.age/b.L, r=0.34+f*1.7, a=0.72*(1-f)*(1-f)*Math.min(1,b.age*6);
+    gl.uniform1f(SOLID.u('uA'),a);
+    drawMesh(M_PUFF, mMul(mTrans(b.x,b.y,b.z),mScale(r,r*1.25,r)), [0.93,0.95,0.97], 1, 0.55); }
+  gl.depthMask(true); gl.disable(gl.BLEND); gl.uniform1f(SOLID.u('uA'),1); }
 function drawWhale(t,dt,eye,under,VP){
   if(EXO.quality==='lite'||reduce) return;
   WH.x+=Math.sin(WH.hdg)*WH.spd*dt; WH.z-=Math.cos(WH.hdg)*WH.spd*dt;
-  WH.hdg+=Math.sin(t*0.07+WH.ph)*0.0025;                        /* סטייה איטית מאוד, לא קו ישר מכני */
-  if(Math.hypot(WH.x,WH.z)>270) whaleSeed(false);
-  var dcam=Math.hypot(eye[0]-WH.x,eye[2]-WH.z); if(dcam>250) return;
-  var w=1.15+WH.spd*0.20, ph=t*w+WH.ph;                          /* קצב המחזור עולה מעט עם המהירות */
-  var y=-WH.dep+Math.sin(ph*0.30)*1.25+Math.sin(ph)*0.16;        /* עלייה וירידה איטית, ועוד נדנוד קטן בקצב הזנב */
-  var roll=Math.sin(t*0.21+WH.ph)*0.11;
-  var W=mMul(mMul(mMul(mTrans(WH.x,y,WH.z),mRotY(Math.PI/2-WH.hdg)),mRotZ(Math.sin(ph)*0.035)),mRotX(roll));
-  var a1=Math.sin(ph-0.7)*0.115, a2=Math.sin(ph-1.5)*0.20, a3=Math.sin(ph-2.3)*0.34;   /* גל שעובר אחורה */
+  WH.hdg+=Math.sin(t*0.07+WH.ph)*0.0025;
+  var rr=Math.hypot(WH.x,WH.z);
+  /* שומר מרחק: קרוב מדי — פונה החוצה בעדינות. רחוק מדי — מתחלף, אבל לא באמצע נשימה */
+  if(rr<95) WH.hdg+=(((Math.atan2(WH.x,-WH.z)-WH.hdg+Math.PI*3)%(Math.PI*2))-Math.PI)*0.004;
+  if(rr>300&&WH.st==='deep') whaleSeed(false);
+  var dcam=Math.hypot(eye[0]-WH.x,eye[2]-WH.z);
+  whPhase(dt,dcam);
+  if(dcam>330){ WH.blows.length=0; return; }
+  var w=1.15+WH.spd*0.20, ph=t*w+WH.ph;
+  var calm=(WH.st==='deep')?1:0.35;                               /* ליד פני המים הנדנוד רגוע יותר */
+  var y=-WH.dep+(Math.sin(ph*0.30)*1.25+Math.sin(ph)*0.16)*calm*(WH.st==='deep'?1:0.2);
+  var roll=Math.sin(t*0.21+WH.ph)*0.11*calm;
+  var W=mMul(mMul(mMul(mTrans(WH.x,y,WH.z),mRotY(Math.PI/2-WH.hdg)),mRotZ(Math.sin(ph)*0.035*calm+WH.pitch)),mRotX(roll));
+  var cu=WH.curl, a1=Math.sin(ph-0.7)*0.115*calm-0.10*cu, a2=Math.sin(ph-1.5)*0.20*calm-0.42*cu, a3=Math.sin(ph-2.3)*0.34*(1-0.7*cu)-0.62*cu;
   var MB=mMul(W,mRotZ(a1));
   var MC=mMul(mMul(MB,mTrans((0.20-0.44)*WH_LEN,0,0)),mRotZ(a2));
   var MF=mMul(mMul(MC,mTrans((0.0-0.20)*WH_LEN,0,0)),mRotZ(a3));
+  if(WH.blowNow){ WH.blowNow=false; whBlow(W); }
   var deep=Math.max(0,Math.min(1,(WH.dep-1.5)/16));
-  var a=under?1.0:(0.72-0.34*deep)*Math.max(0,Math.min(1,1.45-dcam/150));
-  if(a<0.02) return;
-  var col=under?[0.125,0.165,0.195]:[0.020,0.055,0.085];
+  var a=under?1.0:(0.72-0.34*deep)*Math.max(0,Math.min(1,1.6-dcam/200));
   gl.useProgram(SOLID);
   gl.enableVertexAttribArray(SOLID.a('aP')); gl.enableVertexAttribArray(SOLID.a('aN'));
-  if(a<0.999){ gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST); }
-  gl.uniform1f(SOLID.u('uA'),a);
-  drawMesh(WHP.A, W, col); drawMesh(WHP.B, MB, col); drawMesh(WHP.C, MC, col);
-  drawMesh(M_FLUKE, MF, col);
-  gl.uniform1f(SOLID.u('uA'),1);
-  if(a<0.999){ gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); }
+  if(a>=0.02){
+    var col=under?[0.125,0.165,0.195]:[0.020,0.055,0.085];
+    if(a<0.999){ gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST); }
+    gl.uniform1f(SOLID.u('uA'),a);
+    drawMesh(WHP.A, W, col); drawMesh(WHP.B, MB, col); drawMesh(WHP.C, MC, col);
+    drawMesh(M_FLUKE, MF, col);
+    gl.uniform1f(SOLID.u('uA'),1);
+    if(a<0.999){ gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); } }
+  /* מעל המים: מה שיצא מהמים מצויר מוצק, עם בדיקת עומק מול הים — כך רק הגב, הסנפיר והמדוכה נראים,
+     והשאר נשאר מתחת לפני המים. גב רטוב: אפור־כחלחל כהה, עם מעט ברק */
+  if(!under&&WH.st!=='deep'){ var wet=[0.16,0.19,0.22];
+    drawMesh(WHP.A, W, wet); drawMesh(WHP.B, MB, wet); drawMesh(WHP.C, MC, wet); drawMesh(M_FLUKE, MF, wet); }
+  if(!under) drawBlows(dt,VP); else WH.blows.length=0;
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
 }
+EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'front' מציב אותו מול המצלמה, 150 מ׳ מעבר לסירה, ומזמן נשימה */
+  if(cmd==='front'&&LAB._eye){ var ex=LAB._eye[0], ez=LAB._eye[2], L=Math.hypot(ex,ez)||1; var dd=dist||150; WH.x=-ex/L*dd; WH.z=-ez/L*dd; WH.hdg=Math.atan2(-ez,-ex)+Math.PI/2; WH.next=0; WH.st='deep'; WH.force=!!dist; }
+  if(cmd==='surface'){ WH.next=0; var r=Math.hypot(WH.x,WH.z); if(r<70||r>240){ var a=Math.atan2(WH.z,WH.x); WH.x=Math.cos(a)*150; WH.z=Math.sin(a)*150; } } return {st:WH.st,t:+WH.stT.toFixed(1),dep:+WH.dep.toFixed(2),r:Math.round(Math.hypot(WH.x,WH.z)),blows:WH.blows.length}; };
 
 function buildFlow(c,t,dt,eye,bodyY){
   flowN=0; rngCur=[0,0]; rngSurf=[0,0]; rngAir=[0,0];
@@ -2166,7 +2227,7 @@ function frameBody(){
   drawSail(M_SEV7, boatM, TEX_SEVEN, 1);
   drawSail(M_SEV7P,boatM, TEX_SEVEN, 1);
   if(detail){ gl.uniform1f(SAILP.u('uTwo'),1);
-    drawSail(M_CLOTHS,boatM, TEX_SPON, 1); drawSail(M_CLOTHP,boatM, TEX_SPON, 1); drawSail(M_CLOTHT,boatM, TEX_SPON, 1);
+    drawSail(M_CLOTHS,boatM, TEX_SPON, 1); drawSail(M_CLOTHP,boatM, TEX_SPON, 1);
     gl.uniform1f(SAILP.u('uTwo'),0); }
   gl.depthMask(true); gl.disable(gl.BLEND);
   gl.disableVertexAttribArray(SAILP.a('aP')); gl.disableVertexAttribArray(SAILP.a('aN'));

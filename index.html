@@ -53,6 +53,8 @@
   --halo:-1px -1px 0 rgba(3,10,16,.92),1px -1px 0 rgba(3,10,16,.92),-1px 1px 0 rgba(3,10,16,.92),1px 1px 0 rgba(3,10,16,.92),0 -1px 0 rgba(3,10,16,.92),0 1px 0 rgba(3,10,16,.92),-1px 0 0 rgba(3,10,16,.92),1px 0 0 rgba(3,10,16,.92),0 0 7px rgba(3,10,16,.9);
   --ms:clamp(104px,11vw,150px);   /* קוטר מפת המיקומים */
   --ls:clamp(116px,11vw,150px);   /* קוטר כפתור השכבות: לא פחות מ-116, אחרת אין אזור מגע סביר לכל שליש */
+  --tsh:26px;                     /* גובה רצועת הזמן שבתחתית */
+  --tpast:#8fe3de; --tfut:#f1cf8a; /* עבר ותחזית ברצועה ובשורות. לא אדום-ירוק: גם מי שלא מבחין ביניהם רואה את ההבדל */
   --top:70px;                     /* התחתית של שורת הנתונים והשעונים; hud.js מודד ומעדכן */
   /* מערכת השוליים. עד כאן היו בקוד שבעה ערכים שונים לאותו תפקיד — 4, 6, 8, 10, 12, 14 ו-16 —
      ולכן השעונים, שורת הנתונים, המפה הקטנה וטור הבקרות ישבו כל אחד במרחק אחר מקצה המסך,
@@ -70,7 +72,7 @@
   --ink2d:#bccad3; --ink3d:#879caa;
   --e-t:calc(var(--edge) + env(safe-area-inset-top,0px));
   --e-r:calc(var(--edge) + env(safe-area-inset-right,0px));
-  --e-b:calc(var(--edge) + env(safe-area-inset-bottom,0px));
+  --e-b:calc(var(--tsh) + 8px + env(safe-area-inset-bottom,0px));   /* מעל רצועת הזמן */
   --e-l:calc(var(--edge) + env(safe-area-inset-left,0px));
   --row2:calc(var(--bot) + var(--gut) + env(safe-area-inset-bottom,0px));   /* השורה שמעל מספרי המרוץ */
 }
@@ -106,12 +108,15 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .hud em{font-style:normal;color:var(--ink3d);margin-inline-start:.55em;font-size:.92em}
 .hud b{font-weight:400}
 
-/* שורת הנתונים: שם היומן, תאריך, נ״צ, תנאים. בלי מסגרת ובלי כותרת */
-.topr{top:var(--e-t);right:var(--e-r);
-  max-width:min(76%,960px);display:flex;flex-direction:column;gap:3px;align-items:flex-start}
-.topr .row{display:flex;flex-wrap:wrap;gap:1px 0;align-items:baseline}
+/* שורת הנתונים — פס אחד צמוד לקצה העליון, בכל הרוחב, בכל הגדלים. במקום חמש שורות נפרדות ושעונים
+   בטור משלהם: זרם אחד של פריטים עם רווח קבוע ביניהם, שעוטף לפי הרוחב. מתקפל לנקודה (#hudDot). */
+.topr{top:0;left:0;right:0;max-width:none;box-sizing:border-box;
+  padding:var(--e-t) calc(var(--e-r) + 32px) 16px var(--e-l);
+  display:flex;flex-direction:row;flex-wrap:wrap;gap:3px 1.15em;align-items:baseline;
+  background:linear-gradient(to bottom,rgba(4,12,19,.66),rgba(4,12,19,.44) 62%,rgba(4,12,19,0));
+  pointer-events:auto;cursor:pointer;transition:opacity .28s ease,transform .28s ease,visibility 0s}
+.topr .row{display:contents}
 .topr .row>span{white-space:nowrap}
-.topr .row>span+span::before{content:"";display:inline-block;width:1px;height:.85em;background:var(--hair);margin:0 .8em;vertical-align:-.08em}
 .topr .r1{font-size:13px}
 .topr .brand{font-weight:500;letter-spacing:.01em}
 .topr .dim{color:var(--ink2)}
@@ -119,30 +124,36 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 #vAgeW.stale i,#vAgeW.stale b{color:#ffb3a8}
 #hFcast{color:var(--ink3d)}
 .topr .brk{display:none}
+.topr .clocks em{color:var(--ink3d);display:inline!important}
+.topr .clocks .lead b{color:var(--ink)}
+body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer-events:none;transition:opacity .28s ease,transform .28s ease,visibility 0s .28s}
+/* הנקודה: בפינה שבה הפס מתחיל. בצבע ההווה, ובגרירת זמן בצבע העבר או התחזית — גם כשהפס סגור */
+#hudDot{position:absolute;z-index:6;top:calc(var(--e-t) - 15px);right:calc(var(--e-r) - 15px);width:44px;height:44px;
+  border:0;padding:0;margin:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#hudDot::before{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;
+  background:#e9fbf9;box-shadow:0 0 5px 1px rgba(143,227,222,.9),0 0 14px 4px rgba(143,227,222,.38);transition:background .35s,opacity .3s}
+body.hfold #hudDot::before{animation:hdGlow 3.4s ease-in-out infinite}
+@keyframes hdGlow{50%{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}}
+body:not(.hfold) #hudDot::before{opacity:.75}
+body.t-past #hudDot::before{background:var(--tpast)}
+body.t-fut #hudDot::before{background:var(--tfut);box-shadow:0 0 5px 1px rgba(241,207,138,.9),0 0 14px 4px rgba(241,207,138,.38)}
+#hudDot:focus-visible{outline:2px solid #8fe3de;outline-offset:-6px;border-radius:50%}
+@media (prefers-reduced-motion:reduce){ body.hfold #hudDot::before{animation:none} .topr{transition:none} }
 
-/* רצועת הזמן: דקה, קבועה, וממש מתחת לשורות. מראה את הרוח, הגל, הלחץ ואור היום לאורך כל היממות
-   שיש עליהן נתונים, ומאפשרת לגרור אחורה וקדימה. השדה range שמעליה הוא גם המגע וגם הנגישות. */
-.tstrip{position:relative;align-self:stretch;width:100%;min-width:min(340px,58vw);height:30px;margin-top:4px;
-  pointer-events:auto;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
-  background:rgba(4,12,19,.34);border-radius:2px;overflow:hidden;touch-action:pan-y}
+/* רצועת הזמן (מ-21.9 בערב, לפי הערות בתחנה): בחלק הכי תחתון של המסך, בכל רוחבו, בכל הגדלים.
+   שבוע אחד, וההווה תמיד באמצע. בלי שעה, תאריך או "עכשיו" עליה: הזמן שנבחר נקרא בשורות הנתונים,
+   שצובעות את עצמן — טורקיז לעבר, ענבר לתחזית, לבן להווה. השדה range שמעליה הוא המגע והנגישות. */
+.tstrip{position:fixed;z-index:4;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);height:var(--tsh);
+  pointer-events:auto;border-top:1px solid var(--hair);background:rgba(4,12,19,.42);overflow:hidden;touch-action:pan-y}
 .tstrip canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .tstrip input[type=range]{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none;background:none;direction:ltr}
 .tstrip input[type=range]:focus-visible{opacity:1;outline:2px solid #8fe3de;outline-offset:-2px}
-.tstrip input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:30px;background:transparent}
-.tstrip input[type=range]::-moz-range-thumb{width:26px;height:30px;border:0;background:transparent}
-#tsRead{position:absolute;top:50%;transform:translateY(-50%);right:7px;font-size:10px;color:var(--ink);
-  background:rgba(4,12,19,.72);padding:1px 5px;border-radius:2px;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap}
-.tstrip.scrub #tsRead{opacity:1}
-#tsNow{position:absolute;top:50%;transform:translateY(-50%);left:4px;font:400 10px var(--ui);
-  color:#06121b;background:#8fe3de;border:0;border-radius:2px;padding:2px 7px;cursor:pointer;pointer-events:auto}
-
-/* שלושה שעונים, בלי אייקונים */
-.clocks{top:var(--e-t);left:var(--e-l);
-  display:grid;grid-template-columns:auto auto;gap:1px 9px;direction:ltr;align-items:baseline;font-size:12px}
-.clocks b{font-size:13px}
-.clocks span{color:var(--ink3d);font-size:11px;direction:rtl}
-.clocks .lead b{font-size:15px;color:var(--ink)}
-.clocks .lead span{color:var(--ink2d)}
+.tstrip input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:var(--tsh);background:transparent}
+.tstrip input[type=range]::-moz-range-thumb{width:26px;height:var(--tsh);border:0;background:transparent}
+/* עבר ותחזית: רק הערכים שבאמת נגזרים מהשעון המוצג. המיקום ומספרי המרוץ הם של נקודת הציון ונשארים לבנים */
+#hDay,#hDate,.topr .r2 b,.topr .r3 b,.clocks b,.lb.dat .n{transition:color .35s}
+body.t-past #hDay,body.t-past #hDate,body.t-past .topr .r2 b,body.t-past .topr .r3 b,body.t-past .clocks b,body.t-past .lb.dat .n{color:var(--tpast)}
+body.t-fut #hDay,body.t-fut #hDate,body.t-fut .topr .r2 b,body.t-fut .topr .r3 b,body.t-fut .clocks b,body.t-fut .lb.dat .n{color:var(--tfut)}
 
 /* מספרי המרוץ: שורה אחת בתחתית */
 .vit{left:0;right:0;bottom:var(--e-b);display:flex;flex-wrap:wrap;justify-content:center;gap:2px 0;
@@ -163,6 +174,12 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .lb.beacon::after{content:"";position:absolute;left:50%;bottom:0;width:1px;height:40px;background:linear-gradient(rgba(255,255,255,.95),rgba(255,255,255,0))}
 .lb.beacon.below{padding-bottom:0;padding-top:30px}
 .lb.beacon.below::after{bottom:auto;top:0;height:24px;background:linear-gradient(rgba(255,255,255,0),rgba(255,255,255,.95))}
+/* משואה על שפת המסך: היעד מחוץ לשדה הראייה. חץ דק לכיוון, בלי הקו האנכי */
+.lb.beacon.edge{padding:0;text-align:start}
+.lb.beacon.edge::after{display:none}
+/* הטקסט מימין לשמאל: החץ השמאלי הוא סוף השורה (::after), הימני הוא תחילתה (::before) */
+.lb.beacon.el::after{display:inline;position:static;content:"‹";width:auto;height:auto;background:none;margin-inline-start:.35em;font-size:1.35em;line-height:0;vertical-align:-.1em}
+.lb.beacon.er::before{content:"›";margin-inline-end:.35em;font-size:1.35em;line-height:0;vertical-align:-.1em}
 .lb .n{font-size:.95em}
 
 /* מפת מיקומים קטנה: מובילה אל "המסע" */
@@ -172,6 +189,27 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .mini:hover canvas,.mini:focus-visible canvas{opacity:1;transform:scale(1.03)}
 .mini{color:var(--ink2d)} .mini span{font-size:11px;text-shadow:var(--shd,var(--sh))}
 .mini:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:12px}
+
+/* שלושת המבטים: קו שיער אנכי, שלוש נקודות ושמות קטנים. רחוק מהסירה, בלי רקע ובלי מסגרת.
+   אזור המגע של כל עצירה 44 פיקסל גובה; מה שנראה הוא נקודה של 5 פיקסלים ומילה אחת. */
+.vw{position:absolute;left:var(--e-l);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;direction:ltr;
+  -webkit-user-select:none;user-select:none;filter:drop-shadow(0 0 3px rgba(3,10,16,.55))}
+.vw::before{content:"";position:absolute;left:4px;top:22px;bottom:22px;width:1px;background:rgba(225,236,243,.26);pointer-events:none}
+.vw button{position:relative;display:flex;align-items:center;gap:11px;height:44px;margin:0;padding:0 12px 0 0;border:0;background:none;
+  color:var(--ink2d,var(--ink2));font:300 12px var(--ui);letter-spacing:.05em;cursor:pointer;text-shadow:var(--shd,var(--sh));
+  opacity:.52;transition:opacity .35s;-webkit-tap-highlight-color:transparent}
+.vw button::before{content:"";flex:none;width:5px;height:5px;margin-left:2px;box-sizing:border-box;border:1px solid currentColor;border-radius:50%;transition:background-color .35s}
+.vw button span{direction:rtl;white-space:nowrap}
+.vw button:hover{opacity:.85} .vw button[aria-pressed=true]{opacity:1;color:var(--ink)} .vw button[aria-pressed=true]::before{background:currentColor}
+.vw button:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:2px;border-radius:3px}
+.vw-knob{position:absolute;left:4.5px;top:0;width:9px;height:9px;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:50%;pointer-events:none;will-change:transform}
+body.j-open .vw{display:none}
+/* טלפון לרוחב: אין גובה לאמצע המסך — הסרגל נשען מעל מפת המיקומים, בצפיפות, וסרגל קנה המידה מעליו */
+@media (max-height:520px){
+  .vw{top:auto;transform:none;bottom:calc(var(--row2) + var(--ms) + 14px)}
+  .vw button{height:34px} .vw::before{top:17px;bottom:17px}
+  #globeLayer .gl-scale{top:auto;bottom:calc(var(--row2) + var(--ms) + 14px + 112px)}
+}
 
 /* כפתור השכבות: עיגול אחד, שלושה שלישים (רוח, גל, זרם), והתפריט בטבור. קווי מתאר דקים, בלי רקע */
 /* אזור המגע 44x44 (מתחת לזה אצבע מחטיאה), והטבעת הנראית נשארת 34 — דרך ::before */
@@ -300,16 +338,11 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   #menu{right:0;left:0;bottom:0;width:auto;max-height:72%;border-radius:10px 10px 0 0;border-bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
   #toast{bottom:calc(var(--row2) + var(--ms) + 46px);font-size:12px}
   .hud{font-size:11px} .topr .r1{font-size:11.5px} .vit{font-size:11px} .vit b{font-size:12.5px}
-  .topr{max-width:calc(100% - 132px)}
-  .clocks b{font-size:12px} .clocks .lead b{font-size:13px} .clocks span{font-size:10px}
   .lb{font-size:11px}
 }
 @media (max-width:700px){
-  .topr{flex-direction:row;flex-wrap:wrap;gap:1px 1.05em;align-items:baseline}
-  .topr .row{display:contents}
-  .topr .row>span+span::before,.vit>span+span::before{display:none}
-  .topr .brk{display:block;flex-basis:100%;height:0}
-  .tstrip{flex-basis:100%;height:26px;margin-top:3px}
+  .vit>span+span::before{display:none}
+  .topr{gap:2px 1em}
   .vit{gap:2px 1.2em}
 }
 @media (max-height:520px){
@@ -322,14 +355,6 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   .ly .n{font-size:9.5px} .lnm{font-size:9.5px}
   #menu{left:auto;right:0;top:0;bottom:0;width:min(330px,56%);max-height:none;border-radius:0}
   .g-scrub{bottom:calc(var(--row2) - 8px)} .g-leg{display:none}
-  /* מסך נמוך (טלפון לרוחב): הרצועה השעתית יורדת מראש המסך אל התחתית, בדיוק במקום ובמידות של
-     רצועת הימים בגלובוס — בין המפה הקטנה לטבעת. שם היא לא חוצה את מרכז המסך, ששם התורן, והראש
-     נשאר לנתונים בלבד. measureTop מודד את .topr, ולכן --top מתכווץ מעצמו. */
-  .tstrip{position:fixed;z-index:4;
-    left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));
-    right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));
-    bottom:var(--row2);width:auto;min-width:0;height:22px;margin:0;align-self:auto}
-  .tstrip input[type=range]::-webkit-slider-thumb{height:22px}
 }
 /* טלפון לאורך: שלושה כפתורים עגולים נפרדים בטור בשוליים הימניים, בגובה האגודל, והתפריט קטן מתחתם */
 @media (max-width:700px) and (min-height:521px){
@@ -386,7 +411,10 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     </div>
   </section>
 
-  <header class="hud topr" aria-label="נתוני הרגע">
+  <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
+       לנקודה זוהרת. הקשה על הנקודה פותחת את הכול בבת אחת; גרירת הזמן פותחת אותו לבד -->
+  <button type="button" id="hudDot" aria-expanded="true" aria-controls="hudBand" aria-label="נתוני הרגע: תאריך, מיקום, רוח, גל, זרם ושעונים"></button>
+  <header class="hud topr" id="hudBand" aria-label="נתוני הרגע">
     <div class="row r1">
       <span class="brand">יומן אקסודוס</span>
       <span id="hDay">—</span>
@@ -410,19 +438,13 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
       <span id="hRainW" hidden><i>גשם</i><b class="n" id="hRain">—</b></span>
       <span id="hTempW"><i>אוויר / מים</i><b class="n" id="hTemp">—</b></span>
     </div>
-    <div class="tstrip" id="tstrip">
-      <canvas id="tsCv" aria-hidden="true"></canvas>
-      <input type="range" id="tsRange" min="0" max="1000" value="1000" step="1" aria-label="רצועת הזמן: רוח, גל, לחץ ואור היום לאורך היממות. שמאלה לאחור, ימינה קדימה">
-      <b class="n" id="tsRead" aria-hidden="true"></b>
-      <button type="button" id="tsNow" hidden>עכשיו</button>
+    <div class="row r4 clocks" aria-label="שלושה שעונים">
+      <span class="lead"><b class="n" id="cBoat">--:--</b><em>אצל דניאל</em></span>
+      <span><b class="n" id="cUtc">--:--</b><em>UTC</em></span>
+      <span><b class="n" id="cIl">--:--</b><em>ישראל</em></span>
     </div>
   </header>
 
-  <div class="hud clocks" aria-label="שלושה שעונים">
-    <div class="lead" style="display:contents"><b class="n" id="cBoat">--:--</b><span>אצל דניאל</span></div>
-    <b class="n" id="cUtc">--:--</b><span>UTC</span>
-    <b class="n" id="cIl">--:--</b><span>ישראל</span>
-  </div>
 
   <div id="labels" aria-hidden="true"></div>
 
@@ -430,6 +452,19 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <canvas id="miniCv" width="300" height="300"></canvas><span>המסע והניתוח</span>
   </button>
 
+  <!-- שלושת המבטים (22.9): סרגל אנכי דק בשוליים השמאליים. הטבעת הקטנה נעה עם כל זום ומראה איפה אנחנו -->
+  <nav class="vw" id="vw" aria-label="מבט">
+    <button type="button" data-v="boat" aria-pressed="true"><span>סירה</span></button>
+    <button type="button" data-v="region" aria-pressed="false"><span>אזור</span></button>
+    <button type="button" data-v="race" aria-pressed="false"><span>כל המרוץ</span></button>
+    <i class="vw-knob" aria-hidden="true"></i>
+  </nav>
+
+  <!-- רצועת הזמן: שבוע, וההווה תמיד באמצע. בתחתית המסך, מקצה לקצה. בלי כיתובים: הצבע אומר איפה אתה בזמן -->
+  <div class="tstrip" id="tstrip">
+    <canvas id="tsCv" aria-hidden="true"></canvas>
+    <input type="range" id="tsRange" min="0" max="1000" value="500" step="1" aria-label="רצועת הזמן: שבוע, וההווה באמצע. שמאלה אחורה בזמן, ימינה קדימה. הקשה במרכז או הקשה כפולה מחזירות להווה">
+  </div>
   <div class="hud vit" aria-label="מספרי המרוץ">
     <span><i>מקום</i><b class="n" id="vRank">—</b><em id="vOf"></em></span>
     <span><i>מהירות וכיוון</i><b class="n" id="vSog">—</b></span>
