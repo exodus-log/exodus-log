@@ -222,6 +222,11 @@ body.j-open .vw{display:none}
 body.g-open #sndBtn,body.j-open #sndBtn{display:none}
 .lay{position:absolute;right:var(--e-r);bottom:var(--row2);width:var(--ls);height:var(--ls);
   color:var(--ink);text-shadow:var(--shd,var(--sh));-webkit-user-select:none;user-select:none}
+.lay{isolation:isolate}
+/* 22.9: ביום הים מאחורי החוגה מגיע לבהירות של שמיים, והמספרים הלבנים ירדו ל-1.2:1 בנקודה הגרועה (audit_contrast).
+   מאחוריה עכשיו צל עגול רך שעומקו נגזר מגובה השמש (--vg3, אותו מדרג של ההצללה העליונה). בלילה הוא כמעט אפס. */
+.lay::before{content:'';position:absolute;inset:-16%;z-index:-1;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(4,12,19,calc(var(--vg3) * 2.3)) 58%,rgba(4,12,19,calc(var(--vg3) * 1.1)) 82%,transparent 100%)}
 .lay-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 0 3px rgba(3,10,16,.8))}
 .lay-ring *{fill:none;stroke:rgba(225,236,243,.55);stroke-width:1;vector-effect:non-scaling-stroke}
 .ly{position:absolute;inset:0;margin:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;
@@ -360,6 +365,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 @media (max-width:700px) and (min-height:521px){
   .lay{width:48px;height:auto;right:var(--e-r);bottom:var(--row2);display:flex;flex-direction:column;align-items:center}
   .lay-ring{display:none}
+  .lay::before{inset:-2px 0;border-radius:24px;background:rgba(4,12,19,calc(var(--vg3) * 2.1));filter:blur(9px)}
   .lnm{position:static;transform:none;font-size:10px;line-height:1;margin-top:7px}
   .ly{position:relative;inset:auto;width:48px;height:auto;min-height:48px;display:grid;justify-items:center;align-content:start;gap:1px;padding:3px 0 0;clip-path:none;-webkit-mask-image:none;mask-image:none;background:none!important}
   .ly .ic,.ly .n,.ly .dot{position:static;transform:none}
@@ -549,8 +555,9 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
       <summary>מה כאן נמדד, מה מחושב ומה מודל</summary>
       <ul>
         <li><b>נמדד.</b> המיקום, הכיוון והמהירות, מקובץ המעקב הלווייני של המרוץ. דיווח כל ארבע שעות; מה שביניהם הוא השלמה.</li>
-        <li><b>מחושב במדויק.</b> השמש, הירח, שלושת השעונים וקו היום והלילה על הגלובוס: אסטרונומיה, לרגע שבו הדף פתוח. השעה ״אצל דניאל״ היא שעת השמש המקומית לפי קו האורך של הסירה.</li>
+        <li><b>מחושב במדויק.</b> השמש, הירח, שלושת השעונים וקו היום והלילה על הגלובוס: אסטרונומיה, לרגע שעל השעון של הדף. השעה ״אצל דניאל״ היא שעת השמש המקומית לפי קו האורך של הסירה.</li>
         <li><b>מודל.</b> הרוח, הגלים, הזרם, הלחץ, העננות, הראות והטמפרטורות, ממודל אטמוספרי ואוקיינוגרפי ולא ממדידה בסירה. כיוון: ‎±20–30 מעלות. הגל בים פועם בזמן המחזור האמיתי שלו, ונחשי הזרם נעים במהירות האמיתית שלו.</li>
+        <li><b>אחורה בזמן.</b> כשגוררים את רצועת הזמן לעבר, הרוח, הגל והזרם באים מארכיון של אותו מודל, שעה אחר שעה. המיקום הוא השלמה בין נקודות הציון, והכיוון והמהירות מחושבים ממנו. איפה שאין ארכיון הרצועה מעומעמת ואי אפשר לגרור לשם. מספרי המרוץ בתחתית נשארים של נקודת הציון האחרונה.</li>
         <li><b>סימנים.</b> על טבעת המצפן: נוצת רוח כמו במפות מזג אוויר (נוצה מלאה 10 קשר, חצי נוצה 5), חץ גלי לזרם כמו במפות ימיות, קשתות לגל, מעוין ליעד הבא וקו כפול לכיוון ההתקדמות.</li>
         <li><b>מוסק.</b> מצב המפרשים: אין עליו שום נתון. הוא נגזר מזווית הרוח ומעוצמתה. כרגע: <span id="pvSail">—</span>, רוח ב־<span class="num" id="pvTwa">—</span>°.</li>
         <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, הסיפון הכתום, מעקה הטיק האפור, הסוכך הכתום, דגל ישראל על מפרשי החרטום והמספר 07. המידות: באבא 35, לפי השלט שעל הרציף.</li>

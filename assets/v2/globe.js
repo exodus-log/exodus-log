@@ -215,7 +215,12 @@ function play(){
     if(f<1) playing.raf=requestAnimationFrame(step); else stop(); })(t0);
 }
 playBtn.addEventListener('click',function(){ if(playing) stop(); else play(); });
-range.addEventListener('input',function(){ stop(); draw(tOf(+range.value),+range.value>=999.5); });
+var followP=null;
+function scrubFollow(p){ try{ if(!p) return; var z=map.getZoom(); if(z<3.2){ followP=p; return; }
+  var ref=followP||here, q=map.project(ref), w=box.clientWidth, h=box.clientHeight;
+  if(Math.abs(q.x-w/2)<Math.min(w,h)*0.3&&Math.abs(q.y-h/2)<Math.min(w,h)*0.3) map.jumpTo({center:p});
+  followP=p; }catch(e){} }
+range.addEventListener('input',function(){ stop(); scrubFollow(draw(tOf(+range.value),+range.value>=999.5)); });
 
 /* ---------- מבטים ---------- */
 var chips=document.querySelectorAll('#globeChips button');
