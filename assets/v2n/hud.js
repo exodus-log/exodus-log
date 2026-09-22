@@ -431,7 +431,17 @@ window.__exoGlobeReturn=function(X,bearing,u){ if(!LIVE||!gOpen||!EXO.zoomAxis) 
   retLive=X>0; if(gRet) EXO.setU(Math.min(Z.GLOBE-0.0005,(u===undefined?Z.GLOBE-X*(Z.GLOBE-Z.XF):u))); };
 if(LIVE){ EXO.onOver=function(over){ var Z=EXO.zoomAxis; if(gOpen&&Z&&window.__exoGlobeDrive) window.__exoGlobeDrive(Z.wOfU(Z.GLOBE)*Math.exp(over*Z.K)); };
   var gTick=setInterval(function(){ if(window.__exoGlobeLoaded){ EXO.globeReady=true; clearInterval(gTick); } },700); }
-idle(function(){ setTimeout(function(){ if(!LIVE||EXO.quality!=='lite') globeBuild(); },3200); },4000);
+/* 22.9 (/next/): הגלובוס — MapLibre, קו החוף, השמות והיסטוריית הצי, כ-1.5MB, ואחריהם אריחי NASA — נטען רק כשמבקר
+   מתחיל להתרחק: גלגלת או מקש מינוס (שמגיע כגלגלת), או שתי אצבעות על המסך. עד כאן הוא נטען ברקע לכל מבקר אחרי
+   ארבע שניות, גם למי שלא התרחק מעולם. עד שהוא מוכן ההתרחקות נעצרת בגבול של ההדמיה (uCeil), וממשיכה לבד. */
+(function(){ var done=false;
+  function want(){ if(done) return; done=true; if(!LIVE||EXO.quality!=='lite') globeBuild(); off(); }
+  function onWheel(e){ if(e.deltaY>0) want(); }
+  function onTouch(e){ if(e.touches&&e.touches.length>=2) want(); }
+  function off(){ window.removeEventListener('wheel',onWheel,true); window.removeEventListener('touchstart',onTouch,true); }
+  window.addEventListener('wheel',onWheel,{capture:true,passive:true});
+  window.addEventListener('touchstart',onTouch,{capture:true,passive:true});
+})();
 
 /* ================= "המסע והניתוח": הסיפור, הצי, קנה המידה, התחזית והסקסטנט — נפתחים מכפתור מפת המיקומים ================= */
 var J=$('journey'), jOpen=false, jReady=null, jPushed=false;

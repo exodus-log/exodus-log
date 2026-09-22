@@ -127,6 +127,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 #hFcast{color:var(--ink3d)}
 .topr .brk{display:none}
 .topr .clocks em{color:var(--ink3d);display:inline!important}
+/* שלושת השעונים עוטפים יחד: בטלפון "ישראל" נשאר לבד בשורה חמישית */
+.topr .row.clocks{display:flex;gap:inherit;flex-wrap:nowrap}
 .topr .clocks .lead b{color:var(--ink)}
 body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer-events:none;transition:opacity .28s ease,transform .28s ease,visibility 0s .28s}
 /* הנקודה: בפינה שבה הפס מתחיל. בצבע ההווה, ובגרירת זמן בצבע העבר או התחזית — גם כשהפס סגור */
@@ -568,6 +570,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
         <li><b>מוסק.</b> מצב המפרשים: אין עליו שום נתון. הוא נגזר מזווית הרוח ומעוצמתה. כרגע: <span id="pvSail">—</span>, רוח ב־<span class="num" id="pvTwa">—</span>°.</li>
         <li><b>מצויר מתצלומים שלה.</b> הגוף הלבן, הסיפון הקדמי הכתום, מעקה הטיק האפור, הסוכך הכתום, ה-7 והלוח הכתום על המפרש הראשי, ודגל ישראל על האחורן. המידות: באבא 35, לפי השלט שעל הרציף.</li>
         <li><b>סכמטי.</b> המסלול שנותר על הגלובוס הוא קו בין נקודות החובה, לא תחזית ניווט.</li>
+        <li><b>רוח הרפאים.</b> נוישפר של 2022: המסלול שלה כפי שהמעקב הרשמי משדר אותו על השעון של המרוץ הזה. ההשוואה היא בין המרחקים לסיום באותו רגע.</li>
       </ul>
     </details>
   </section>
