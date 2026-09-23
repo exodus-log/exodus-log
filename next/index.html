@@ -123,7 +123,11 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .topr .brand{font-weight:500;letter-spacing:.01em}
 .topr .dim{color:var(--ink2)}
 .topr .stale{color:#ffb3a8}
-#vAgeW.stale i,#vAgeW.stale b{color:#ffb3a8}
+#vAgeW.stale i,#vAgeW.stale b,#vUpdW.stale i,#vUpdW.stale b{color:#ffb3a8}
+/* 23.9 (l19): במסך הראשון ארבעה מספרים; כשהמכשירים פתוחים — השורה המלאה של קודם */
+body.hfold .vit .v-full,body:not(.hfold) .vit .v-lean,body.hfold #vAgeW{display:none}
+/* בלי מפריד לפני הפריט הגלוי הראשון: ה-::before נשען על "span+span", והפריט שלפניו מוסתר */
+body:not(.hfold) .vit>#vDayW+span::before{display:none}
 #hFcast{color:var(--ink3d)}
 .topr .brk{display:none}
 .topr .clocks em{color:var(--ink3d);display:inline!important}
@@ -503,11 +507,15 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <canvas id="tsCv" aria-hidden="true"></canvas>
     <input type="range" id="tsRange" min="0" max="1000" value="500" step="1" aria-label="רצועת הזמן: שבוע, וההווה באמצע. שמאלה אחורה בזמן, ימינה קדימה. הקשה במרכז או הקשה כפולה מחזירות להווה">
   </div>
+  <!-- 23.9 (l19): ארבעה מספרים במסך הראשון — יום כמה למסע, מקום מתוך כמה, כמה נשאר, מתי התעדכן.
+       המהירות והפער מהמוביל מופיעים עם שאר המכשירים (כשפס הנתונים פתוח) -->
   <div class="hud vit" aria-label="מספרי המרוץ">
+    <span class="v-lean" id="vDayW"><i>יום</i><b class="n" id="vDay">—</b><em>למסע</em></span>
     <span><i>מקום</i><b class="n" id="vRank">—</b><em id="vOf"></em></span>
-    <span><i>מהירות וכיוון</i><b class="n" id="vSog">—</b></span>
-    <span><i>פער מהמוביל</i><b class="n" id="vGap">—</b><em>מייל</em></span>
+    <span class="v-full"><i>מהירות וכיוון</i><b class="n" id="vSog">—</b></span>
+    <span class="v-full"><i>פער מהמוביל</i><b class="n" id="vGap">—</b><em>מייל</em></span>
     <span><i>עד קו הסיום</i><b class="n" id="vDtf">—</b><em>מייל</em></span>
+    <span class="v-lean" id="vUpdW"><i>עודכן</i><b id="vUpd">—</b></span>
     <!-- מספרי המרוץ הם תמונת המצב של נקודת הציון האחרונה. כשהיא מתיישנת הם נשארים על המסך
          כאילו הם של עכשיו, ומי שמצלם את השורה הזאת לא יודע מתי היא נכונה. מופיע רק כשיש פער. -->
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
