@@ -474,6 +474,7 @@ function renderFleetLog(log) {
 
 var api = { parseYB: parseYB, compute: compute, meteoUrls: meteoUrls, buildCond: buildCond, render: render, validate: validate,
             readData: readData, decodeLand: decodeLand, nearestLand: nearestLand, diff: diff, dist: dist, ME: ME,
-            tracksFrom: tracksFrom, readFleetLog: readFleetLog, mergeFleetLog: mergeFleetLog, renderFleetLog: renderFleetLog };
+            tracksFrom: tracksFrom, readFleetLog: readFleetLog, mergeFleetLog: mergeFleetLog, renderFleetLog: renderFleetLog,
+            brg: brg, dest: dest };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else (typeof globalThis !== 'undefined' ? globalThis : window).ExoCore = api;
 })();
