@@ -146,6 +146,25 @@ G.rep("  if(nightOn!==live){ nightOn=live; map.setLayoutProperty('night','visibi
       "  nightAt(live?((EXO&&EXO.state)?EXO.state.now:Date.now()):t*1000); trailsAt(t); backKick();")
 G.rep("  function night(){ map.getSource('night').setData(nightPolys((EXO&&EXO.state)?EXO.state.now:Date.now())); }",
       "  function night(){ if(!scrubbing()) nightAt((EXO&&EXO.state)?EXO.state.now:Date.now()); }")
+# ---- ציר הזמן, שלב 3 (23.9): התחזית ברצועת הימים — ראו globe_add.js, "התחזית" ----
+# "חי" = הערך 1000 בדיוק; מעליו הרצועה ממשיכה אל התחזית (range.max גדל כשהקובץ נטען)
+G.rep("range.addEventListener('input',function(){ stop(); scrubFollow(draw(tOf(+range.value),+range.value>=999.5)); });",
+      "range.addEventListener('input',function(){ stop(); scrubFollow(draw(tOf(+range.value),Math.abs(+range.value-1000)<0.5)); });")
+G.rep("from=(+range.value>=995)?0:+range.value;", "from=(+range.value>=995)?0:+range.value;   /* מהעתיד — מהזינוק */")
+# הסירות בעתיד: מהתחזית; המניפה והדרך הצפויה של אקסודוס
+G.rep("  for(i=0;i<fl.length;i++) if(fl[i].id===4) me=fl[i];\n  if(live){ pos=here; }",
+      "  var fut=fcDraw(t,fl);\n  for(i=0;i<fl.length;i++) if(fl[i].id===4) me=fl[i];\n  if(live){ pos=here; } else if(fut&&me&&me.est){ pos=[me.lon,me.lat]; }")
+G.rep("  boat.setLngLat(pos).setRotation(live?FIX.cog:headingAt(pts)); meMarker.setLngLat(pos);",
+      "  boat.setLngLat(pos).setRotation(live?FIX.cog:(fut&&me&&me.est?headingAt([here,pos]):headingAt(pts))); meMarker.setLngLat(pos);")
+G.rep("  out.innerHTML=live?(nowLbl+' · יום <span class=\"num\">'+FIX.dayN+'</span> · מקום <span class=\"num\">'+FIX.rank+'</span>')",
+      "  if(fut){ var fh=Math.round((t-T1)/3600); out.innerHTML='הערכה · <span class=\"num\">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span> · בעוד <span class=\"num\">'+fh+'</span> שע׳'; }\n"
+      "  else out.innerHTML=live?(nowLbl+' · יום <span class=\"num\">'+FIX.dayN+'</span> · מקום <span class=\"num\">'+FIX.rank+'</span>')")
+G.rep("  return {type:'Feature',properties:{name:o.name,rank:o.rank,dtf:Math.round(o.dtf),dmg:o.dmg},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}; })}; }",
+      "  return {type:'Feature',properties:{name:o.name,rank:o.rank,dtf:Math.round(o.dtf),dmg:o.dmg,est:o.est?1:0},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}; })}; }")
+G.rep("'circle-color':['case',['==',['get','rank'],1],'#8fd0ff','rgba(240,246,249,.9)'],",
+      "'circle-color':['case',['==',['get','est'],1],'#f1cf8a',['==',['get','rank'],1],'#8fd0ff','rgba(240,246,249,.9)'],")
+G.rep("try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); addScale(); }catch(e){}",
+      "try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); addScale(); addForecast(); }catch(e){}")
 assert '#ff8a3c' not in G.s
 wr(os.path.join(OUT, 'assets', 'v2', 'globe.js'), G.s)
 

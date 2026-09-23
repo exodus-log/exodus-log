@@ -141,7 +141,7 @@ var style={ version:8, projection:{type:'globe'},
     {id:'done',type:'line',source:'done',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffffff','line-width':['interpolate',['linear'],['zoom'],0,2,6,3.6]}},
     {id:'marks-wp',type:'circle',source:'marks',filter:['==',['get','kind'],'wp'],paint:{'circle-radius':2.6,'circle-color':'rgba(255,255,255,.75)'}},
     {id:'marks',type:'circle',source:'marks',filter:['!=',['get','kind'],'wp'],paint:{'circle-radius':['interpolate',['linear'],['zoom'],0,3.4,5,6],'circle-color':'rgba(5,16,25,.55)','circle-stroke-color':'#fff','circle-stroke-width':1.8}},
-    {id:'fleet',type:'circle',source:'fleet',paint:{'circle-radius':['interpolate',['linear'],['zoom'],0,2,3,3.2,6,6],'circle-color':['case',['==',['get','rank'],1],'#8fd0ff','rgba(240,246,249,.9)'],'circle-stroke-color':'#06121b','circle-stroke-width':1.2}}
+    {id:'fleet',type:'circle',source:'fleet',paint:{'circle-radius':['interpolate',['linear'],['zoom'],0,2,3,3.2,6,6],'circle-color':['case',['==',['get','est'],1],'#f1cf8a',['==',['get','rank'],1],'#8fd0ff','rgba(240,246,249,.9)'],'circle-stroke-color':'#06121b','circle-stroke-width':1.2}}
   ]};
 
 var map;
@@ -178,19 +178,21 @@ var todoMoved=false;
 function todoFC(from){ return {type:'FeatureCollection',features:remaining(from).map(function(l,i){ return {type:'Feature',properties:{leg:i},geometry:{type:'LineString',coordinates:l}}; })}; }
 var out=$('scOut'), range=$('scRange'), playBtn=$('scPlay'), icon=$('scIcon'), nightOn=true;
 function fleetFC(list){ return {type:'FeatureCollection',features:list.filter(function(o){ return o.id!==4; }).map(function(o){
-  return {type:'Feature',properties:{name:o.name,rank:o.rank,dtf:Math.round(o.dtf),dmg:o.dmg},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}; })}; }
+  return {type:'Feature',properties:{name:o.name,rank:o.rank,dtf:Math.round(o.dtf),dmg:o.dmg,est:o.est?1:0},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}; })}; }
 function draw(t,live){
   var pts=trackAt(t), pos=pts[pts.length-1], fl=fleetAt(t), me=null, i;
+  var fut=fcDraw(t,fl);
   for(i=0;i<fl.length;i++) if(fl[i].id===4) me=fl[i];
-  if(live){ pos=here; }
+  if(live){ pos=here; } else if(fut&&me&&me.est){ pos=[me.lon,me.lat]; }
   map.getSource('done').setData({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:live?pts.concat([here]):pts}});
   map.getSource('fleet').setData(fleetFC(fl));
-  boat.setLngLat(pos).setRotation(live?FIX.cog:headingAt(pts)); meMarker.setLngLat(pos);
+  boat.setLngLat(pos).setRotation(live?FIX.cog:(fut&&me&&me.est?headingAt([here,pos]):headingAt(pts))); meMarker.setLngLat(pos);
   if(!live||todoMoved){ todoMoved=!live; map.getSource('todo').setData(todoFC(pos)); }
   var day=Math.floor(t/86400)-Math.floor(T0/86400), d=new Date(t*1000);
   var fxAgeH=((EXO&&EXO.state?EXO.state.now:Date.now())/1000-FIX.at)/3600, fxD=new Date(FIX.at*1000);
   var nowLbl=fxAgeH<1?'עכשיו':('נ״צ <span class="num">'+('0'+fxD.getUTCHours()).slice(-2)+':'+('0'+fxD.getUTCMinutes()).slice(-2)+'</span>');
-  out.innerHTML=live?(nowLbl+' · יום <span class="num">'+FIX.dayN+'</span> · מקום <span class="num">'+FIX.rank+'</span>')
+  if(fut){ var fh=Math.round((t-T1)/3600); out.innerHTML='הערכה · <span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span> · בעוד <span class="num">'+fh+'</span> שע׳'; }
+  else out.innerHTML=live?(nowLbl+' · יום <span class="num">'+FIX.dayN+'</span> · מקום <span class="num">'+FIX.rank+'</span>')
     :('<span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span> · יום <span class="num">'+day+'</span> · מקום <span class="num">'+(me?me.rank:'—')+'</span>');
   nightAt(live?((EXO&&EXO.state)?EXO.state.now:Date.now()):t*1000); trailsAt(t); backKick();
   return pos;
@@ -205,7 +207,7 @@ function tOf(v){ return T0+(T1-T0)*v/1000; }
 var playing=null;
 function stop(){ if(playing){ cancelAnimationFrame(playing.raf); playing=null; } icon.setAttribute('d','M8 5v14l11-7z'); playBtn.setAttribute('aria-label','נגן את המסע מהזינוק'); }
 function play(){
-  stop(); var t0=performance.now(), DUR=reduce?1:15000, from=(+range.value>=995)?0:+range.value;
+  stop(); var t0=performance.now(), DUR=reduce?1:15000, from=(+range.value>=995)?0:+range.value;   /* מהעתיד — מהזינוק */
   icon.setAttribute('d','M7 5h4v14H7zM13 5h4v14h-4z'); playBtn.setAttribute('aria-label','עצור');
   setChip(null);
   var bounds=new maplibregl.LngLatBounds(); TRACK.forEach(function(q){ bounds.extend(q.p); });
@@ -220,7 +222,7 @@ function scrubFollow(p){ try{ if(!p) return; var z=map.getZoom(); if(z<3.2){ fol
   var ref=followP||here, q=map.project(ref), w=box.clientWidth, h=box.clientHeight;
   if(Math.abs(q.x-w/2)<Math.min(w,h)*0.3&&Math.abs(q.y-h/2)<Math.min(w,h)*0.3) map.jumpTo({center:p});
   followP=p; }catch(e){} }
-range.addEventListener('input',function(){ stop(); scrubFollow(draw(tOf(+range.value),+range.value>=999.5)); });
+range.addEventListener('input',function(){ stop(); scrubFollow(draw(tOf(+range.value),Math.abs(+range.value-1000)<0.5)); });
 
 /* ---------- מבטים ---------- */
 var chips=document.querySelectorAll('#globeChips button');
@@ -650,16 +652,16 @@ function nightPaint(){ nRaf=0;
   nMs=now; nT=nWant;
   try{ map.getSource('night').setData(nightPolys(nT)); }catch(e){} }
 function nightAt(ms){ nWant=ms; if(!nRaf) nRaf=requestAnimationFrame(nightPaint); }
-function scrubbing(){ return !!(range&&+range.value<999.5); }
+function scrubbing(){ return !!(range&&Math.abs(+range.value-1000)>=0.5); }   /* 23.9: גם מעבר ל"עכשיו" (תחזית) זה עיון */
 
 /* ===================== סבב Z — החזרה מושכת את רצועת הימים אל עכשיו =====================
    מי שעיין בעבר ואז צלל בחזרה אל הסירה היה מגיע לסיפון בזמן אמת בעוד הגלובוס שמאחוריו תקוע באתמול.
    עכשיו רצועת הימים נמשכת אל עכשיו לאורך ההצלבה עצמה: הצי מזנק קדימה תוך כדי הצלילה. */
 var retV0=-1, sRaf=0;
-function scrubDraw(){ sRaf=0; var v=+range.value; draw(tOf(v),v>=999.5); }
+function scrubDraw(){ sRaf=0; var v=+range.value; draw(tOf(v),Math.abs(v-1000)<0.5); }
 map.on('zoom',function(){
   if(retX>0){ if(retV0<0) retV0=+range.value;
-    if(retV0<998){ var v=Math.min(1000,retV0+(1000-retV0)*Math.max(0,Math.min(1,retX)));
+    if(Math.abs(retV0-1000)>2){ var v=retV0+(1000-retV0)*Math.max(0,Math.min(1,retX));
       if(Math.abs(v-(+range.value))>0.6){ range.value=v; if(!sRaf) sRaf=requestAnimationFrame(scrubDraw); } } }
   else retV0=-1; });
 
@@ -797,9 +799,67 @@ window.addEventListener('pointerdown',function(e){ if(autoRun&&e.pointerType==='
 window.__exoGlobeWidth=function(){ return widthForZ(map.getZoom()); };
 window.__exoViewStops=function(){ return {region:widthForZ(zFleet()), race:widthForZ(zRace())}; };
 
+/* ===================== ציר הזמן, שלב 3 — התחזית: 72 שעות קדימה (23.9.2026) =====================
+   assets/forecast.json נכתב על ידי הבוט (scripts/forecast.mjs): לכל סירה במרוץ, מיקום צפוי כל 3 שעות עד 72 שעות
+   מהנקודה האחרונה, עם הפולאר שנלמד מהמסלולים ותחזית Open-Meteo לאורך הדרך. הערכה, לא מדידה — ולכן ענבר.
+   רצועת הימים נמשכת מעבר ל"עכשיו": הערך 1000 נשאר ההווה, ומעליו הרצועה ממשיכה באותו קנה מידה של זמן.
+   בלי הקובץ — שום דבר לא משתנה. רוחב המניפה בא מהמבחן לאחור של הפולאר (העשירון העליון של הטעות), לא מניחוש. */
+var FC=null, T2=T1, FUT=0;
+function fcLoad(){
+  try{ fetch('assets/forecast.json',{cache:'no-cache'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+    if(!j||!j.boats||!j.from||j.from<T1-6*3600) return;            /* תחזית ישנה מהנ״צ — לא מציגים */
+    FC=j; T2=j.from+j.hours*3600; if(T2<=T1) { FC=null; return; }
+    FUT=Math.round(1000*(T2-T1)/(T1-T0));
+    range.max=1000+FUT; range.setAttribute('aria-label','פס זמן: מהזינוק ועד עכשיו, ומשם תחזית ל-72 שעות');
+    scTicksDraw(); fcStyle(); var lg=document.querySelector('.g-leg .l-fc'); if(lg) lg.hidden=false;
+  }).catch(function(){}); }catch(e){} }
+function scTicksDraw(){ var span=T2-T0, days=(T1-T0)/86400, step=days>120?30:days>40?10:days>16?5:2, h='', d;
+  for(d=0;d<=days;d+=step) h+='<span style="left:'+(d*86400/span*100).toFixed(1)+'%">'+(d===0?'זינוק':'יום '+d)+'</span>';
+  if(FC) h+='<span class="fut" style="left:'+(((T2-T0)/span)*100).toFixed(1)+'%">+3 ימים</span>';   /* "עכשיו" מסומן בצבע המסילה, לא במילה */
+  $('scTicks').innerHTML=h; }
+function fcStyle(){ var st=document.createElement('style');
+  var p=((T1-T0)/(T2-T0)*100).toFixed(2)+'%';
+  st.textContent='.g-scrub input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.55) '+p+')}'
+    +'.g-scrub input[type=range]::-moz-range-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.55) '+p+')}'
+    +'.g-scrub .sc-ticks span.fut{color:#f1cf8a}';
+  document.head.appendChild(st); }
+/* מיקום צפוי של סירה בזמן t (אחרי הנ״צ): אינטרפולציה בין נקודות התחזית; null אם אין לה תחזית */
+function fcAt(bid,t){ var b=FC&&FC.boats[String(bid)]; if(!b) return null; var p=b.pts, n=p.length-1, i;
+  if(t<=p[0][0]) return [p[0][2],p[0][1]]; if(t>=p[n][0]) return [p[n][2],p[n][1]];
+  for(i=0;i<n&&p[i+1][0]<t;i++);
+  var a=p[i], c=p[i+1], f=(t-a[0])/((c[0]-a[0])||1);
+  return [a[2]+(c[2]-a[2])*f, a[1]+(c[1]-a[1])*f]; }
+/* רדיוס המניפה (מייל) לפי שעות מהנ״צ: ליניארי בין 0, 24, 48, 72 שעות, מהעשירון העליון של המבחן לאחור */
+function fanNm(h){ var f=FC&&FC.fan; if(!f) return 0; var ks=[0,24,48,72], vs=[0,f['24']?f['24'].p90:0,f['48']?f['48'].p90:0,f['72']?f['72'].p90:0], i;
+  for(i=1;i<ks.length;i++) if(h<=ks[i]) return vs[i-1]+(vs[i]-vs[i-1])*(h-ks[i-1])/(ks[i]-ks[i-1]); return vs[3]; }
+function circleFC(lon,lat,nm){ var c=[], k, cl=Math.max(0.2,Math.cos(lat*D2R));
+  for(k=0;k<=36;k++){ var a=k/36*Math.PI*2; c.push([lon+nm/60*Math.sin(a)/cl, lat+nm/60*Math.cos(a)]); } return c; }
+function fcFC(t){ var fs=[], h=(t-(FC?FC.from:T1))/3600, r=fanNm(h);
+  FLEET.forEach(function(f){ var p=fcAt(f[1],t); if(!p) return;
+    fs.push({type:'Feature',properties:{id:f[1],name:f[4]},geometry:{type:'Polygon',coordinates:[circleFC(p[0],p[1],r)]}}); });
+  return {type:'FeatureCollection',features:fs}; }
+function fcPathFC(t){ var b=FC&&FC.boats['4']; if(!b) return {type:'FeatureCollection',features:[]};
+  var pts=[here], i; for(i=1;i<b.pts.length&&b.pts[i][0]<=t;i++) pts.push([b.pts[i][2],b.pts[i][1]]);
+  var p=fcAt(4,t); if(p) pts.push(p);
+  return {type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:pts}}]}; }
+function addForecast(){ try{
+  map.addSource('fcfan',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  map.addLayer({id:'fcfan',type:'fill',source:'fcfan',paint:{'fill-color':'#f1cf8a','fill-opacity':0.09}},'done-glow');
+  map.addLayer({id:'fcfan-line',type:'line',source:'fcfan',paint:{'line-color':'#f1cf8a','line-width':1,'line-opacity':0.55}},'done-glow');
+  map.addSource('fcpath',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  map.addLayer({id:'fcpath',type:'line',source:'fcpath',layout:{'line-cap':'round'},paint:{'line-color':'#f1cf8a','line-width':['interpolate',['linear'],['zoom'],0,1.6,6,2.6],'line-dasharray':[1,2],'line-opacity':0.9}},'done-glow');
+  fcLoad();
+}catch(e){} }
+/* נקרא מתוך draw(): מעבר ל"עכשיו" הסירות זזות לפי התחזית; הצי מקבל את הצבע הענברי */
+function fcDraw(t,fl){ var fut=FC&&t>T1+60, src;
+  if(fut){ fl.forEach(function(o){ var p=fcAt(o.id,t); if(p){ o.lon=p[0]; o.lat=p[1]; o.est=1; } }); }
+  src=map.getSource&&map.getSource('fcfan'); if(src) src.setData(fut?fcFC(t):{type:'FeatureCollection',features:[]});
+  src=map.getSource&&map.getSource('fcpath'); if(src) src.setData(fut?fcPathFC(t):{type:'FeatureCollection',features:[]});
+  return fut; }
+
 map.on('load',function(){
   draw(T1,true);
-  try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); addScale(); }catch(e){}
+  try{ addGrid(); addNames(); addTrails(); addSpace(); smoothZoom(); backFade(); addScale(); addForecast(); }catch(e){}
   var att=box.querySelector('.maplibregl-ctrl-attrib'); if(att){ att.classList.remove('maplibregl-compact-show'); att.removeAttribute('open'); }
   function night(){ if(!scrubbing()) nightAt((EXO&&EXO.state)?EXO.state.now:Date.now()); }
   night(); setInterval(night,5*60000);

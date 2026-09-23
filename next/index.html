@@ -299,7 +299,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-leg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .g-leg i{display:inline-block;width:16px;height:0;border-top:2px solid #fff}
 .g-leg .l-todo{border-top:1.5px dashed rgba(255,255,255,.7)} .g-leg .l-fleet{width:7px;height:7px;border:0;border-radius:50%;background:rgba(240,246,249,.9)}
-.g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
+.g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-fan{width:9px;height:9px;border:1px solid #f1cf8a;border-radius:50%;background:rgba(241,207,138,.25)} .g-leg .l-fc{color:#f1cf8a} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
 .g-scrub{position:absolute;z-index:3;left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));bottom:calc(var(--row2) + var(--gut));
   display:flex;align-items:center;gap:12px;text-shadow:var(--sh)}
 .g-scrub button{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
@@ -412,7 +412,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <div class="g-ui">
       <button type="button" id="gBack">חזרה אל הסירה</button>
       <!-- תפריט המבטים (אקסודוס / הצי / כל העולם) הוסר ב-21.9: הזום לבדו מוביל מהסירה אל החלל -->
-      <div class="g-leg"><span><i></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span></div>
+      <div class="g-leg"><span><i></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span><span class="l-fc" hidden><i class="l-fan"></i>הערכה, 72 שעות</span></div>
     </div>
     <div class="g-scrub" id="scrub">
       <button type="button" id="scPlay" aria-label="נגן את המסע מהזינוק"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="scIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
