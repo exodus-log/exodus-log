@@ -93,7 +93,7 @@ function renderHud(s){
   put('cBoat',s.localHM); put('cUtc',pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()));
   put('cIl',ilFmt?ilFmt.format(d):'--:--');
   var gap=Math.round(FIX.dtf-FLEET[0][5]);
-  put('vWhere',whereWords()); capNow(s,c,dayN,ps,ageTxt,stale); capLog(s,c,ps);
+  put('vWhere',whereWords()); capNow(s,c,dayN,ps,ageTxt,stale); capLog(s,c,ps); capArea(s);
   put('vRank',FIX.rank); put('vOf','מתוך '+FLEET.length); put('vSog',FIX.sog.toFixed(1)+(compact?'kn ':' kn · ')+deg3(FIX.cog));
   put('vGap',gap<=0?'0':thou(gap)); put('vDtf',thou(FIX.dtf));
   if(c){ labelTexts(s); put('lyWind',Math.round(c.wind)); put('lyWave',c.waveH.toFixed(1)); put('lyCur',c.cur.toFixed(1)); paintLayers(); }
@@ -118,7 +118,7 @@ function capNow(s,c,dayN,ps,ageTxt,stale){ var e=$('capNow'); if(!e) return;
   var fx=new Date(FIX.at*1000), h='<b class="n tv">'+dmm(ps.lat,2,'N','S')+' '+dmm(ps.lon,3,'E','W')+'</b> · <span'+(stale?' style="color:#ffb3a8"':'')+'>נ״צ <span class="n">'+pad(fx.getUTCHours())+':'+pad(fx.getUTCMinutes())+' UTC</span>, '+ageTxt+'</span><br>';
   if(c&&!c.missing) h+='רוח <b class="n tv">'+Math.round(c.wind)+' kn</b> מכיוון <b class="n tv">'+deg3(c.windDir)+'</b> (בופור '+beaufort(c.wind)+') · גל <b class="n tv">'+c.waveH.toFixed(1)+' m</b><br>';
   h+='מהירות <b class="n">'+FIX.sog.toFixed(1)+' kn</b> לכיוון <b class="n">'+deg3(FIX.cog)+'</b>';
-  if(e._h!==h){ e._h=h; e.innerHTML=h; }
+  if(e._h!==h){ e._h=h; e.innerHTML=h; if(LY_ON.now) measureTop(); }
   /* הקרובה — מאותו חישוב של הסימנים באופק (FLEET), כדי ששני מספרים שונים לא יופיעו יחד על המסך */
   var r=$('capRace'); if(r){ var nb=(FB&&FB.length)?FB[0]:null, t='מקום <b class="n">'+FIX.rank+'</b> מתוך '+FLEET.length+(nb?' · הקרובה: '+String(nb.n).replace(/</g,'&lt;')+', <b class="n">'+thou(nb.d)+'</b> מייל':''); if(r._h!==t){ r._h=t; r.innerHTML=t; } } }
 
@@ -132,6 +132,8 @@ function measureTop(){ var kE=$('key'), k=kE?kE.getBoundingClientRect().bottom-8
   /* 23.9: הכותרת בראש המסך. כשהיא מוצגת, ההצללה נשענת על התחתית שלה.
      l23: המסגור של הסירה (--topf) נשען רק על העיגול — כשהמשפט נשאב, הסירה לא קופצת */
   if(leadEl&&getComputedStyle(leadEl).visibility!=='hidden'&&!leadEl.classList.contains('suck')&&!document.body.classList.contains('g-open')) d=Math.max(d,leadEl.getBoundingClientRect().bottom-10);
+  /* l23: המלל של השכבות הדולקות — ההצללה העליונה, המשואה והסימנים באופק יורדים אל מתחתיו */
+  var lc=$('lyCap'); if(lc&&!document.body.classList.contains('g-open')){ var cs=lc.querySelectorAll('.cap'), cb=0; for(var ci=0;ci<cs.length;ci++){ if(cs[ci].offsetParent!==null&&cs[ci].offsetHeight) cb=Math.max(cb,cs[ci].getBoundingClientRect().bottom); } if(cb) d=Math.max(d,cb-4); }
   var a=open&&hudBand&&document.body.classList.contains('more')?hudBand.getBoundingClientRect().bottom-2:0;
   safeTop=Math.max(a,d)+6;
   var st=document.documentElement.style; st.setProperty('--top',Math.round(safeTop)+'px'); st.setProperty('--topf',Math.round(Math.max(k,0)+6)+'px'); measureBot(); }
@@ -194,6 +196,7 @@ function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'
   if(n==='now'&&LIVE){ ringTo(on?1:0); EXO.setLayer('cur',on); clearInterval(ringHold);
     /* הטבעת בהירה כל עוד השכבה דולקת (במנוחה היא כמעט שקופה, ונדלקת רק בגרירה) */
     if(on){ LAB.ringHotT=performance.now(); ringHold=setInterval(function(){ LAB.ringHotT=performance.now(); },500); } }
+  if(n==='area'&&on){ var ea=$('capArea'); if(ea) ea._h=null; capArea(LIVE&&EXO.state?EXO.state:staticState()); }
   if(n==='race'){ fleetHz(on); var r0=$('capRace'); if(r0) r0._h=null; if(LIVE&&EXO.state) renderHud(EXO.state); else renderHud(staticState()); }
   if(n==='log'){ if(on) logBuild(); else { try{ tsSet(0); }catch(e){} logPaint(); } }
   SZ={}; measureTop(); }
@@ -228,6 +231,31 @@ function capLog(s,c,ps){ var e=$('capLog'); if(!e) return; var off=(LIVE&&EXO.cl
     if(c&&!c.missing) h+='<br>רוח <b class="n">'+Math.round(c.wind)+' kn</b> · גל <b class="n">'+c.waveH.toFixed(1)+' m</b> · '+(past?'מהארכיון של מודל מזג האוויר':'תחזית, לא מדידה'); }
   if(e._h!==h){ e._h=h; e.innerHTML=h; } }
 
+/* "האזור" (מנה 5): קצת על המקום שהוא עובר בו. כל פסקה — עובדה ידועה ממקור שמקושר אליה, או ערך ממודל
+   שמסומן ככזה. האזורים לפי המרחק מנקודה ידועה (איים) או לפי קווי רוחב ואורך (משטרי רוח), ומה שלא מוגדר — לא מוצג.
+   מקורות: ויקיפדיה (Cape Verde, Trindade and Martim Vaz, Trade winds, Intertropical Convergence Zone), NOAA (Why is the ocean blue). */
+var AREA=[
+  {near:[16.0,-24.0,300], t:'איי כף ורדה', k:'ידוע', src:'https://en.wikipedia.org/wiki/Cape_Verde',
+   x:'עשרה איים געשיים, תשעה מהם מיושבים, כ-570 ק״מ מול חוף מערב אפריקה. הגבוה שבהם, הר הגעש פוגו (2,829 מ׳), התפרץ לאחרונה ב-2014. הזרמים הקרים שעולים מול החוף האפריקני לא מגיעים לכאן, ולכן הים סביב האיים חם יותר.'},
+  {near:[-20.5,-29.33,400], t:'טרינדאדה', k:'ידוע', src:'https://en.wikipedia.org/wiki/Trindade_and_Martim_Vaz',
+   x:'אי געשי קטן של ברזיל, כ-1,100 ק״מ מול החוף שלה. גרים בו רק אנשי חיל הים הברזילאי וקבוצת חוקרים קטנה. הפסגה הגבוהה, פיקו דזז׳אדו, מתנשאת ל-620 מ׳.', gate:'טרינדאדה'},
+  {box:[8,35,-60,-10], t:'רוח הסחר', k:'ידוע', src:'https://en.wikipedia.org/wiki/Trade_winds',
+   x:'בקווי הרוחב האלה נושבת רוח הסחר: רוח יציבה מצפון־מזרח, שזורמת מהלחץ הגבוה הסובטרופי אל קו המשווה. ספינות מפרש השתמשו בה מאות שנים כדי לחצות את האוקיינוס.'},
+  {box:[-3,8,-50,-5], t:'אזור הדממה', k:'ידוע', src:'https://en.wikipedia.org/wiki/Intertropical_Convergence_Zone',
+   x:'ליד קו המשווה נפגשות רוחות הסחר מהצפון ומהדרום. המלחים קוראים לאזור הזה "הדממה" בגלל ימים ארוכים כמעט בלי רוח, וענני סערה שמתפרצים בתוכם. המיקום המדויק שלו זז עם העונות.'},
+  {box:[-30,-3,-45,10], t:'רוח הסחר הדרומית', k:'ידוע', src:'https://en.wikipedia.org/wiki/Trade_winds',
+   x:'מדרום לקו המשווה רוח הסחר נושבת מדרום־מזרח, מהלחץ הגבוה של דרום האטלנטי אל קו המשווה.'}];
+function areaHtml(s){ var la=FIX.lat, lo=FIX.lon, h='', n=0, max=(stage.clientWidth<=700&&stage.clientHeight>520)?1:2;
+  AREA.forEach(function(a){ var ok=a.near?gcNm(la,lo,a.near[0],a.near[1])<=a.near[2]:(la>=a.box[0]&&la<=a.box[1]&&lo>=a.box[2]&&lo<=a.box[3]);
+    if(!ok||n>=max) return; n++;
+    h+='<p><span class="t">'+a.t+'</span><span class="k">'+a.k+'</span> '+a.x+(a.gate&&FIX.gate===a.gate?' זו נקודת החובה הבאה במסלול.':'')+' <a href="'+a.src+'" rel="noopener" target="_blank">מקור</a></p>'; });
+  var c=s&&s.cond;
+  /* "למה הים כחול" — רק כשאין כאן פסקה מקומית, כדי שהמלל יישאר קצר; טמפרטורת המים תמיד, מסומנת כמודל */
+  if(!n) h+='<p><span class="t">למה הים כחול</span><span class="k">ידוע</span> המים בולעים את האור האדום ומשאירים לעין את הכחול. ליד חופים הים מקבל גוון ירוק או חום מחלקיקים ומשקעים שצפים בו. <a href="https://oceanservice.noaa.gov/facts/oceanblue.html" rel="noopener" target="_blank">מקור</a></p>';
+  if(c&&!c.missing&&c.seaT!=null) h+='<p>המים כאן: <b class="n">'+Math.round(c.seaT)+'°C</b><span class="k">מודל</span></p>';
+  return h; }
+function capArea(s){ var e=$('capArea'); if(!e||!LY_ON.area) return; var h=areaHtml(s); if(e._h!==h){ e._h=h; e.innerHTML=h; measureTop(); } }
+
 /* "המירוץ": שאר הסירות כסימנים באופק, בכיוון האמיתי שלהן מאקסודוס (מעגל גדול, מנקודות הציון שב-FLEET).
    רק הקרובות — עד שש, בתוך 600 מייל — כדי שהאופק לא יתמלא. בלי "פער מהמוביל" */
 var FB=[];
@@ -243,8 +271,9 @@ function fleetPlace(A,f){ if(!FB.length) return; var H=A.hz, W=stage.clientWidth
   var m=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge'))||14)+2;
   FB.forEach(function(b,i){ var e=b.el, p=H&&H[i]; if(f.under||!p){ if(!e.hidden) e.hidden=true; return; }
     if(e.hidden) e.hidden=false; var w=e.offsetWidth, h=e.offsetHeight, x, y, edge=0;
-    if(!p[2]&&p[0]>=0&&p[0]<=W){ x=p[0]-w/2; y=Math.max(p[1],safeTop+h+26)-h; }
-    else { edge=(p[0]<W/2)?-1:1; x=edge<0?m:W-w-m; y=p[2]?Hh*0.42:clamp(p[1],safeTop+34,Hh*0.55); }
+    if(!p[2]&&p[0]>=0&&p[0]<=W){ x=p[0]-w/2; y=Math.max(p[1],safeTop+h+26)-h; if(y>Hh*0.7){ e.hidden=true; return; } }
+    else { if(safeTop+34>Hh*0.6){ e.hidden=true; return; }      /* מלל רב מדי בראש מסך נמוך: אין מקום לסימן בשפה, ולא מעמיסים אותו על המלל */
+      edge=(p[0]<W/2)?-1:1; x=edge<0?m:W-w-m; y=p[2]?Math.max(Hh*0.42,safeTop+34):clamp(p[1],safeTop+34,Hh*0.62); }
     x=clamp(x,6,W-w-6);
     for(var k=0;k<used.length;k++){ var u=used[k]; if(Math.abs(u[0]-x)<(u[2]+w)/2+8&&Math.abs(u[1]-y)<h+3){ y=u[1]+h+4; k=-1; } }
     used.push([x,y,w]);

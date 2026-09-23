@@ -278,6 +278,14 @@ body.g-open .logbar,body.j-open .logbar{display:none!important}
 .logbar button:disabled{display:none}
 .logbar button:focus-visible{outline:2px solid #fff;outline-offset:-8px;border-radius:6px}
 body.ly-log #lyCap .cap-log{display:block}
+/* "האזור" (מנה 5): מעט על המקום — מה ידוע עליו, ממקור שמקושר בסוף כל פסקה */
+body.ly-area #lyCap .cap-area{display:block}
+#capArea p{margin:0 0 5px}
+#capArea .t{color:var(--ink);font-weight:500}
+#capArea .k{font-size:10.5px;color:var(--ink3d);border:1px solid rgba(225,236,243,.28);border-radius:3px;padding:0 4px;margin-inline-start:4px;white-space:nowrap}
+#capArea a{color:var(--ink2d);font-size:11px;pointer-events:auto;text-decoration:underline;text-decoration-color:rgba(225,236,243,.35);text-underline-offset:2px}
+@media (max-width:700px){ #capArea p{font-size:12px} }
+@media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
 body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
 /* "אודות": חלונית קטנה מתחת לתפריט, בצד שמאל, שם הכפתור */
 #menu{top:calc(var(--e-t) + 32px)!important;bottom:auto!important;left:var(--e-l)!important;right:auto!important;transform:none!important;
@@ -614,6 +622,7 @@ body.g-open .hud.vit{display:none}
   <div id="lyCap" aria-live="polite">
     <p class="cap cap-now" id="capNow"></p>
     <p class="cap cap-race" id="capRace"></p>
+    <div class="cap cap-area" id="capArea"></div>
     <p class="cap cap-log" id="capLog"></p>
     <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a></p></div>
   </div>

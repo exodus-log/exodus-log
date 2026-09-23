@@ -869,6 +869,8 @@ function scOutPos(){ var mx=+range.max||1000, v=+range.value, w=range.clientWidt
   var x=th/2+(w-th)*(v/mx); out.style.left=Math.max(18,Math.min(w-18,x)).toFixed(1)+'px'; out.classList.toggle('fut',v>1000.5); }
 function scDate(t){ var d=new Date(t*1000); out.innerHTML='<span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span>'; scOutPos(); }
 function play(){
+  /* הגלובוס עוד נטען (המקורות של המפה לא קיימים): מחכים לו ואז מנגנים. נתפס באתר החי — נגיעה ב-play בשניות הראשונות */
+  if(!map.getSource||!map.getSource('done')){ if(!play.wait){ play.wait=1; map.once('load',function(){ play.wait=0; setTimeout(play,0); }); } return; }
   stop(); var v=+range.value, mx=+range.max||1000, from, to;
   if(v>=mx-0.5) { from=0; to=1000; }
   else if(Math.abs(v-1000)<0.5){ if(atNowStop&&mx>1000.5){ from=1000; to=mx; } else { from=0; to=1000; } }
@@ -881,14 +883,14 @@ function play(){
     map.fitBounds(bounds,{padding:{top:70,bottom:90,left:50,right:50},maxZoom:5.2,duration:reduce?0:900}); }
   playing={raf:0};
   (function step(now){ var f=Math.min(1,(now-t0)/DUR), vv=from+(to-from)*f; range.value=vv; draw(tOf(vv),Math.abs(vv-1000)<0.5);
-    if(f<1) playing.raf=requestAnimationFrame(step); else { if(to===1000&&mx>1000.5) atNowStop=true; stop(); } })(t0);
+    if(f<1) playing.raf=requestAnimationFrame(step); else { if(to===1000&&(+range.max||1000)>1000.5) atNowStop=true; stop(); } })(t0);
 }
 function stop(){ if(playing){ cancelAnimationFrame(playing.raf); playing=null; } icon.setAttribute('d','M8 5v14l11-7z');
   playBtn.setAttribute('aria-label',(Math.abs(+range.value-1000)<0.5&&atNowStop)?'המשך אל התחזית':'נגן את המסע מהזינוק'); }
 range.addEventListener('input',function(){ atNowStop=false; });
 /* התאריך הקטן: אחרי כל ציור. draw עצמו כותב את הפלט הישן — כאן מחליפים אותו */
 var drawBase=draw;
-draw=function(t,live){ var r=drawBase(t,live); scDate(live?FIX.at:t); return r; };
+draw=function(t,live){ if(!map.getSource||!map.getSource('done')) return here; var r=drawBase(t,live); scDate(live?FIX.at:t); return r; };
 window.addEventListener('resize',function(){ scOutPos(); });
 setTimeout(function(){ scNowMark(); scDate(FIX.at); },0);
 
