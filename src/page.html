@@ -171,19 +171,19 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
   padding:var(--e-t) calc(var(--e-r) + 32px) 18px var(--e-l);text-shadow:var(--shd,var(--sh));
   background:linear-gradient(to bottom,rgba(4,12,19,.58),rgba(4,12,19,.34) 64%,rgba(4,12,19,0));
   transition:opacity .28s ease,visibility 0s}
-.lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em}
+.lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em;text-wrap:balance}
 .lead-t span{font-weight:400;color:var(--ink2d)}
 .lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
 .lead-t b{font-weight:inherit}
 body.more:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
 @media (max-width:700px){
   .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
-  /* בטלפון לאורך המשפט עד שלוש שורות; נגיעה פותחת את כולו */
+  /* בטלפון לאורך המשפט עד שלוש שורות, לרוחב שורה אחת (אחרת הוא יושב על המפרשים); נגיעה פותחת את כולו */
   .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 }
 @media (max-height:520px){
   .lead{padding-bottom:12px} .lead-t{font-size:15px} .lead-s{font-size:12.5px;margin-top:3px}
-  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 }
 body.hfold #hudDot::before{animation:hdGlow 3.4s ease-in-out infinite}
 @keyframes hdGlow{50%{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}}
