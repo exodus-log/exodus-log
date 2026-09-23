@@ -121,7 +121,8 @@ async function main() {
     starts.push({ ...b, at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf });
   }
   if (!starts.length) throw new Error('אין סירה עם נקודה טרייה');
-  const t0 = Math.max(...starts.map(s => s.at));            /* התחזית נספרת מהנקודה הטרייה ביותר בצי; מי שדיווחה קודם — נגררת עד t0 בפולאר */
+  const t0 = Math.round(Math.max(...starts.map(s => s.at)) / 3600) * 3600;  /* התחזית נספרת מהנקודה הטרייה ביותר בצי, מעוגלת לשעה שלמה — Open-Meteo נותן
+                                                                               שעות עגולות בלבד, ו-08:06 לא היה נמצא ברשימה (23.9: 0 סירות). מי שדיווחה קודם — נגררת עד t0 בפולאר */
   say(`תחזית מ-${new Date(t0 * 1000).toISOString().slice(0, 16)}Z, ${starts.length} סירות${skipped.length ? ' · בלי: ' + skipped.join(', ') : ''}`);
 
   /* מעבר 1: הרוח בנקודת ההתחלה של כל סירה */
