@@ -449,6 +449,18 @@ function mergeFleetLog(log, tracks, opt) {
          המרווח באה נקודה מהמעקב — היא מחליפה את השמורה. */
       else if (p.fresh && !last.fresh) keep[keep.length - 1] = { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, fresh: 1 };
     }
+    /* נקודה שמורה שהמעקב כבר לא זוכר (למשל 12:30 מהזרע, כשהמעקב דילל את ההיסטוריה שלו) נשארת עם מרחק-לסיום
+       על הגדרת המסלול הישנה. אם בין שתי נקודות מעקב טריות היא סוטה מהקו שביניהן ביותר מ-300 מייל — המרחק שלה
+       נמתח על הקו (המיקום נשאר). 23.9: סירות 9 ו-16 נשארו עם קפיצות של 850 מייל אחרי התיקון הקודם. */
+    for (var j = 0; j < keep.length; j++) {
+      if (keep[j].fresh) continue;
+      var a = -1, b = -1;
+      for (var u = j - 1; u >= 0; u--) if (keep[u].fresh) { a = u; break; }
+      for (var v = j + 1; v < keep.length; v++) if (keep[v].fresh) { b = v; break; }
+      if (a < 0 || b < 0) continue;
+      var f = (keep[j].at - keep[a].at) / (keep[b].at - keep[a].at), line = keep[a].dtf + (keep[b].dtf - keep[a].dtf) * f;
+      if (Math.abs(keep[j].dtf - line) > 300) keep[j].dtf = Math.round(line);
+    }
     if (keep.length) out[k] = keep.map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf }; });
   });
   return out;
