@@ -95,6 +95,8 @@ function drawBlows(dt,VP){
     drawMesh(M_PUFF, mMul(mTrans(b.x,b.y,b.z),mScale(r,r*1.25,r)), [0.93,0.95,0.97], 1, 0.55); }
   gl.depthMask(true); gl.disable(gl.BLEND); gl.uniform1f(SOLID.u('uA'),1); }
 function drawWhale(t,dt,eye,under,VP){
+  /* l23 (23.9): הלוויתן ירד מהתצוגה (שמוליק: "יגרום לאנשים לחשוב שזה לא אמיתי"). הקוד נשאר; EXO.whale('on') מפעיל ידנית */
+  if(!WH.on){ WH.blows.length=0; return; }
   if(EXO.quality==='lite'||reduce) return;
   WH.x+=Math.sin(WH.hdg)*WH.spd*dt; WH.z-=Math.cos(WH.hdg)*WH.spd*dt;
   WH.hdg+=Math.sin(t*0.07+WH.ph)*0.0025;
@@ -134,6 +136,7 @@ function drawWhale(t,dt,eye,under,VP){
   if(!under) drawBlows(dt,VP); else WH.blows.length=0;
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
 }
-EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'front' מציב אותו מול המצלמה, 150 מ׳ מעבר לסירה, ומזמן נשימה */
+EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'on'/'off' מפעיל ומכבה (כבוי כברירת מחדל מ-23.9); 'front' מציב אותו מול המצלמה, 150 מ׳ מעבר לסירה, ומזמן נשימה */
+  if(cmd==='on'||cmd==='front'||cmd==='surface') WH.on=true; if(cmd==='off'){ WH.on=false; WH.blows.length=0; }
   if(cmd==='front'&&LAB._eye){ var ex=LAB._eye[0], ez=LAB._eye[2], L=Math.hypot(ex,ez)||1; var dd=dist||150; WH.x=-ex/L*dd; WH.z=-ez/L*dd; WH.hdg=Math.atan2(-ez,-ex)+Math.PI/2; WH.next=0; WH.st='deep'; WH.force=!!dist; }
   if(cmd==='surface'){ WH.next=0; var r=Math.hypot(WH.x,WH.z); if(r<70||r>240){ var a=Math.atan2(WH.z,WH.x); WH.x=Math.cos(a)*150; WH.z=Math.sin(a)*150; } } return {st:WH.st,t:+WH.stT.toFixed(1),dep:+WH.dep.toFixed(2),r:Math.round(Math.hypot(WH.x,WH.z)),blows:WH.blows.length}; };

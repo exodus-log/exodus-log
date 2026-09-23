@@ -159,7 +159,8 @@ function arcLine(r,b0,b1,px,a,ci,t){ var n=Math.max(2,Math.round(Math.abs(b1-b0)
 
 function worldRing(c,t){
   if(LAB._under) return;
-  var RK=(LAB.ringK===undefined?1:LAB.ringK); if(RK<0.01) return;      /* נעלמת בדרך אל הגלובוס */
+  /* l23 (23.9): ringVis — הטבעת שייכת לשכבה "איפה הוא עכשיו"; 0 = מוסתרת כולה, כולל משולש הצפון */
+  var RK=(LAB.ringK===undefined?1:LAB.ringK)*(LAB.ringVis===undefined?1:LAB.ringVis); if(RK<0.01) return;      /* נעלמת בדרך אל הגלובוס */
   var R=LAB.RR||13, hot=(LAB.ringHot||0)*RK, A=(0.04+0.93*hot)*RK, k;      /* במנוחה כמעט שקופה לגמרי; רק משולש הצפון נשאר כרמז */
   var rOut=R*0.965, rIn=Math.max(6.4,R*0.34), band=function(u){ return rOut-u*(rOut-rIn); };
   /* המעגל: מקווקו, מעלה אחת למקטע, שניים מלאים ואחד ריק */

@@ -85,5 +85,9 @@ window.REVIEW_FEATURES = [
   {n:70, key:'lead-story',scr:'sim', sel:'#leadStory',         name:'משפט הסיפור מתחת לכותרת (בטלפון עד שלוש שורות; נגיעה פותחת)'},
   {n:71, key:'lean-nums', scr:'sim', sel:'.vit', name:'ארבעת המספרים במסך הראשון: יום למסע, מקום, עד הסיום, מתי עודכן'},
   {n:72, key:'more-btn',  scr:'sim', sel:'#moreBtn', name:'"עוד" / "פחות": כל המכשירים מאחורי נגיעה אחת, והטלפון זוכר'},
-  {n:73, key:'menu-lean', scr:'sim', sel:'#menuBtn2', name:'התפריט במסך הראשון, ובראשו "המסע והניתוח"'}
+  {n:73, key:'menu-lean', scr:'sim', sel:'#menuBtn2', name:'התפריט במסך הראשון, ובראשו "המסע והניתוח"'},
+  /* 23.9 לילה — הממשק הנקי (l23), ב-/next/ */
+  {n:74, key:'key',       scr:'sim', sel:'#key',               name:'העיגול (המפתח): משפט הפתיחה נשאב אליו, והוא פותח את השכבות'},
+  {n:75, key:'lead-suck', scr:'sim', chip:true, name:'משפט הפתיחה: ארבע שניות, ואז נשאב לתוך העיגול (נגיעה לפני כן — מיד)'},
+  {n:76, key:'thin-line', scr:'sim', sel:'.hud.vit',           name:'השורה הדקה בתחתית: יום · איפה במילים · עד קו הסיום'}
 ];

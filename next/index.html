@@ -195,6 +195,33 @@ body.t-fut #hudDot::before{background:var(--tfut);box-shadow:0 0 5px 1px rgba(24
 #hudDot:focus-visible{outline:2px solid #8fe3de;outline-offset:-6px;border-radius:50%}
 @media (prefers-reduced-motion:reduce){ body.hfold #hudDot::before{animation:none} .topr{transition:none} }
 
+/* ===== 23.9 (l23) הממשק הנקי: ההדמיה, משפט פתיחה שנשאב לעיגול, ושורה דקה בתחתית ===== */
+/* מוסתר כברירת מחדל, מעבר למה שהמסך הראשון של l19 כבר הסתיר: המשואה, שנתות הטבעת, היעד, קנה המידה */
+#labels .beacon,#labels .deg,#labels .dat.gate,.gl-scale{display:none!important}
+/* המפתח: עיגול זוהר קטן בפינה שבה המשפט מתחיל. לפני השאיבה הוא שקוף (אבל נגיש) */
+#key{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);right:calc(var(--e-r) - 15px);width:44px;height:44px;border:0;padding:0;margin:0;
+  background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#key i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#eefcfb;
+  box-shadow:0 0 5px 1px rgba(143,227,222,.85),0 0 16px 5px rgba(143,227,222,.32);opacity:0;transform:scale(.2);transition:opacity .35s,transform .35s,box-shadow .35s}
+body.keyed #key i{opacity:1;transform:none}
+body.keyed.key-born #key i{animation:keyBorn 2.3s ease-out both}
+@keyframes keyBorn{0%{transform:scale(.2);opacity:.3}14%{transform:scale(1.5);opacity:1}24%{transform:scale(1)}
+  38%{opacity:.25}50%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}
+  64%{opacity:.25}76%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}100%{opacity:1}}
+#key:hover i,#key[aria-expanded=true] i{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}
+#key:focus-visible{outline:none} #key:focus-visible i{outline:2px solid #fff;outline-offset:5px}
+body.g-open #key{display:none}
+/* משפט הפתיחה נשאב: מתכווץ אל נקודת העיגול (transform-origin נקבע ב-JS) ונמוג, בערך שנייה */
+.lead.suck{transition:transform 1s cubic-bezier(.55,0,.85,.35),opacity .9s ease-in .1s,filter 1s ease-in;transform:scale(.015);opacity:0;filter:blur(2px);pointer-events:none;background:none}
+.lead.gone{opacity:0}
+/* השורה הדקה בתחתית: יום · איפה · כמה נשאר */
+.vit{bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--ink2d);gap:2px 0}
+.vit b{font-size:12.5px;color:var(--ink);font-weight:400}
+.hud.vit>span+span::before{content:"·";display:inline;width:auto;height:auto;background:none;margin:0 .6em;color:var(--ink3d);vertical-align:0}
+.vit>#vAgeW.stale{color:#ffb3a8}
+@media (max-width:700px){ .hud.vit>span+span::before{display:inline!important} .vit{font-size:11.5px;gap:2px 0} .vit b{font-size:12px} }
+@media (prefers-reduced-motion:reduce){ .lead.suck{transition:none} body.keyed.key-born #key i{animation:none} }
+
 /* רצועת הזמן (מ-21.9 בערב, לפי הערות בתחנה): בחלק הכי תחתון של המסך, בכל רוחבו, בכל הגדלים.
    שבוע אחד, וההווה תמיד באמצע. בלי שעה, תאריך או "עכשיו" עליה: הזמן שנבחר נקרא בשורות הנתונים,
    שצובעות את עצמן — טורקיז לעבר, ענבר לתחזית, לבן להווה. השדה range שמעליה הוא המגע והנגישות. */
@@ -478,9 +505,12 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   <!-- 23.9 (l19, "המסך הראשון בחיסור"): מי שפותח את הקישור מקבוצה צריך להבין בשלוש שניות מה זה ואיפה הוא.
        שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
   <header class="lead" id="lead">
-    <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו, ואת הים והרוח סביבו.</span></h1>
+    <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו ואת תנאי הטבע האמיתיים סביבו.</span></h1>
     <p class="lead-s" id="leadStory" hidden tabindex="0" role="button" aria-expanded="false"></p>
   </header>
+  <!-- 23.9 (l23, "הממשק הנקי"): ההדמיה היא האתר. משפט הפתיחה נשאב אחרי ארבע שניות לתוך העיגול הזה,
+       והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
+  <button type="button" id="key" aria-expanded="false" aria-controls="menu" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
        לנקודה זוהרת. הקשה על הנקודה פותחת את הכול בבת אחת; גרירת הזמן פותחת אותו לבד -->
@@ -538,18 +568,14 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   </div>
   <!-- 23.9 (l19): ארבעה מספרים במסך הראשון — יום כמה למסע, מקום מתוך כמה, כמה נשאר, מתי התעדכן.
        המהירות והפער מהמוביל מופיעים עם שאר המכשירים (כשפס הנתונים פתוח) -->
-  <div class="hud vit" aria-label="מספרי המרוץ">
-    <span class="v-lean" id="vDayW"><i>יום</i><b class="n" id="vDay">—</b><em>למסע</em></span>
-    <span><i>מקום</i><b class="n" id="vRank">—</b><em id="vOf"></em></span>
-    <span class="v-full"><i>מהירות וכיוון</i><b class="n" id="vSog">—</b></span>
-    <span class="v-full"><i>פער מהמוביל</i><b class="n" id="vGap">—</b><em>מייל</em></span>
-    <span><i>עד קו הסיום</i><b class="n" id="vDtf">—</b><em>מייל</em></span>
-    <span class="v-lean" id="vUpdW"><i>עודכן</i><b id="vUpd">—</b></span>
-    <!-- מספרי המרוץ הם תמונת המצב של נקודת הציון האחרונה. כשהיא מתיישנת הם נשארים על המסך
-         כאילו הם של עכשיו, ומי שמצלם את השורה הזאת לא יודע מתי היא נכונה. מופיע רק כשיש פער. -->
+  <!-- 23.9 (l23): שורה דקה אחת צמודה לתחתית — יום כמה, איפה במילים, וכמה נשאר. כל השאר עבר לשכבות שבמפתח.
+       "איפה במילים" אמיתי בלבד: שם היבשה הקרובה מהבוט (FIX.nearLandName, מקו החוף של המעקב) או שם האוקיינוס -->
+  <div class="hud vit" aria-label="איפה אקסודוס עכשיו">
+    <span id="vDayW">יום <b class="n" id="vDay">—</b></span>
+    <span id="vWhere">—</span>
+    <span><b class="n" id="vDtf">—</b> מייל עד קו הסיום</span>
+    <!-- נקודת ציון בת יותר מ-12 שעות: המספרים כבר לא "עכשיו", והשורה אומרת זאת. מוצג רק אז -->
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
-    <!-- 23.9 (l19): "עוד" פותח את כל המכשירים בבת אחת, ו"פחות" מחזיר למסך הראשון. הטלפון זוכר את הבחירה -->
-    <span class="vctl"><button type="button" id="moreBtn" aria-expanded="false" aria-label="עוד: רוח, גל, זרם, שעונים, מפה, רצועת הזמן והשכבות">עוד</button><button type="button" id="menuBtn2" aria-expanded="false" aria-controls="menu" aria-label="תפריט"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button></span>
   </div>
 
   <div id="toast" class="off" role="status"></div>
