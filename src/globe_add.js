@@ -566,7 +566,7 @@ function fcLoad(){
     FC=j; T2=j.from+j.hours*3600; if(T2<=T1) { FC=null; return; }
     FUT=Math.round(1000*(T2-T1)/(T1-T0));
     range.max=1000+FUT; range.setAttribute('aria-label','פס זמן: מהזינוק ועד עכשיו, ומשם תחזית ל-72 שעות');
-    scTicksDraw(); fcStyle(); var lg=document.querySelector('.g-leg .l-fc'); if(lg) lg.hidden=false;
+    scTicksDraw(); fcStyle(); if(typeof scNowMark==='function') scNowMark(); var lg=document.querySelector('.g-leg .l-fc'); if(lg) lg.hidden=false;
   }).catch(function(){}); }catch(e){} }
 function scTicksDraw(){ var span=T2-T0, days=(T1-T0)/86400, step=days>120?30:days>40?10:days>16?5:2, h='', d;
   for(d=0;d<=days;d+=step) h+='<span style="left:'+(d*86400/span*100).toFixed(1)+'%">'+(d===0?'זינוק':'יום '+d)+'</span>';
@@ -574,8 +574,8 @@ function scTicksDraw(){ var span=T2-T0, days=(T1-T0)/86400, step=days>120?30:day
   $('scTicks').innerHTML=h; }
 function fcStyle(){ var st=document.createElement('style');
   var p=((T1-T0)/(T2-T0)*100).toFixed(2)+'%';
-  st.textContent='.g-scrub input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.55) '+p+')}'
-    +'.g-scrub input[type=range]::-moz-range-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.55) '+p+')}'
+  st.textContent='.g-scrub input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.26) '+p+')}'
+    +'.g-scrub input[type=range]::-moz-range-track{background:linear-gradient(90deg,rgba(225,236,243,.6) '+p+',rgba(241,207,138,.26) '+p+')}'
     +'.g-scrub .sc-ticks span.fut{color:#f1cf8a}';
   document.head.appendChild(st); }
 /* מיקום צפוי של סירה בזמן t (אחרי הנ״צ): אינטרפולציה בין נקודות התחזית; null אם אין לה תחזית */
@@ -599,10 +599,10 @@ function fcPathFC(t){ var b=FC&&FC.boats['4']; if(!b) return {type:'FeatureColle
   return {type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:pts}}]}; }
 function addForecast(){ try{
   map.addSource('fcfan',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-  map.addLayer({id:'fcfan',type:'fill',source:'fcfan',paint:{'fill-color':'#f1cf8a','fill-opacity':0.09}},'done-glow');
-  map.addLayer({id:'fcfan-line',type:'line',source:'fcfan',paint:{'line-color':'#f1cf8a','line-width':1,'line-opacity':0.55}},'done-glow');
+  map.addLayer({id:'fcfan',type:'fill',source:'fcfan',paint:{'fill-color':'#f1cf8a','fill-opacity':0.06}},'done-glow');
+  map.addLayer({id:'fcfan-line',type:'line',source:'fcfan',paint:{'line-color':'#f1cf8a','line-width':1,'line-opacity':0.3}},'done-glow');
   map.addSource('fcpath',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-  map.addLayer({id:'fcpath',type:'line',source:'fcpath',layout:{'line-cap':'round'},paint:{'line-color':'#f1cf8a','line-width':['interpolate',['linear'],['zoom'],0,1.6,6,2.6],'line-dasharray':[1,2],'line-opacity':0.9}},'done-glow');
+  map.addLayer({id:'fcpath',type:'line',source:'fcpath',layout:{'line-cap':'round'},paint:{'line-color':'#f1cf8a','line-width':['interpolate',['linear'],['zoom'],0,1.6,6,2.6],'line-dasharray':[1,2],'line-opacity':0.5}},'done-glow');
   fcLoad();
 }catch(e){} }
 /* נקרא מתוך draw(): מעבר ל"עכשיו" הסירות זזות לפי התחזית; הצי מקבל את הצבע הענברי */
@@ -611,3 +611,38 @@ function fcDraw(t,fl){ var fut=FC&&t>T1+60, src;
   src=map.getSource&&map.getSource('fcfan'); if(src) src.setData(fut?fcFC(t):{type:'FeatureCollection',features:[]});
   src=map.getSource&&map.getSource('fcpath'); if(src) src.setData(fut?fcPathFC(t):{type:'FeatureCollection',features:[]});
   return fut; }
+
+/* ===================== l23 מנה 3 (23.9.2026): זום אאוט — קו דק אחד, play שנעצר בהווה =====================
+   שמוליק: למטה רק קו דק מקצה לקצה, מהזינוק ועד סוף התחזית, ועליו play קטן. כל הסירות זזות.
+   הנגינה נעצרת ב"עכשיו"; לחיצה נוספת ממשיכה אל התחזית, ששם הקו והמסלולים חיוורים — בלי מילים.
+   מתחת לקו רק תאריך קטן שזז עם נקודת הנגינה. */
+var atNowStop=false;
+function scNowMark(){ var tr=document.querySelector('#scrub .sc-track'); if(!tr) return; var m=tr.querySelector('.sc-now');
+  if(!m){ m=document.createElement('i'); m.className='sc-now'; tr.appendChild(m); }
+  var mx=+range.max||1000; m.style.left=(1000/mx*100).toFixed(2)+'%'; m.hidden=mx<=1000; }
+function scOutPos(){ var mx=+range.max||1000, v=+range.value, w=range.clientWidth||1, th=9;
+  var x=th/2+(w-th)*(v/mx); out.style.left=Math.max(18,Math.min(w-18,x)).toFixed(1)+'px'; out.classList.toggle('fut',v>1000.5); }
+function scDate(t){ var d=new Date(t*1000); out.innerHTML='<span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span>'; scOutPos(); }
+function play(){
+  stop(); var v=+range.value, mx=+range.max||1000, from, to;
+  if(v>=mx-0.5) { from=0; to=1000; }
+  else if(Math.abs(v-1000)<0.5){ if(atNowStop&&mx>1000.5){ from=1000; to=mx; } else { from=0; to=1000; } }
+  else if(v<1000){ from=v; to=1000; } else { from=v; to=mx; }
+  atNowStop=false;
+  var DUR=reduce?1:Math.max(3500,15000*(to-from)/1000), t0=performance.now();
+  icon.setAttribute('d','M7 5h4v14H7zM13 5h4v14h-4z'); playBtn.setAttribute('aria-label','עצור');
+  setChip(null);
+  if(from===0){ var bounds=new maplibregl.LngLatBounds(); TRACK.forEach(function(q){ bounds.extend(q.p); });
+    map.fitBounds(bounds,{padding:{top:70,bottom:90,left:50,right:50},maxZoom:5.2,duration:reduce?0:900}); }
+  playing={raf:0};
+  (function step(now){ var f=Math.min(1,(now-t0)/DUR), vv=from+(to-from)*f; range.value=vv; draw(tOf(vv),Math.abs(vv-1000)<0.5);
+    if(f<1) playing.raf=requestAnimationFrame(step); else { if(to===1000&&mx>1000.5) atNowStop=true; stop(); } })(t0);
+}
+function stop(){ if(playing){ cancelAnimationFrame(playing.raf); playing=null; } icon.setAttribute('d','M8 5v14l11-7z');
+  playBtn.setAttribute('aria-label',(Math.abs(+range.value-1000)<0.5&&atNowStop)?'המשך אל התחזית':'נגן את המסע מהזינוק'); }
+range.addEventListener('input',function(){ atNowStop=false; });
+/* התאריך הקטן: אחרי כל ציור. draw עצמו כותב את הפלט הישן — כאן מחליפים אותו */
+var drawBase=draw;
+draw=function(t,live){ var r=drawBase(t,live); scDate(live?FIX.at:t); return r; };
+window.addEventListener('resize',function(){ scOutPos(); });
+setTimeout(function(){ scNowMark(); scDate(FIX.at); },0);

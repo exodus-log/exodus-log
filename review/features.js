@@ -93,5 +93,7 @@ window.REVIEW_FEATURES = [
   {n:77, key:'layers-bar',scr:'sim', sel:'#lyr',               name:'התפריט העליון: שש קטגוריות, כל אחת שכבה (נגיעה מדליקה, נגיעה מכבה)'},
   {n:78, key:'layer-caps',scr:'sim', sel:'#lyCap',             name:'המלל הקצר של השכבות הדולקות, מתחת לתפריט'},
   {n:79, key:'fleet-hz',  scr:'sim', sel:'#labels .lb.fb', multi:true, name:'"המירוץ": הסירות הקרובות כסימנים באופק, בכיוון ובמרחק האמיתיים'},
-  {n:80, key:'about',     scr:'sim', sel:'#bAbout',            name:'"אודות": מי, מקורות, יצירת קשר, זכויות והגדרות'}
+  {n:80, key:'about',     scr:'sim', sel:'#bAbout',            name:'"אודות": מי, מקורות, יצירת קשר, זכויות והגדרות'},
+  {n:81, key:'globe-line',scr:'globe', sel:'#scrub',           name:'זום אאוט: קו דק מקצה לקצה, play שנעצר בהווה וממשיך אל התחזית החיוורת, ותאריך קטן'},
+  {n:82, key:'log-times', scr:'sim', sel:'#logBar',            name:'"היומן": זמנים במילים במקום רצועת הזמן — ההדמיה עוברת לשם, והמלל אומר מה היה או מה צפוי'}
 ];

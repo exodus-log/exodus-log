@@ -93,7 +93,7 @@ function renderHud(s){
   put('cBoat',s.localHM); put('cUtc',pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()));
   put('cIl',ilFmt?ilFmt.format(d):'--:--');
   var gap=Math.round(FIX.dtf-FLEET[0][5]);
-  put('vWhere',whereWords()); capNow(s,c,dayN,ps,ageTxt,stale);
+  put('vWhere',whereWords()); capNow(s,c,dayN,ps,ageTxt,stale); capLog(s,c,ps);
   put('vRank',FIX.rank); put('vOf','מתוך '+FLEET.length); put('vSog',FIX.sog.toFixed(1)+(compact?'kn ':' kn · ')+deg3(FIX.cog));
   put('vGap',gap<=0?'0':thou(gap)); put('vDtf',thou(FIX.dtf));
   if(c){ labelTexts(s); put('lyWind',Math.round(c.wind)); put('lyWave',c.waveH.toFixed(1)); put('lyCur',c.cur.toFixed(1)); paintLayers(); }
@@ -119,7 +119,8 @@ function capNow(s,c,dayN,ps,ageTxt,stale){ var e=$('capNow'); if(!e) return;
   if(c&&!c.missing) h+='רוח <b class="n tv">'+Math.round(c.wind)+' kn</b> מכיוון <b class="n tv">'+deg3(c.windDir)+'</b> (בופור '+beaufort(c.wind)+') · גל <b class="n tv">'+c.waveH.toFixed(1)+' m</b><br>';
   h+='מהירות <b class="n">'+FIX.sog.toFixed(1)+' kn</b> לכיוון <b class="n">'+deg3(FIX.cog)+'</b>';
   if(e._h!==h){ e._h=h; e.innerHTML=h; }
-  var r=$('capRace'); if(r){ var t='מקום <b class="n">'+FIX.rank+'</b> מתוך '+FLEET.length+' · הקרובה: '+FIX.nearBoatName+', <b class="n">'+thou(FIX.nearBoat)+'</b> מייל'; if(r._h!==t){ r._h=t; r.innerHTML=t; } } }
+  /* הקרובה — מאותו חישוב של הסימנים באופק (FLEET), כדי ששני מספרים שונים לא יופיעו יחד על המסך */
+  var r=$('capRace'); if(r){ var nb=(FB&&FB.length)?FB[0]:null, t='מקום <b class="n">'+FIX.rank+'</b> מתוך '+FLEET.length+(nb?' · הקרובה: '+String(nb.n).replace(/</g,'&lt;')+', <b class="n">'+thou(nb.d)+'</b> מייל':''); if(r._h!==t){ r._h=t; r.innerHTML=t; } } }
 
 /* ================= תוויות על הסצנה: מעלות הטבעת, רוח, גל, זרם, היעד ================= */
 var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
@@ -193,15 +194,39 @@ function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'
   if(n==='now'&&LIVE){ ringTo(on?1:0); EXO.setLayer('cur',on); clearInterval(ringHold);
     /* הטבעת בהירה כל עוד השכבה דולקת (במנוחה היא כמעט שקופה, ונדלקת רק בגרירה) */
     if(on){ LAB.ringHotT=performance.now(); ringHold=setInterval(function(){ LAB.ringHotT=performance.now(); },500); } }
-  if(n==='race') fleetHz(on);
-  if(n==='log'&&!on&&tsScrub) try{ tsSet(0); }catch(e){}
-  if(n==='log'){ setTimeout(function(){ measureBot(); tsDraw(); },30); }
+  if(n==='race'){ fleetHz(on); var r0=$('capRace'); if(r0) r0._h=null; if(LIVE&&EXO.state) renderHud(EXO.state); else renderHud(staticState()); }
+  if(n==='log'){ if(on) logBuild(); else { try{ tsSet(0); }catch(e){} logPaint(); } }
   SZ={}; measureTop(); }
 if(lyrEl) lyrEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button'):null; if(!t) return;
   if(t.id==='bAbout'){ setMenu(!menuOpen); return; }
   var n=t.getAttribute('data-l'); if(n) setLy(n,!LY_ON[n]); });
 /* בלי WebGL אין הדמיה לסמן עליה, והמלל הוא כל מה שיש: "איפה הוא עכשיו" דולקת מההתחלה */
 if(!LIVE) setTimeout(function(){ setLy('now',true); },0);
+
+/* "היומן" (מנה 4): במקום רצועת הזמן, שהיא "קווי גרף" שלא הובנו. זמנים במילים: נגיעה מעבירה את השעון של ההדמיה
+   לשם, והים, הרוח והאור הם של אותה שעה — מהארכיון (עבר) או מהתחזית (עתיד), כמו שהרצועה עשתה. רק זמנים שיש עליהם נתונים;
+   אין — הכפתור לא מוצג (לא ממציאים ים שלא נשמר). */
+var LOGH=[[-72,'לפני 3 ימים'],[-48,'לפני יומיים'],[-24,'לפני יום'],[-12,'לפני 12 שע׳'],[0,'עכשיו'],[12,'בעוד 12 שע׳'],[24,'בעוד יום'],[48,'בעוד יומיים']];
+var logSel=0;
+function logBuild(){ var host=$('logBar'); if(!host) return;
+  try{ tsSpan(); }catch(e){}
+  if(!host.firstChild){ LOGH.forEach(function(h){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-h',h[0]); b.textContent=h[1];
+      b.className=h[0]<0?'p':h[0]>0?'f':''; host.appendChild(b); });
+    host.addEventListener('click',function(ev){ var b=ev.target.closest?ev.target.closest('button'):null; if(!b||b.disabled) return; logGo(+b.getAttribute('data-h')); }); }
+  var now=Date.now(), bs=host.querySelectorAll('button');
+  for(var i=0;i<bs.length;i++){ var hh=+bs[i].getAttribute('data-h'), t=now+hh*3600000, ok=!hh||(LIVE&&EXO.setClock&&Math.abs(tsSnap(t)-t)<45*60000); bs[i].disabled=!ok; }
+  logPaint(); }
+function logGo(h){ logSel=h; var t=Math.round((Date.now()+h*3600000)/3600000)*3600000; if(h) t=tsSnap(t); try{ tsSet(h?t-Date.now():0); }catch(e){} logPaint(); }
+function logPaint(){ var host=$('logBar'); if(host){ var bs=host.querySelectorAll('button'); for(var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed',(+bs[i].getAttribute('data-h')===(tsScrub?logSel:0))?'true':'false'); }
+  if(!tsScrub) logSel=0;
+  /* בטלפון השורה נגללת: הזמן הנבחר תמיד בתוך המסך */
+  var sel=host&&host.querySelector('[aria-pressed=true]'); if(sel&&host.scrollWidth>host.clientWidth){ try{ var r=sel.getBoundingClientRect(), hr=host.getBoundingClientRect(); host.scrollLeft+=(r.left+r.width/2)-(hr.left+hr.width/2); }catch(e){} } }
+function capLog(s,c,ps){ var e=$('capLog'); if(!e) return; var off=(LIVE&&EXO.clockOff)?EXO.clockOff():0, h;
+  if(Math.abs(off)<60000){ h='בחרו זמן למטה: ההדמיה תעבור לשם — הים, הרוח והאור של אותה שעה.'; }
+  else { var d=new Date(s.now), past=off<0;
+    h='<b class="n">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</b> · '+(past&&ps.src==='archive'?'היה ב־<b class="n">'+dmm(ps.lat,2,'N','S')+' '+dmm(ps.lon,3,'E','W')+'</b>':past?'בערך במקום שבו הוא עכשיו':'הצפוי במקום שבו הוא עכשיו');
+    if(c&&!c.missing) h+='<br>רוח <b class="n">'+Math.round(c.wind)+' kn</b> · גל <b class="n">'+c.waveH.toFixed(1)+' m</b> · '+(past?'מהארכיון של מודל מזג האוויר':'תחזית, לא מדידה'); }
+  if(e._h!==h){ e._h=h; e.innerHTML=h; } }
 
 /* "המירוץ": שאר הסירות כסימנים באופק, בכיוון האמיתי שלהן מאקסודוס (מעגל גדול, מנקודות הציון שב-FLEET).
    רק הקרובות — עד שש, בתוך 600 מייל — כדי שהאופק לא יתמלא. בלי "פער מהמוביל" */
@@ -447,7 +472,10 @@ menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
 var menuBtn2=$('menuBtn2');
 if(menuBtn2) menuBtn2.addEventListener('click',function(){ setMenu(!menuOpen); });
 /* l23: העיגול פותח את התפריט — רק אחרי שהמשפט כבר נשאב אליו (נגיעה לפני כן רק שואבת) */
-if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&&!keyArm)) return; keyArm=false; lyrOpen(!lyrIsOpen); }); }
+if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&&!keyArm)) return; keyArm=false;
+    /* l23 מנה 3: בגלובוס העיגול מחזיר אל הסירה ופותח את השכבות — הן חיות על ההדמיה */
+    if(gOpen){ closeGlobe(false); lyrOpen(true); return; }
+    lyrOpen(!lyrIsOpen); }); }
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 $('menuX').addEventListener('click',function(){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); });
 document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(keyEl&&keyEl.contains(ev.target))&&!($('bAbout')&&$('bAbout').contains(ev.target))&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
@@ -517,7 +545,7 @@ function openGlobe(how){
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
-  try{ $('gBack').focus({preventScroll:true}); }catch(e){} }
+  if(kbNav) try{ $('gBack').focus({preventScroll:true}); }catch(e){} }      /* l23: רק במקלדת — במגע זה צייר מסגרת לבנה סביב הכפתור */
 function closeGlobe(fromPop,stay){ if(!gOpen) return; gOpen=false; if(LIVE) EXO.globeOwns=false; tsVeil(0); G.setAttribute('aria-hidden','true'); G.inert=true; document.body.classList.remove('g-open');
   G.style.opacity=''; gxOn=false; gRet=false; document.body.classList.remove('g-x');
   if(LIVE){ EXO.pause(false); if(!stay&&EXO.frame.r>120){ if(EXO.glideTo&&EXO.zoomAxis){ EXO.setU(EXO.zoomAxis.XF-0.02); EXO.glideTo(EXO.zoomAxis.uOfR(64),1500); } else EXO.setZoom(70); } }

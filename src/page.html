@@ -262,9 +262,23 @@ body:not(.ly-race) #labels .fb{display:none!important}
 .lb.fb.el::after{display:inline;position:static;content:"‹";width:auto;height:auto;background:none;margin-inline-start:.3em;font-size:1.3em;line-height:0}
 .lb.fb.er::before{content:"›";margin-inline-end:.3em;font-size:1.3em;line-height:0}
 .lb.fb .n{color:var(--ink)}
-/* "היומן" (בינתיים): רצועת הזמן הקיימת, והשורה הדקה עולה מעליה */
-body.ly-log .tstrip:not([hidden]){display:block!important}
-body.ly-log .hud.vit{bottom:calc(var(--tsh) + 8px + env(safe-area-inset-bottom,0px))}
+/* "היומן" (מנה 4): רצועת הזמן ירדה לגמרי (הקוד שלה נשאר — הוא מזיז את השעון). במקומה שורת זמנים במילים מעל השורה הדקה */
+.tstrip{display:none!important}
+.logbar{position:absolute;z-index:6;left:0;right:0;bottom:calc(var(--bot) + 2px);display:none;justify-content:flex-start;gap:0;
+  overflow-x:auto;scrollbar-width:none;padding:0 var(--e-r) 0 var(--e-l)}
+.logbar::-webkit-scrollbar{display:none}
+body.ly-log .logbar{display:flex}
+/* מרכוז בלי לחתוך: כשהשורה רחבה מהמסך (טלפון) היא נגללת, והקצוות נשארים נגישים */
+.logbar>button:first-child{margin-inline-start:auto} .logbar>button:last-child{margin-inline-end:auto}
+body.g-open .logbar,body.j-open .logbar{display:none!important}
+.logbar button{flex:none;position:relative;height:44px;padding:0 9px;border:0;background:none;color:var(--ink2d);font:400 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap;text-shadow:var(--shd,var(--sh));-webkit-tap-highlight-color:transparent}
+.logbar button::after{content:"";position:absolute;left:50%;bottom:9px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor;opacity:0}
+.logbar button[aria-pressed=true]{color:var(--ink)} .logbar button[aria-pressed=true]::after{opacity:1}
+.logbar button.p[aria-pressed=true]{color:var(--tpast)} .logbar button.f[aria-pressed=true]{color:var(--tfut)}
+.logbar button:disabled{display:none}
+.logbar button:focus-visible{outline:2px solid #fff;outline-offset:-8px;border-radius:6px}
+body.ly-log #lyCap .cap-log{display:block}
+body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
 /* "אודות": חלונית קטנה מתחת לתפריט, בצד שמאל, שם הכפתור */
 #menu{top:calc(var(--e-t) + 32px)!important;bottom:auto!important;left:var(--e-l)!important;right:auto!important;transform:none!important;
   width:min(360px,calc(100% - 2 * var(--edge)))!important;max-height:calc(100% - var(--e-t) - 90px)!important;border-radius:8px!important;border-bottom:1px solid var(--hair)!important;padding-bottom:12px!important}
@@ -525,6 +539,31 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   #toast{left:var(--e-l);right:calc(var(--e-r) + 48px + var(--gut));transform:none;max-width:none;text-align:start}
   body.g-open .lay{bottom:var(--row2)}
 }
+/* ===== l23 מנה 3 (23.9): זום אאוט — למעלה רק העיגול ו"חזרה אל הסירה" בקטן; למטה רק קו דק מקצה לקצה ===== */
+body.g-open #key{display:block}
+body.g-open .hud.vit{display:none}
+#globeLayer .g-leg{display:none!important}
+#globeLayer .g-ui{top:calc(var(--e-t) - 15px);left:auto;right:calc(var(--e-r) + 30px);padding:0;justify-content:flex-end}
+#globeLayer .g-ui #gBack{min-height:44px;padding:0 8px;border:0;border-radius:0;background:none;color:var(--ink2d);font:400 13px/1 var(--ui);text-shadow:var(--shd,var(--sh))}
+#globeLayer .g-ui #gBack:hover{color:var(--ink);background:none}
+#globeLayer .g-ui #gBack::before{content:"›";margin-inline-end:.4em;font-size:1.25em;vertical-align:-.06em}
+#globeLayer .g-scrub{left:0!important;right:0!important;bottom:env(safe-area-inset-bottom,0px)!important;top:auto!important;height:40px;padding:0!important;gap:0!important;display:block}
+#globeLayer .g-scrub .sc-track{position:absolute;left:0;right:0;bottom:0;height:40px;padding:0}
+#globeLayer .g-scrub input[type=range]{position:absolute;left:0;right:0;bottom:0;width:100%;height:30px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-runnable-track{height:1px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-thumb{width:9px;height:9px;margin-top:-4px}
+#globeLayer .g-scrub input[type=range]::-moz-range-thumb{width:9px;height:9px}
+#globeLayer .g-scrub .sc-ticks{display:none}
+/* play: קטן, בלי עיגול, יושב על הקו בקצה שבו המסע מתחיל */
+#globeLayer .g-scrub button#scPlay{position:absolute;z-index:2;left:calc(var(--e-l) - 12px);bottom:12px;width:44px;height:44px;border:0;border-radius:0;background:none;color:var(--ink)}
+#globeLayer .g-scrub button#scPlay svg{width:13px;height:13px;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+#globeLayer .g-scrub button#scPlay:hover{background:none;color:#fff}
+#globeLayer .g-scrub button#scPlay:focus-visible{outline:2px solid #fff;outline-offset:-10px}
+/* "עכשיו": שנתה קטנה על הקו. מעבר לה הקו חיוור */
+#globeLayer .sc-now{position:absolute;bottom:10px;width:1px;height:9px;margin-left:-.5px;background:#f2f6f8;pointer-events:none;box-shadow:0 0 3px rgba(3,10,16,.9)}
+/* מתחת לקו: רק תאריך קטן שזז עם נקודת הנגינה */
+#globeLayer .g-scrub output{position:absolute;bottom:0;right:auto;min-width:0;padding:0;transform:translateX(-50%);font-size:10.5px;line-height:12px;color:var(--ink2d);white-space:nowrap;pointer-events:none;text-shadow:var(--sh)}
+#globeLayer .g-scrub output.fut{color:#f1cf8a}
 </style>
 </head>
 <body>
@@ -575,6 +614,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   <div id="lyCap" aria-live="polite">
     <p class="cap cap-now" id="capNow"></p>
     <p class="cap cap-race" id="capRace"></p>
+    <p class="cap cap-log" id="capLog"></p>
     <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a></p></div>
   </div>
 
@@ -644,6 +684,8 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
   </div>
 
+  <!-- l23 מנה 4: "היומן" — במקום רצועת הזמן. זמנים במילים; נגיעה מעבירה את ההדמיה לשם (הים והרוח מהארכיון או מהתחזית) -->
+  <div class="logbar" id="logBar" role="group" aria-label="היומן: הים והרוח בזמנים אחרים"></div>
   <div id="toast" class="off" role="status"></div>
 
   <!-- רוח, גל, זרם: שלושה שלישים של עיגול אחד (בטלפון לאורך: שלושה עיגולים בטור). התפריט בטבור -->
