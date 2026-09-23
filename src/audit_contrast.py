@@ -44,7 +44,7 @@ COLLECT="""(function(){
               weight:cs.fontWeight, box:[Math.round(r.left),Math.round(r.top),Math.round(r.right),Math.round(r.bottom)]});
   }
   /* העלים בלבד: אלמנט שיש לו טקסט ואין לו ילד עם טקסט */
-  document.querySelectorAll('.hud span,.hud b,.hud i,.hud em,.clocks b,.clocks span,.lb,.mini span,#toast,.g-leg span,.g-scrub output,.sc-ticks span,#gBack,.gl-name,.gl-label,.gl-deg,.ly .n,.lnm,.j-bar b').forEach(function(e){
+  document.querySelectorAll('.hud span,.hud b,.hud i,.hud em,.clocks b,.clocks span,.lb,.mini span,#toast,.g-leg span,.g-scrub output,.sc-ticks span,#gBack,.gl-name,.gl-label,.gl-deg,.ly .n,.lnm,.j-bar b,.lead-t b,.lead-t span,#leadStory,#moreBtn').forEach(function(e){
     var hasTextChild=false;
     for(var i=0;i<e.children.length;i++) if((e.children[i].textContent||'').trim()) hasTextChild=true;
     if(hasTextChild) return;
@@ -56,7 +56,7 @@ COLLECT="""(function(){
 # שמאחוריו במקום מול הפאנל שהטקסט באמת יושב עליו; ותוויות החוגה (.lnm, .ly .n) לא הוסתרו בכלל, ונמדדו מול עצמן.
 # עכשיו מסתירים רק את האותיות עצמן (color:transparent) ואת הצל שלהן, בדיוק באלמנטים שנאספו.
 HIDE="""(function(){ var st=document.createElement('style'); st.id='__hideText';
-  st.textContent='[data-ca],.hud span,.hud b,.hud i,.hud em,.clocks b,.clocks span,.lb,.mini span,#toast,.g-leg span,.g-scrub output,.sc-ticks span,#gBack,.gl-name,.gl-label,.gl-deg,.ly .n,.lnm,.j-bar b{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;transition:none!important}';
+  st.textContent='[data-ca],.hud span,.hud b,.hud i,.hud em,.clocks b,.clocks span,.lb,.mini span,#toast,.g-leg span,.g-scrub output,.sc-ticks span,#gBack,.gl-name,.gl-label,.gl-deg,.ly .n,.lnm,.j-bar b,.lead-t b,.lead-t span,#leadStory,#moreBtn{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;transition:none!important}';
   document.head.appendChild(st); return true; })()"""
 OPEN_GLOBE="""(async function(){ location.hash='globe'; var t0=Date.now();
  while(!window.__exoGlobeLoaded && Date.now()-t0<25000) await new Promise(r=>setTimeout(r,200));
@@ -111,6 +111,7 @@ async def scene(b,name,w,h,mob,clock_off,globe):
     pg.on('pageerror', lambda e: errs.append(str(e)[:140]))
     pg.on('console', lambda m: errs.append('console: '+m.text[:120]) if m.type=='error' else None)
     await pg.goto('http://127.0.0.1:%d%s'%(A.port,A.path)); await pg.wait_for_timeout(5200)
+    # 23.9: נוספו הכותרת, משפט הסיפור ו"עוד" של המסך הראשון (l19) — עד כאן לא נמדדו
     # 22.9: ב-/next/ פס הנתונים מתקפל לבד אחרי 5.2 שנ׳ — בדיוק ברגע האיסוף. לפעמים נאסף פתוח וצולם מקופל,
     # והטקסט נמדד מול רקע בלי ההצללה שלו (54 "כשלים" שלא היו). נועלים אותו פתוח: זה המצב שבו קוראים אותו.
     try: await pg.evaluate("if(window.__exoHudOpen) __exoHudOpen(true,true)")

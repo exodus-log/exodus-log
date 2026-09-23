@@ -129,20 +129,30 @@ body:not(.more) .vit .v-full,body.more .vit .v-lean,body:not(.more) #vAgeW{displ
 /* בלי מפריד לפני הפריט הגלוי הראשון: ה-::before נשען על "span+span", והפריט שלפניו מוסתר */
 body.more .vit>#vDayW+span::before{display:none}
 /* "עוד" ו"תפריט" בסוף שורת המספרים. בלי מפריד — הם לא עוד מספר */
-.vit>.vctl{display:inline-flex;align-items:center;gap:6px;margin-inline-start:1.1em;pointer-events:auto;vertical-align:middle}
+.vit>.vctl{display:inline-flex;align-items:center;gap:0;margin-inline-start:1.1em;pointer-events:auto;vertical-align:middle}
 .vit>.vctl::before{display:none!important}
-#moreBtn{border:1px solid rgba(225,236,243,.5);background:rgba(4,12,19,.38);color:var(--ink);font:500 12.5px/1 var(--ui);
-  padding:6px 12px 6px;border-radius:13px;cursor:pointer;text-shadow:none;min-height:28px}
-#menuBtn2{width:28px;height:28px;border:1px solid rgba(225,236,243,.5);border-radius:50%;background:rgba(4,12,19,.38);color:var(--ink);padding:0;cursor:pointer;display:inline-grid;place-items:center}
+/* אזור המגע 44×44 (הכלל לאצבע); מה שנראה הוא רק הגלולה או העיגול שבפנים, והשורה לא מתעבה (שוליים שליליים) */
+#moreBtn,#menuBtn2{position:relative;height:44px;min-width:44px;margin:-8px 0;border:0;background:none;color:var(--ink);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;display:inline-grid;place-items:center}
+#moreBtn{padding:0 13px;font:500 12.5px/1 var(--ui);text-shadow:none}
+#menuBtn2{width:44px;padding:0}
+#moreBtn::before,#menuBtn2::before{content:"";position:absolute;z-index:-1;border:1px solid rgba(225,236,243,.5);background:rgba(4,12,19,.38)}
+#moreBtn::before{inset:8px 0;border-radius:14px}
+#menuBtn2::before{inset:8px;border-radius:50%}
+#moreBtn,#menuBtn2{isolation:isolate}
 #menuBtn2 svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
-#moreBtn:hover,#menuBtn2:hover,#menuBtn2[aria-expanded=true]{background:rgba(255,255,255,.14)}
-#moreBtn:focus-visible,#menuBtn2:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#moreBtn:hover::before,#menuBtn2:hover::before,#menuBtn2[aria-expanded=true]::before{background:rgba(255,255,255,.14)}
+#moreBtn:focus-visible,#menuBtn2:focus-visible{outline:none}
+#moreBtn:focus-visible::before,#menuBtn2:focus-visible::before{outline:2px solid #fff;outline-offset:2px}
 body.more #menuBtn2{display:none}
 /* המסך הראשון (בלי "עוד"): ההדמיה, הכותרת וארבעה מספרים. כל השאר מחכה מאחורי הכפתור */
 body:not(.more) #hudBand,body:not(.more) #hudDot,body:not(.more) .mini,body:not(.more) .vw,body:not(.more) .tstrip,
 body:not(.more) .lay,body:not(.more) #sndBtn,body:not(.more) #labels .dat.wind,body:not(.more) #labels .dat.wave,body:not(.more) #labels .dat.cur{display:none!important}
 /* בלי רצועת הזמן השורה יורדת לתחתית */
 body:not(.more){--e-b:calc(12px + env(safe-area-inset-bottom,0px))}
+/* בלי רצועת הזמן אין פס כהה מתחת לשורה, והתוויות האפורות נחו על קצף (נמדד 3.1–3.4:1). הצללה נוספת, רק במסך הראשון */
+body:not(.more) .vig::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--bot) + 34px);
+  background:linear-gradient(to top,rgba(4,12,19,.42) 0,rgba(4,12,19,.30) calc(var(--bot) - 6px),rgba(4,12,19,0) 100%)}
 body:not(.more) #menu{bottom:calc(var(--bot) + 10px + env(safe-area-inset-bottom,0px))}
 @media (min-width:701px) and (min-height:521px){ body:not(.more) #menu{right:50%;transform:translateX(50%)} }
 #hFcast{color:var(--ink3d)}
@@ -165,7 +175,8 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
 .lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em}
 .lead-t span{font-weight:400;color:var(--ink2d)}
 .lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
-body:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
+.lead-t b{font-weight:inherit}
+body.more:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
 @media (max-width:700px){
   .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
   /* בטלפון לאורך המשפט עד שלוש שורות; נגיעה פותחת את כולו */
@@ -466,7 +477,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   <!-- 23.9 (l19, "המסך הראשון בחיסור"): מי שפותח את הקישור מקבוצה צריך להבין בשלוש שניות מה זה ואיפה הוא.
        שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
   <header class="lead" id="lead">
-    <h1 class="lead-t">דניאל פינסקי מקיף את העולם לבד, בלי עצירה. <span>כאן רואים איפה הוא עכשיו, ואת הים והרוח סביבו.</span></h1>
+    <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו, ואת הים והרוח סביבו.</span></h1>
     <p class="lead-s" id="leadStory" hidden></p>
   </header>
 
