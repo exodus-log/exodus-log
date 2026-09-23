@@ -100,7 +100,10 @@ var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
 /* --top: התחתית של מה שבאמת פתוח למעלה (הפס, או רק הנקודה). ההצללה והתוויות נשענות עליו.
    --topf: תמיד לפי הנקודה — המסגור של הסירה לא קופץ כשפותחים ומקפלים את הפס; הפס צף מעל. */
 var hudBand=$('hudBand'), hudDot=$('hudDot');
+var leadEl=$('lead');
 function measureTop(){ var d=hudDot?hudDot.getBoundingClientRect().bottom-8:0, open=!document.body.classList.contains('hfold');
+  /* 23.9: הכותרת בראש המסך. כשהיא מוצגת, המסגור של הסירה ותחילת ההצללה נשענים על התחתית שלה */
+  if(leadEl&&getComputedStyle(leadEl).visibility!=='hidden'&&!document.body.classList.contains('g-open')) d=Math.max(d,leadEl.getBoundingClientRect().bottom-10);
   var a=open&&hudBand?hudBand.getBoundingClientRect().bottom-2:0;
   safeTop=Math.max(a,d)+6;
   var st=document.documentElement.style; st.setProperty('--top',Math.round(safeTop)+'px'); st.setProperty('--topf',Math.round(d+6)+'px'); measureBot(); }
@@ -116,7 +119,8 @@ if(hudDot) hudDot.addEventListener('click',function(){ hudPinned=true; hudOpen(d
 if(hudBand) hudBand.addEventListener('click',function(){ hudPinned=true; hudOpen(false); });
 /* בכניסה הפס פתוח כמה שניות ומתקפל לנקודה — כך רואים לאן הוא הולך. נגיעה בו לפני כן משאירה אותו */
 /* 23.9: בלי WebGL אין הדמיה שהפס מסתיר, והנתונים הם כל מה שיש בדף — אז הוא לא מתקפל */
-hudTm=setTimeout(function(){ if(LIVE&&!hudPinned&&!tsScrub) hudOpen(false); },5200);
+/* 23.9 (l19): עם הכותרת בראש המסך, הפס מתחיל מקופל לנקודה. בלי WebGL הוא נשאר פתוח, כמו קודם */
+if(LIVE) hudOpen(false);
 /* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
    הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
    והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
@@ -333,7 +337,10 @@ menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 $('menuX').addEventListener('click',function(){ setMenu(false); menuBtn.focus(); });
 document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)) setMenu(false); },true);
-if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY); }
+if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
+  /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
+  var ls=$('leadStory'); if(ls){ ls.textContent=STORY; ls.hidden=false;
+    ls.addEventListener('click',function(){ ls.classList.toggle('open'); measureTop(); }); } }
 
 menu.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;
   if(t.id==='bSound'){ audioSet(!auOn); }

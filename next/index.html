@@ -136,6 +136,24 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
   border:0;padding:0;margin:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #hudDot::before{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;
   background:#e9fbf9;box-shadow:0 0 5px 1px rgba(143,227,222,.9),0 0 14px 4px rgba(143,227,222,.38);transition:background .35s,opacity .3s}
+/* הכותרת (23.9, l19): בראש המסך, מימין, באותם שוליים של הפס. כשהפס נפתח מהנקודה הוא מכסה אותה */
+.lead{position:absolute;z-index:5;top:0;left:0;right:0;margin:0;pointer-events:none;
+  padding:var(--e-t) calc(var(--e-r) + 32px) 18px var(--e-l);text-shadow:var(--shd,var(--sh));
+  background:linear-gradient(to bottom,rgba(4,12,19,.58),rgba(4,12,19,.34) 64%,rgba(4,12,19,0));
+  transition:opacity .28s ease,visibility 0s}
+.lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em}
+.lead-t span{font-weight:400;color:var(--ink2d)}
+.lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
+body:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
+@media (max-width:700px){
+  .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
+  /* בטלפון לאורך המשפט עד שלוש שורות; נגיעה פותחת את כולו */
+  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+}
+@media (max-height:520px){
+  .lead{padding-bottom:12px} .lead-t{font-size:15px} .lead-s{font-size:12.5px;margin-top:3px}
+  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
 body.hfold #hudDot::before{animation:hdGlow 3.4s ease-in-out infinite}
 @keyframes hdGlow{50%{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}}
 body:not(.hfold) #hudDot::before{opacity:.75}
@@ -423,6 +441,13 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
       <output id="scOut" class="num">—</output>
     </div>
   </section>
+
+  <!-- 23.9 (l19, "המסך הראשון בחיסור"): מי שפותח את הקישור מקבוצה צריך להבין בשלוש שניות מה זה ואיפה הוא.
+       שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
+  <header class="lead" id="lead">
+    <h1 class="lead-t">דניאל פינסקי מקיף את העולם לבד, בלי עצירה. <span>כאן רואים איפה הוא עכשיו, ואת הים והרוח סביבו.</span></h1>
+    <p class="lead-s" id="leadStory" hidden></p>
+  </header>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
        לנקודה זוהרת. הקשה על הנקודה פותחת את הכול בבת אחת; גרירת הזמן פותחת אותו לבד -->
