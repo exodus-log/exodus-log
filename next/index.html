@@ -176,6 +176,7 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
 .lead-t span{font-weight:400;color:var(--ink2d)}
 .lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
 .lead-t b{font-weight:inherit}
+.lead-s:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:2px}
 body.more:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
 @media (max-width:700px){
   .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
@@ -478,7 +479,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
        שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
   <header class="lead" id="lead">
     <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו, ואת הים והרוח סביבו.</span></h1>
-    <p class="lead-s" id="leadStory" hidden></p>
+    <p class="lead-s" id="leadStory" hidden tabindex="0" role="button" aria-expanded="false"></p>
   </header>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל

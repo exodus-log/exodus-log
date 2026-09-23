@@ -359,7 +359,9 @@ document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contain
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   var ls=$('leadStory'); if(ls){ ls.textContent=STORY; ls.hidden=false;
-    ls.addEventListener('click',function(){ ls.classList.toggle('open'); measureTop(); }); } }
+    var lsTog=function(){ var o=ls.classList.toggle('open'); ls.setAttribute('aria-expanded',o?'true':'false'); measureTop(); };
+    ls.addEventListener('click',lsTog);
+    ls.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); lsTog(); } }); } }
 
 menu.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;
   if(t.id==='bSound'){ audioSet(!auOn); }
