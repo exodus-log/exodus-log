@@ -89,5 +89,9 @@ window.REVIEW_FEATURES = [
   /* 23.9 לילה — הממשק הנקי (l23), ב-/next/ */
   {n:74, key:'key',       scr:'sim', sel:'#key',               name:'העיגול (המפתח): משפט הפתיחה נשאב אליו, והוא פותח את השכבות'},
   {n:75, key:'lead-suck', scr:'sim', chip:true, name:'משפט הפתיחה: ארבע שניות, ואז נשאב לתוך העיגול (נגיעה לפני כן — מיד)'},
-  {n:76, key:'thin-line', scr:'sim', sel:'.hud.vit',           name:'השורה הדקה בתחתית: יום · איפה במילים · עד קו הסיום'}
+  {n:76, key:'thin-line', scr:'sim', sel:'.hud.vit',           name:'השורה הדקה בתחתית: יום · איפה במילים · עד קו הסיום'},
+  {n:77, key:'layers-bar',scr:'sim', sel:'#lyr',               name:'התפריט העליון: שש קטגוריות, כל אחת שכבה (נגיעה מדליקה, נגיעה מכבה)'},
+  {n:78, key:'layer-caps',scr:'sim', sel:'#lyCap',             name:'המלל הקצר של השכבות הדולקות, מתחת לתפריט'},
+  {n:79, key:'fleet-hz',  scr:'sim', sel:'#labels .lb.fb', multi:true, name:'"המירוץ": הסירות הקרובות כסימנים באופק, בכיוון ובמרחק האמיתיים'},
+  {n:80, key:'about',     scr:'sim', sel:'#bAbout',            name:'"אודות": מי, מקורות, יצירת קשר, זכויות והגדרות'}
 ];

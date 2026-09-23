@@ -218,5 +218,11 @@ function labAnchors(VP,t){
   (function(){ var qb=rp(1400,GATE_BRG), m=VP, px=qb[0], pz=qb[1], w=m[3]*px+m[11]*pz+m[15], aw=Math.max(Math.abs(w),1e-3);
     var nx=(m[0]*px+m[8]*pz+m[12])/aw, ny=(m[1]*px+m[9]*pz+m[13])/aw;
     A.beaconEx=[(nx*0.5+0.5)*cw,(1-(ny*0.5+0.5))*ch,w<=0.001?1:0]; })();
+  /* l23 (23.9): נקודות אופק לכל כיוון שה-HUD מבקש (LAB.hz — הכיוונים אל שאר הסירות בשכבה "המירוץ"),
+     באותה שיטה של המשואה: [x, y, מאחורי המצלמה] */
+  if(LAB.hz&&LAB.hz.length){ var HZ=A.hz||(A.hz=[]), hi; HZ.length=LAB.hz.length;
+    for(hi=0;hi<LAB.hz.length;hi++){ var qz=rp(1400,LAB.hz[hi]), mz=VP, wz=mz[3]*qz[0]+mz[11]*qz[1]+mz[15], az=Math.max(Math.abs(wz),1e-3);
+      HZ[hi]=[((mz[0]*qz[0]+mz[8]*qz[1]+mz[12])/az*0.5+0.5)*cw,(1-((mz[1]*qz[0]+mz[9]*qz[1]+mz[13])/az*0.5+0.5))*ch,wz<=0.001?1:0]; } }
+  else A.hz=null;
   EXO.frame.ringR=R;
 }

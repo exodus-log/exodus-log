@@ -93,7 +93,7 @@ function renderHud(s){
   put('cBoat',s.localHM); put('cUtc',pad(d.getUTCHours())+':'+pad(d.getUTCMinutes()));
   put('cIl',ilFmt?ilFmt.format(d):'--:--');
   var gap=Math.round(FIX.dtf-FLEET[0][5]);
-  put('vWhere',whereWords());
+  put('vWhere',whereWords()); capNow(s,c,dayN,ps,ageTxt,stale);
   put('vRank',FIX.rank); put('vOf','מתוך '+FLEET.length); put('vSog',FIX.sog.toFixed(1)+(compact?'kn ':' kn · ')+deg3(FIX.cog));
   put('vGap',gap<=0?'0':thou(gap)); put('vDtf',thou(FIX.dtf));
   if(c){ labelTexts(s); put('lyWind',Math.round(c.wind)); put('lyWave',c.waveH.toFixed(1)); put('lyCur',c.cur.toFixed(1)); paintLayers(); }
@@ -111,6 +111,15 @@ function oceanHe(lat,lon){ lon=((lon+540)%360)-180; var N=lat>=0;
 function whereWords(){ var nm=FIX.nearLandName;
   if(FIX.nearLand!=null&&FIX.nearLand<=200&&nm&&nm!=='החוף הקרוב') return 'מול '+nm;
   return oceanHe(FIX.lat,FIX.lon); }
+
+/* l23 מנה 2: המלל של "איפה הוא עכשיו" — מה שהיה בפס הנתונים: נ״צ ומתי, רוח וחוזקה, מהירות וכיוון.
+   הערכים שנגזרים מהשעון המוצג (.tv) נצבעים כשגוררים בזמן, כמו בפס */
+function capNow(s,c,dayN,ps,ageTxt,stale){ var e=$('capNow'); if(!e) return;
+  var fx=new Date(FIX.at*1000), h='<b class="n tv">'+dmm(ps.lat,2,'N','S')+' '+dmm(ps.lon,3,'E','W')+'</b> · <span'+(stale?' style="color:#ffb3a8"':'')+'>נ״צ <span class="n">'+pad(fx.getUTCHours())+':'+pad(fx.getUTCMinutes())+' UTC</span>, '+ageTxt+'</span><br>';
+  if(c&&!c.missing) h+='רוח <b class="n tv">'+Math.round(c.wind)+' kn</b> מכיוון <b class="n tv">'+deg3(c.windDir)+'</b> (בופור '+beaufort(c.wind)+') · גל <b class="n tv">'+c.waveH.toFixed(1)+' m</b><br>';
+  h+='מהירות <b class="n">'+FIX.sog.toFixed(1)+' kn</b> לכיוון <b class="n">'+deg3(FIX.cog)+'</b>';
+  if(e._h!==h){ e._h=h; e.innerHTML=h; }
+  var r=$('capRace'); if(r){ var t='מקום <b class="n">'+FIX.rank+'</b> מתוך '+FLEET.length+' · הקרובה: '+FIX.nearBoatName+', <b class="n">'+thou(FIX.nearBoat)+'</b> מייל'; if(r._h!==t){ r._h=t; r.innerHTML=t; } } }
 
 /* ================= תוויות על הסצנה: מעלות הטבעת, רוח, גל, זרם, היעד ================= */
 var LB={}, labelsHost=$('labels'), SZ={}, safeTop=0;
@@ -170,6 +179,52 @@ var keyArm=false; window.addEventListener('pointerdown',function(){ keyArm=keyed
 ['pointerdown','keydown','wheel'].forEach(function(ev){
   window.addEventListener(ev,function h(e){ if(ev==='keydown'&&(e.key==='Shift'||e.key==='Alt'||e.key==='Control'||e.key==='Meta')) return;
     suck(); window.removeEventListener(ev,h,true); },{capture:true,passive:true}); });
+
+/* ===== l23 מנה 2: התפריט העליון — שש קטגוריות, כל אחת שכבה ===== */
+var lyrEl=$('lyr'), lyrIsOpen=false, LY_ON={};
+function lyrOpen(on){ lyrIsOpen=!!on; if(!lyrEl) return; lyrEl.hidden=!on; document.body.classList.toggle('lyr-open',lyrIsOpen);
+  if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(!on&&menuOpen) setMenu(false);
+  if(on){ var f=lyrEl.querySelector('button'); if(f&&document.activeElement===keyEl) try{ f.focus({preventScroll:true}); }catch(e){} } }
+var ringAnim=0, ringHold=0;
+function ringTo(v){ if(!LIVE) return; cancelAnimationFrame(ringAnim); var a=LAB.ringVis||0, t0=performance.now();
+  (function st(){ var k=Math.min(1,(performance.now()-t0)/450); LAB.ringVis=a+(v-a)*(k*k*(3-2*k)); if(EXO.kick) EXO.kick(); if(k<1) ringAnim=requestAnimationFrame(st); })(); }
+function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'+n,on);
+  var b=lyrEl&&lyrEl.querySelector('[data-l="'+n+'"]'); if(b) b.setAttribute('aria-pressed',on?'true':'false');
+  if(n==='now'&&LIVE){ ringTo(on?1:0); EXO.setLayer('cur',on); clearInterval(ringHold);
+    /* הטבעת בהירה כל עוד השכבה דולקת (במנוחה היא כמעט שקופה, ונדלקת רק בגרירה) */
+    if(on){ LAB.ringHotT=performance.now(); ringHold=setInterval(function(){ LAB.ringHotT=performance.now(); },500); } }
+  if(n==='race') fleetHz(on);
+  if(n==='log'&&!on&&tsScrub) try{ tsSet(0); }catch(e){}
+  if(n==='log'){ setTimeout(function(){ measureBot(); tsDraw(); },30); }
+  SZ={}; measureTop(); }
+if(lyrEl) lyrEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button'):null; if(!t) return;
+  if(t.id==='bAbout'){ setMenu(!menuOpen); return; }
+  var n=t.getAttribute('data-l'); if(n) setLy(n,!LY_ON[n]); });
+/* בלי WebGL אין הדמיה לסמן עליה, והמלל הוא כל מה שיש: "איפה הוא עכשיו" דולקת מההתחלה */
+if(!LIVE) setTimeout(function(){ setLy('now',true); },0);
+
+/* "המירוץ": שאר הסירות כסימנים באופק, בכיוון האמיתי שלהן מאקסודוס (מעגל גדול, מנקודות הציון שב-FLEET).
+   רק הקרובות — עד שש, בתוך 600 מייל — כדי שהאופק לא יתמלא. בלי "פער מהמוביל" */
+var FB=[];
+function gcNm(a1,o1,a2,o2){ var p1=a1*D2R,p2=a2*D2R,dl=(o2-o1)*D2R; return Math.acos(clamp(Math.sin(p1)*Math.sin(p2)+Math.cos(p1)*Math.cos(p2)*Math.cos(dl),-1,1))*R2D*60; }
+function gcBrg(a1,o1,a2,o2){ var p1=a1*D2R,p2=a2*D2R,dl=(o2-o1)*D2R; return (Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))*R2D+360)%360; }
+function fleetHz(on){ FB.forEach(function(f){ if(f.el.parentNode) f.el.parentNode.removeChild(f.el); }); FB=[];
+  if(!on||typeof FLEET==='undefined'){ if(LIVE) LAB.hz=null; return; }
+  var L=[]; FLEET.forEach(function(b){ if(b[1]===4||b[7]===1||b[2]==null) return; var d=gcNm(FIX.lat,FIX.lon,b[2],b[3]); if(d<=600) L.push({n:b[4],d:d,brg:gcBrg(FIX.lat,FIX.lon,b[2],b[3])}); });
+  L.sort(function(a,b){ return a.d-b.d; }); L=L.slice(0,6);
+  L.forEach(function(f){ var e=document.createElement('div'); e.className='lb fb'; e.innerHTML=String(f.n).replace(/</g,'&lt;')+' · <span class="n">'+thou(f.d)+'</span> מייל'; e.hidden=true; labelsHost.appendChild(e); f.el=e; FB.push(f); });
+  if(LIVE) LAB.hz=FB.map(function(f){ return f.brg; }); }
+function fleetPlace(A,f){ if(!FB.length) return; var H=A.hz, W=stage.clientWidth, Hh=stage.clientHeight, used=[];
+  var m=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge'))||14)+2;
+  FB.forEach(function(b,i){ var e=b.el, p=H&&H[i]; if(f.under||!p){ if(!e.hidden) e.hidden=true; return; }
+    if(e.hidden) e.hidden=false; var w=e.offsetWidth, h=e.offsetHeight, x, y, edge=0;
+    if(!p[2]&&p[0]>=0&&p[0]<=W){ x=p[0]-w/2; y=Math.max(p[1],safeTop+h+26)-h; }
+    else { edge=(p[0]<W/2)?-1:1; x=edge<0?m:W-w-m; y=p[2]?Hh*0.42:clamp(p[1],safeTop+34,Hh*0.55); }
+    x=clamp(x,6,W-w-6);
+    for(var k=0;k<used.length;k++){ var u=used[k]; if(Math.abs(u[0]-x)<(u[2]+w)/2+8&&Math.abs(u[1]-y)<h+3){ y=u[1]+h+4; k=-1; } }
+    used.push([x,y,w]);
+    if(e._edge!==edge){ e._edge=edge; e.classList.toggle('edge',!!edge); e.classList.toggle('el',edge<0); e.classList.toggle('er',edge>0); }
+    e.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)'; }); }
 
 /* בלי WebGL אין הדמיה שהפס מסתיר: במצב "עוד" הוא לא מתקפל */
 if(!LIVE&&document.body.classList.contains('more')){ clearTimeout(hudTm); hudOpen(true); }
@@ -254,7 +309,7 @@ if(LIVE) EXO.onFrame(function(f){
     declutter(list).forEach(function(it){ place(it[0],it[1],it[2],idleD); var z=SZ[it[0]]||{w:110,h:16}; rects.push([it[1]-z.w/2-18,it[2]-z.h/2-9,it[1]+z.w/2+18,it[2]+z.h/2+9]); });
     [0,3,6,9,1,2,4,5,7,8,10,11].forEach(function(i){ var p=A['g'+i]; tryGrad(i,p?p[0]:null,p?p[1]:null,(i===0?0.16+0.84*hot:(i%3===0?0.06:0.03)+0.94*hot)*rk,(i%3===0?22:34)); });
   } else { for(var gi=0;gi<12;gi++) place('g'+gi,null); dat.forEach(function(n){ place(n,null); }); }
-  beaconPlace(A,f);
+  beaconPlace(A,f); fleetPlace(A,f);
   audioFrame(f);
   globeX(f); gxT=!!f.touching; gxX=f.gX||0;
 });
@@ -384,18 +439,21 @@ function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.cl
 
 /* ================= התפריט ================= */
 var menu=$('menu'), menuBtn=$('menuBtn'), menuOpen=false;
-function setMenu(on){ menuOpen=!!on; menu.hidden=!on; menuBtn.setAttribute('aria-expanded',on?'true':'false'); if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+function setMenu(on){ menuOpen=!!on; menu.hidden=!on; document.body.classList.toggle('about-open',menuOpen); menuBtn.setAttribute('aria-expanded',on?'true':'false'); var ab=$('bAbout'); if(ab) ab.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on&&kbNav){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+/* הפוקוס עובר לחלונית רק למי שמנווט במקלדת; במגע הוא צייר מסגרת לבנה סביב ה-× */
+var kbNav=false; window.addEventListener('keydown',function(){ kbNav=true; },true); window.addEventListener('pointerdown',function(){ kbNav=false; },true);
 menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
 /* 23.9 (l19): במסך הראשון התפריט נפתח מהכפתור שבשורת המספרים */
 var menuBtn2=$('menuBtn2');
 if(menuBtn2) menuBtn2.addEventListener('click',function(){ setMenu(!menuOpen); });
 /* l23: העיגול פותח את התפריט — רק אחרי שהמשפט כבר נשאב אליו (נגיעה לפני כן רק שואבת) */
-if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&&!keyArm)) return; keyArm=false; setMenu(!menuOpen); }); }
+if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&&!keyArm)) return; keyArm=false; lyrOpen(!lyrIsOpen); }); }
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
-$('menuX').addEventListener('click',function(){ setMenu(false); (keyEl||menuBtn).focus(); });
-document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(keyEl&&keyEl.contains(ev.target))&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
+$('menuX').addEventListener('click',function(){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); });
+document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(keyEl&&keyEl.contains(ev.target))&&!($('bAbout')&&$('bAbout').contains(ev.target))&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
+  put('capStoryT',STORY);
   var ls=$('leadStory'); if(ls){ ls.textContent=STORY;      /* l23: המשפט עובר ל"הסיפור"; במסך הראשון רק משפט הפתיחה */
     var lsTog=function(){ var o=ls.classList.toggle('open'); ls.setAttribute('aria-expanded',o?'true':'false'); measureTop(); };
     ls.addEventListener('click',lsTog);
@@ -545,7 +603,7 @@ window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return;
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
-document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); (keyEl||menuBtn).focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
    במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
