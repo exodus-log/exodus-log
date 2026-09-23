@@ -41,6 +41,13 @@ jobs:
           EXO_MODE: ${{ inputs.mode || vars.EXO_MODE || 'compare' }}
           EXO_WEATHER: ${{ inputs.weather && '1' || '' }}
         run: node scripts/update-data.mjs
+      # Stage 3 of the timeline: the learned polar and the 72-hour forecast for the whole fleet
+      # (assets/polar.json, assets/forecast.json). Estimates, never measurements. A failure here never
+      # blocks data.js.
+      - name: Polar and forecast
+        if: steps.run.outputs.changed == 'true'
+        continue-on-error: true
+        run: node scripts/polar-learn.mjs --quiet && node scripts/forecast.mjs
       - name: Keep the files for comparison
         if: always() && (failure() || (inputs.mode || vars.EXO_MODE || 'compare') == 'compare')
         uses: actions/upload-artifact@v4
@@ -58,6 +65,6 @@ jobs:
         run: |
           git config user.name "exodus-log data bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data.js assets/fleet-log.js
+          git add assets/data.js assets/fleet-log.js assets/polar.json assets/forecast.json
           git diff --cached --quiet || git commit -m "$MSG"
           git push origin HEAD:main || (git pull --rebase origin main && git push origin HEAD:main)
