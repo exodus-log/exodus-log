@@ -82,5 +82,8 @@ window.REVIEW_FEATURES = [
   {n:68, key:'past',      scr:'sim', chip:true, name:'גרירה אחורה ברצועת הזמן: הסירה עומדת איפה שהייתה, והים והרוח של אותה שעה מהארכיון'},
   /* 23.9 — המסך הראשון בחיסור (l19), ב-/next/ */
   {n:69, key:'lead-title',scr:'sim', sel:'#lead .lead-t',      name:'שורת הכותרת: מי זה ומה רואים כאן'},
-  {n:70, key:'lead-story',scr:'sim', sel:'#leadStory',         name:'משפט הסיפור מתחת לכותרת (בטלפון עד שלוש שורות; נגיעה פותחת)'}
+  {n:70, key:'lead-story',scr:'sim', sel:'#leadStory',         name:'משפט הסיפור מתחת לכותרת (בטלפון עד שלוש שורות; נגיעה פותחת)'},
+  {n:71, key:'lean-nums', scr:'sim', sel:'.vit', name:'ארבעת המספרים במסך הראשון: יום למסע, מקום, עד הסיום, מתי עודכן'},
+  {n:72, key:'more-btn',  scr:'sim', sel:'#moreBtn', name:'"עוד" / "פחות": כל המכשירים מאחורי נגיעה אחת, והטלפון זוכר'},
+  {n:73, key:'menu-lean', scr:'sim', sel:'#menuBtn2', name:'התפריט במסך הראשון, ובראשו "המסע והניתוח"'}
 ];

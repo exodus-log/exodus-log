@@ -122,8 +122,21 @@ if(hudDot) hudDot.addEventListener('click',function(){ hudPinned=true; hudOpen(d
 if(hudBand) hudBand.addEventListener('click',function(){ hudPinned=true; hudOpen(false); });
 /* בכניסה הפס פתוח כמה שניות ומתקפל לנקודה — כך רואים לאן הוא הולך. נגיעה בו לפני כן משאירה אותו */
 /* 23.9: בלי WebGL אין הדמיה שהפס מסתיר, והנתונים הם כל מה שיש בדף — אז הוא לא מתקפל */
-/* 23.9 (l19): עם הכותרת בראש המסך, הפס מתחיל מקופל לנקודה. בלי WebGL הוא נשאר פתוח, כמו קודם */
-if(LIVE) hudOpen(false);
+/* 23.9 (l19): המסך הראשון — כותרת, הדמיה, ארבעה מספרים. "עוד" (body.more) מחזיר את כל המכשירים כמו שהיו:
+   הפס פתוח כמה שניות ומתקפל לנקודה (בלי WebGL הוא נשאר פתוח). הבחירה נשמרת בטלפון (localStorage) */
+var moreBtn=$('moreBtn');
+function setMore(on,user){ var b=document.body; on=!!on;
+  b.classList.toggle('more',on);
+  if(moreBtn){ moreBtn.textContent=on?'פחות':'עוד'; moreBtn.setAttribute('aria-expanded',on?'true':'false');
+    moreBtn.setAttribute('aria-label',on?'פחות: חזרה למסך הראשון':'עוד: רוח, גל, זרם, שעונים, מפה, רצועת הזמן והשכבות'); }
+  if(user) store('exo.more',on?'1':'0');
+  if(on){ if(user){ hudOpen(true,true); } else { hudOpen(true); hudTm=setTimeout(function(){ if(LIVE&&!hudPinned&&!tsScrub) hudOpen(false); },5200); } }
+  else { if(tsScrub) try{ tsSet(0); }catch(e){} hudPinned=false; hudOpen(false); }
+  measureTop(); setTimeout(function(){ measureTop(); frameScene(); },60); }
+if(moreBtn) moreBtn.addEventListener('click',function(){ setMore(!document.body.classList.contains('more'),true); });
+setMore(store('exo.more')==='1',false);
+/* בלי WebGL אין הדמיה שהפס מסתיר: במצב "עוד" הוא לא מתקפל */
+if(!LIVE&&document.body.classList.contains('more')){ clearTimeout(hudTm); hudOpen(true); }
 /* --bot: הגובה שתופסת שורת מספרי המרוץ בתחתית. עד כאן כל מה שישב מעליה — המפה הקטנה, טור
    הבקרות, ההודעה הצפה, רצועת הימים — קיבל קבוע משלו לכל רוחב מסך (44, 46, 62, 63, 66, 81),
    והם נסחפו זה מזה בכל שינוי. עכשיו מודדים אותה פעם אחת וכולם נשענים על אותה שורה. */
@@ -335,11 +348,14 @@ function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.cl
 
 /* ================= התפריט ================= */
 var menu=$('menu'), menuBtn=$('menuBtn'), menuOpen=false;
-function setMenu(on){ menuOpen=!!on; menu.hidden=!on; menuBtn.setAttribute('aria-expanded',on?'true':'false'); if(on){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+function setMenu(on){ menuOpen=!!on; menu.hidden=!on; menuBtn.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
+/* 23.9 (l19): במסך הראשון התפריט נפתח מהכפתור שבשורת המספרים */
+var menuBtn2=$('menuBtn2');
+if(menuBtn2) menuBtn2.addEventListener('click',function(){ setMenu(!menuOpen); });
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 $('menuX').addEventListener('click',function(){ setMenu(false); menuBtn.focus(); });
-document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)) setMenu(false); },true);
+document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   var ls=$('leadStory'); if(ls){ ls.textContent=STORY; ls.hidden=false;
@@ -487,6 +503,7 @@ function closeJourney(fromPop){ if(!jOpen) return; jOpen=false; J.hidden=true; d
 window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return; } if(jOpen){ jPushed=false; closeJourney(true); } else if(gOpen){ gPushed=false; closeGlobe(true); } });
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
+if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
 document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); menuBtn.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).

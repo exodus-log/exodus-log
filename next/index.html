@@ -125,9 +125,26 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .topr .stale{color:#ffb3a8}
 #vAgeW.stale i,#vAgeW.stale b,#vUpdW.stale i,#vUpdW.stale b{color:#ffb3a8}
 /* 23.9 (l19): במסך הראשון ארבעה מספרים; כשהמכשירים פתוחים — השורה המלאה של קודם */
-body.hfold .vit .v-full,body:not(.hfold) .vit .v-lean,body.hfold #vAgeW{display:none}
+body:not(.more) .vit .v-full,body.more .vit .v-lean,body:not(.more) #vAgeW{display:none}
 /* בלי מפריד לפני הפריט הגלוי הראשון: ה-::before נשען על "span+span", והפריט שלפניו מוסתר */
-body:not(.hfold) .vit>#vDayW+span::before{display:none}
+body.more .vit>#vDayW+span::before{display:none}
+/* "עוד" ו"תפריט" בסוף שורת המספרים. בלי מפריד — הם לא עוד מספר */
+.vit>.vctl{display:inline-flex;align-items:center;gap:6px;margin-inline-start:1.1em;pointer-events:auto;vertical-align:middle}
+.vit>.vctl::before{display:none!important}
+#moreBtn{border:1px solid rgba(225,236,243,.5);background:rgba(4,12,19,.38);color:var(--ink);font:500 12.5px/1 var(--ui);
+  padding:6px 12px 6px;border-radius:13px;cursor:pointer;text-shadow:none;min-height:28px}
+#menuBtn2{width:28px;height:28px;border:1px solid rgba(225,236,243,.5);border-radius:50%;background:rgba(4,12,19,.38);color:var(--ink);padding:0;cursor:pointer;display:inline-grid;place-items:center}
+#menuBtn2 svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+#moreBtn:hover,#menuBtn2:hover,#menuBtn2[aria-expanded=true]{background:rgba(255,255,255,.14)}
+#moreBtn:focus-visible,#menuBtn2:focus-visible{outline:2px solid #fff;outline-offset:2px}
+body.more #menuBtn2{display:none}
+/* המסך הראשון (בלי "עוד"): ההדמיה, הכותרת וארבעה מספרים. כל השאר מחכה מאחורי הכפתור */
+body:not(.more) #hudBand,body:not(.more) #hudDot,body:not(.more) .mini,body:not(.more) .vw,body:not(.more) .tstrip,
+body:not(.more) .lay,body:not(.more) #sndBtn,body:not(.more) #labels .dat.wind,body:not(.more) #labels .dat.wave,body:not(.more) #labels .dat.cur{display:none!important}
+/* בלי רצועת הזמן השורה יורדת לתחתית */
+body:not(.more){--e-b:calc(12px + env(safe-area-inset-bottom,0px))}
+body:not(.more) #menu{bottom:calc(var(--bot) + 10px + env(safe-area-inset-bottom,0px))}
+@media (min-width:701px) and (min-height:521px){ body:not(.more) #menu{right:50%;transform:translateX(50%)} }
 #hFcast{color:var(--ink3d)}
 .topr .brk{display:none}
 .topr .clocks em{color:var(--ink3d);display:inline!important}
@@ -519,6 +536,8 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <!-- מספרי המרוץ הם תמונת המצב של נקודת הציון האחרונה. כשהיא מתיישנת הם נשארים על המסך
          כאילו הם של עכשיו, ומי שמצלם את השורה הזאת לא יודע מתי היא נכונה. מופיע רק כשיש פער. -->
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
+    <!-- 23.9 (l19): "עוד" פותח את כל המכשירים בבת אחת, ו"פחות" מחזיר למסך הראשון. הטלפון זוכר את הבחירה -->
+    <span class="vctl"><button type="button" id="moreBtn" aria-expanded="false" aria-label="עוד: רוח, גל, זרם, שעונים, מפה, רצועת הזמן והשכבות">עוד</button><button type="button" id="menuBtn2" aria-expanded="false" aria-controls="menu" aria-label="תפריט"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button></span>
   </div>
 
   <div id="toast" class="off" role="status"></div>
@@ -539,7 +558,8 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 
   <nav id="menu" hidden aria-label="תפריט">
     <button type="button" class="x" id="menuX" aria-label="סגירת התפריט">×</button>
-    <div class="grp"><span>עוד</span>
+    <button type="button" class="big" id="bJourney">המסע והניתוח<small>הסיפור, הצי, התחזית, הסקסטנט והניתוח המלא</small></button>
+    <div class="grp"><span>הגדרות</span>
       <button type="button" id="bSound" aria-pressed="false">קול</button>
       <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
       <button type="button" id="bFull" hidden>מסך מלא</button>
