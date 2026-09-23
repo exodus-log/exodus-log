@@ -443,10 +443,13 @@ function mergeFleetLog(log, tracks, opt) {
       var p = all[i];
       if (!isFinite(p.at) || !isFinite(p.lat) || !isFinite(p.lon) || !isFinite(p.dtf)) continue;
       if (Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180) continue;
-      var gap = (now - p.at > LOG_OLD ? LOG_OLD_STEP : LOG_STEP) - LOG_TOL;
-      if (!keep.length || p.at - keep[keep.length - 1].at >= gap) keep.push({ at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf });
+      var gap = (now - p.at > LOG_OLD ? LOG_OLD_STEP : LOG_STEP) - LOG_TOL, last = keep[keep.length - 1];
+      if (!last || p.at - last.at >= gap) keep.push({ at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, fresh: p.fresh });
+      /* נקודה שמורה שאין לה תאומה מדויקת במעקב (למשל 00:30 מהזרע הישן) חוסמת את הנקודה הטרייה שאחריה. אם בתוך
+         המרווח באה נקודה מהמעקב — היא מחליפה את השמורה. */
+      else if (p.fresh && !last.fresh) keep[keep.length - 1] = { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, fresh: 1 };
     }
-    if (keep.length) out[k] = keep;
+    if (keep.length) out[k] = keep.map(function (p) { return { at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf }; });
   });
   return out;
 }
