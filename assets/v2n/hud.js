@@ -494,7 +494,7 @@ document.addEventListener('visibilitychange',function(){ if(AU&&auOn) AU.master.
 function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.classList.remove('off'); clearTimeout(toast.t); toast.t=setTimeout(function(){ t.classList.add('off'); },ms||5200); }
 
 /* ================= התפריט =================
-   24.9 אחה"צ: "אודות" נבלע ב"שאלות" (שמוליק: "תכניס את אודות לתוך שאלות"; כלל — הכול נכנס ברוחב, פשוט ומינימלי).
+   24.9 אחה"צ: "אודות" נבלע ב"שאלות" (בעל האתר: "תכניס את אודות לתוך שאלות"; כלל — הכול נכנס ברוחב, פשוט ומינימלי).
    אין יותר חלונית #menu. setMenu נשאר שם נרדף ל-setFaq, כדי שכל נתיב ישן שפתח או סגר את התפריט
    (הכפתור שבטבעת, פתיחת הגלובוס, "המסע") יפתח או יסגור את "שאלות". menuOpen נשאר false לתמיד. */
 var menuBtn=$('menuBtn'), menuOpen=false;
@@ -512,7 +512,7 @@ if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&
     lyrOpen(!lyrIsOpen); }); }
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 /* ================= "שאלות" (l26, 24.9) =================
-   מה שמי שמגיע בפעם הראשונה רוצה לדעת, בשש קבוצות מקופלות, וכל שאלה מקופלת בתוך הקבוצה (שמוליק ביקש).
+   מה שמי שמגיע בפעם הראשונה רוצה לדעת, בשש קבוצות מקופלות, וכל שאלה מקופלת בתוך הקבוצה (בקשת בעל האתר).
    חלונית קריאה ולא שכבה: היא לא מסמנת כלום על ההדמיה. נסגרת מה-×, מ-Escape, וממגע מחוץ לה.
    מ-24.9 אחה"צ גם "אודות" כאן: המקורות ויצירת הקשר בקבוצה "האתר", וההגדרות והרישיון בסוף החלונית.
    האמת: עובדות קבועות — מאתר המרוץ (הכללים, המסלול, דף הסקיפר), מוויקיפדיה ומ-exodussail.com, עם קישור "מקור".

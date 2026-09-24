@@ -1739,7 +1739,7 @@ function drawBlows(dt,VP){
     drawMesh(M_PUFF, mMul(mTrans(b.x,b.y,b.z),mScale(r,r*1.25,r)), [0.93,0.95,0.97], 1, 0.55); }
   gl.depthMask(true); gl.disable(gl.BLEND); gl.uniform1f(SOLID.u('uA'),1); }
 function drawWhale(t,dt,eye,under,VP){
-  /* l23 (23.9): הלוויתן ירד מהתצוגה (שמוליק: "יגרום לאנשים לחשוב שזה לא אמיתי"). הקוד נשאר; EXO.whale('on') מפעיל ידנית */
+  /* l23 (23.9): הלוויתן ירד מהתצוגה (בעל האתר: "יגרום לאנשים לחשוב שזה לא אמיתי"). הקוד נשאר; EXO.whale('on') מפעיל ידנית */
   if(!WH.on){ WH.blows.length=0; return; }
   if(EXO.quality==='lite'||reduce) return;
   WH.x+=Math.sin(WH.hdg)*WH.spd*dt; WH.z-=Math.cos(WH.hdg)*WH.spd*dt;

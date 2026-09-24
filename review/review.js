@@ -287,7 +287,7 @@ setInterval(function(){ if(!document.hidden) refreshNotes(); },45000);
 
 /* ---------- "לטיפול Claude": כל סבב הערות = שיחה חדשה וקצרה (כלל המקל, מ-21.9.2026) ----------
    אתר לא יכול לפתוח שיחה של Claude בעצמו. לכן הכפתור, בלחיצה אחת: מסמן במסד אילו הערות עברו (handed),
-   מעתיק פתיחה מלאה שמספיקה לשיחה חדשה בלי שום היסטוריה, ופותח את Claude. שמוליק פותח משימה חדשה, מדביק ושולח.
+   מעתיק פתיחה מלאה שמספיקה לשיחה חדשה בלי שום היסטוריה, ופותח את Claude. בעל האתר פותח משימה חדשה, מדביק ושולח.
    הכתובת שנפתחת: meta.start אם הוגדרה במסד, אחרת https://claude.ai/new. (meta.conv הישן — השיחה הקבועה — לא בשימוש.) */
 var START_URL='https://claude.ai/new';
 function lastUserT(n){ var t=0; (n.thread||[]).forEach(function(e){ if(e.who==='user'&&e.t>t) t=e.t; }); return t; }
