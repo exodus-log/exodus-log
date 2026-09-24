@@ -27,7 +27,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +48,20 @@ jobs:
         if: steps.run.outputs.changed == 'true'
         continue-on-error: true
         run: node scripts/polar-learn.mjs --quiet && node scripts/forecast.mjs
+      # c07 (24.9): the weather archive (assets/cond/) rides on this run, so it no longer depends on GitHub's
+      # own scheduler - this workflow is woken every half hour by the exodus-clock Worker. It runs when the
+      # last archive commit is 5.5 hours old or more (the old schedule was every 6 hours). Never blocks data.js.
+      - name: Weather archive
+        id: cond
+        continue-on-error: true
+        timeout-minutes: 12
+        env:
+          EXO_BUDGET: '1800'
+        run: |
+          last=$(git log -1 --format=%ct -- assets/cond 2>/dev/null || echo 0)
+          age=$(( $(date +%s) - ${last:-0} ))
+          if [ "$age" -lt 19800 ]; then echo "archive is $((age/60)) min old - skipped"; exit 0; fi
+          node scripts/cond-archive.mjs
       - name: Keep the files for comparison
         if: always() && (failure() || (inputs.mode || vars.EXO_MODE || 'compare') == 'compare')
         uses: actions/upload-artifact@v4
@@ -59,12 +73,12 @@ jobs:
       # assets/fleet-log.js grows by one point per boat every four hours, in both modes: it is what keeps
       # the globe's day strip honest once the baked history in course.js runs out. It never touches data.js.
       - name: Publish
-        if: steps.run.outputs.changed == 'true' || steps.run.outputs.logged == 'true'
+        if: steps.run.outputs.changed == 'true' || steps.run.outputs.logged == 'true' || steps.cond.outputs.changed == 'true'
         env:
-          MSG: "${{ steps.run.outputs.message || 'היסטוריית הצי: נקודות חדשות' }}"
+          MSG: "${{ steps.run.outputs.message || steps.cond.outputs.message || 'היסטוריית הצי: נקודות חדשות' }}"
         run: |
           git config user.name "exodus-log data bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data.js assets/fleet-log.js assets/polar.json assets/forecast.json
+          git add assets/data.js assets/fleet-log.js assets/polar.json assets/forecast.json assets/cond
           git diff --cached --quiet || git commit -m "$MSG"
           git push origin HEAD:main || (git pull --rebase origin main && git push origin HEAD:main)
