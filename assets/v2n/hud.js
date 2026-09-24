@@ -623,6 +623,16 @@ if(wordsEl){
       .then(function(){ wGo.disabled=false; });
   });
 }
+/* ================= l21 (24.9): שיתוף. משפט אחד שאדם ישלח כמו שהוא, והכתובת הראשית (גם מ-/next/) ================= */
+var shareBtn=$('shareBtn');
+if(shareBtn){ shareBtn.hidden=false;
+  shareBtn.addEventListener('click',function(){
+    var d={title:'יומן אקסודוס',text:'דניאל פינסקי מקיף את העולם לבד, בלי עצירה. כאן רואים איפה הוא עכשיו:',url:'https://exodus-log.com/'};
+    var ok=$('shareOk'), say=function(t){ ok.textContent=t; setTimeout(function(){ ok.textContent=''; },2200); };
+    if(navigator.share){ navigator.share(d).catch(function(){}); return; }
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(d.url).then(function(){ say('הקישור הועתק'); },function(){ say(d.url); });
+    else say(d.url);
+  }); }
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   put('capStoryT',STORY);
@@ -665,7 +675,18 @@ function goFull(){ var on=document.fullscreenElement||document.webkitFullscreenE
 (function(){ var b=$('bFull'), h=$('mHint'); if(b) b.hidden=!canFull||standalone;
   if(h){ if(standalone) h.hidden=true; else if(isIOS) h.textContent='באייפון: שיתוף ← ״הוספה למסך הבית״. מהסמל שנוצר היומן נפתח על כל המסך, כמו אפליקציה.';
     else h.textContent='אפשר להוסיף את היומן למסך הבית מתפריט הדפדפן, ואז הוא נפתח על כל המסך, כמו אפליקציה.'; } })();
-var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); installEv=e; var b=$('bInstall'); if(b) b.hidden=false; });
+var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); installEv=e; var b=$('bInstall'); if(b) b.hidden=false; var g=$('homeHintGo'); if(g) g.hidden=false; });
+/* a-home-hint (24.9): ספירת ביקורים בפתק מקומי — לכל היותר אחד ביום. בשלישי, פעם אחת בלבד, אחרי שהעיגול נולד */
+(function(){ var el=$('homeHint'); if(!el||standalone) return;
+  var today=new Date().toISOString().slice(0,10), last=store('exo.visitDay'), n=+(store('exo.visits')||0);
+  if(last!==today){ n++; store('exo.visits',String(n)); store('exo.visitDay',today); }
+  if(n<3||store('exo.homeHint')) return;
+  $('homeHintT').textContent=isIOS?'באייפון: שיתוף ← ״הוספה למסך הבית״':'אפשר להוסיף את היומן למסך הבית';
+  function hide(){ el.hidden=true; }
+  $('homeHintX').addEventListener('click',hide);
+  $('homeHintGo').addEventListener('click',function(){ if(installEv){ installEv.prompt(); installEv=null; } hide(); });
+  (function wait(){ if(!document.body.classList.contains('keyed')){ setTimeout(wait,500); return; }
+    setTimeout(function(){ if(!isIOS&&!installEv) $('homeHintT').textContent='אפשר להוסיף למסך הבית מתפריט הדפדפן'; store('exo.homeHint','1'); el.hidden=false; },2500); })(); })();
 
 /* ================= הגלובוס: שכבה קבועה על כל המסך =================
    MapLibre (1.1MB), קו החוף והשמות נטענים והגלובוס נבנה ברקע, מוסתר, כמה שניות אחרי הפריים הראשון (ב"מצב קל": רק כשמבקשים).

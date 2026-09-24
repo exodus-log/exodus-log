@@ -213,6 +213,13 @@ body.keyed.key-born #key i{animation:keyBorn 2.3s ease-out both}
 #key:hover i,#key[aria-expanded=true] i{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}
 #key:focus-visible{outline:none} #key:focus-visible i{outline:2px solid #fff;outline-offset:5px}
 body.g-open #key{display:none}
+#shareBtn{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);left:max(0px,calc(var(--edge) + env(safe-area-inset-left,0px) - 15px));width:44px;height:44px;border:0;padding:0;margin:0;
+  background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#shareBtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+#shareBtn:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
+body:not(.keyed) #shareBtn,body.lyr-open #shareBtn,body.g-open #shareBtn,body.j-open #shareBtn,body.faq-open #shareBtn,body.words-open #shareBtn{display:none}
+#shareOk{position:absolute;z-index:7;top:calc(var(--e-t) - 2px);left:calc(var(--edge) + env(safe-area-inset-left,0px) + 32px);color:var(--ink);font:400 12px var(--ui);text-shadow:var(--halo);pointer-events:none}
+#shareOk:empty{display:none}
 /* משפט הפתיחה נשאב: מתכווץ אל נקודת העיגול (transform-origin נקבע ב-JS) ונמוג, בערך שנייה */
 .lead.suck{transition:transform 1s cubic-bezier(.55,0,.85,.35),opacity .9s ease-in .1s,filter 1s ease-in;transform:scale(.015);opacity:0;filter:blur(2px);pointer-events:none;background:none}
 .lead.gone{opacity:0}
@@ -605,6 +612,17 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
 /* ===== l23 מנה 3 (23.9): זום אאוט — למעלה רק העיגול ו"חזרה אל הסירה" בקטן; למטה רק קו דק מקצה לקצה ===== */
 body.g-open #key{display:block}
 body.g-open .hud.vit{display:none}
+/* a-home-hint (24.9): בביקור השלישי (ימים שונים), פעם אחת, שורה דקה מעל השורה התחתונה — איך מוסיפים למסך הבית. לא למי שכבר פתח מהסמל */
+#homeHint{position:absolute;z-index:7;left:var(--edge);right:var(--edge);margin:0 auto;width:max-content;bottom:calc(var(--e-b) + 26px);display:flex;align-items:center;gap:4px;
+  max-width:calc(100% - 2 * var(--edge));box-sizing:border-box;padding:0 0 0 4px;border:1px solid var(--hair);border-radius:6px;background:var(--panel);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--ink);font:400 12.5px/1.4 var(--ui)}
+#homeHint[hidden]{display:none}
+#homeHint span{padding:6px 12px 6px 0}
+#homeHint button{flex:none;min-width:44px;min-height:44px;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);cursor:pointer}
+#homeHintGo{text-decoration:underline;text-underline-offset:3px}
+#homeHintX{font-size:18px!important;color:var(--ink2)!important}
+#homeHint button:focus-visible{outline:2px solid #fff;outline-offset:-4px}
+body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-open #homeHint,body.words-open #homeHint{display:none}
 #globeLayer .g-leg{display:none!important}
 #globeLayer .g-ui{top:calc(var(--e-t) - 15px);left:auto;right:calc(var(--e-r) + 30px);padding:0;justify-content:flex-end}
 #globeLayer .g-ui #gBack{min-height:44px;padding:0 8px;border:0;border-radius:0;background:none;color:var(--ink2d);font:400 13px/1 var(--ui);text-shadow:var(--shd,var(--sh))}
@@ -663,6 +681,10 @@ body.g-open .hud.vit{display:none}
   </header>
   <!-- 23.9 (l23, "הממשק הנקי"): ההדמיה היא האתר. משפט הפתיחה נשאב אחרי ארבע שניות לתוך העיגול הזה,
        והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
+  <!-- l21 (24.9): שיתוף — בפינה שמול העיגול. בטלפון פותח את חלון השיתוף של המכשיר; בלי חלון כזה מעתיק את הקישור. תמיד לכתובת הראשית -->
+  <button type="button" id="shareBtn" aria-label="שיתוף היומן" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M6 11v8h12v-8"/></svg></button>
+  <span id="shareOk" role="status" aria-live="polite"></span>
+  <div id="homeHint" hidden role="status"><span id="homeHintT"></span><button type="button" id="homeHintGo" hidden>התקנה</button><button type="button" id="homeHintX" aria-label="סגירה">×</button></div>
   <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
   <!-- 23.9 (l23, מנה 2): התפריט העליון. כל קטגוריה היא שכבה — נגיעה מדליקה, נגיעה נוספת מכבה, וכשהיא דולקת
        מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. "שאלות" (24.9) הוא הכפתור האחרון, משמאל:
