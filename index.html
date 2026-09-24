@@ -234,10 +234,8 @@ body.g-open #key{display:none}
 #lyr button[aria-pressed=true]::after,#lyr button[aria-expanded=true]::after{opacity:1;transform:none}
 #lyr button:hover{color:var(--ink)}
 #lyr button:focus-visible{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
-#lyr button#bAbout{margin-inline-start:auto;color:var(--ink3d)}
-#lyr button#bAbout[aria-expanded=true]{color:var(--ink)}
+#lyr button#bFaq{margin-inline-start:auto}
 body.g-open #lyr,body.g-open #lyCap,body.j-open #lyr{display:none}
-body.about-open #lyCap{visibility:hidden}
 /* מעט מלל ליד הסימנים: מתחת לתפריט, מימין. רק של השכבות הדולקות */
 #lyCap{position:absolute;z-index:6;top:calc(var(--e-t) + 34px);right:var(--e-r);left:var(--e-l);pointer-events:none;text-shadow:var(--shd,var(--sh))}
 #lyCap .cap{display:none;margin:0 0 6px;max-width:34em;font:400 12.5px/1.45 var(--ui);color:var(--ink2d)}
@@ -287,13 +285,53 @@ body.ly-area #lyCap .cap-area{display:block}
 @media (max-width:700px){ #capArea p{font-size:12px} }
 @media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
 body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
-/* "אודות": חלונית קטנה מתחת לתפריט, בצד שמאל, שם הכפתור */
-#menu{top:calc(var(--e-t) + 32px)!important;bottom:auto!important;left:var(--e-l)!important;right:auto!important;transform:none!important;
-  width:min(360px,calc(100% - 2 * var(--edge)))!important;max-height:calc(100% - var(--e-t) - 90px)!important;border-radius:8px!important;border-bottom:1px solid var(--hair)!important;padding-bottom:12px!important}
-#menu .about-t{margin:10px 0 2px;font:500 15px var(--ui);color:var(--ink)}
-#menu .fine a{color:var(--ink)}
-#menu .fine b{font-weight:500;color:var(--ink2)}
 @media (max-width:420px){ #lyr button{padding:0 6px;font-size:12.5px} }
+/* 24.9: שש קטגוריות נכנסות ברוחב בלי גלילה מ-360 פיקסלים (נמדד). מתחת ל-380 הריווח מצטמצם; אזור המגע נשאר 44.
+   ההדהייה בקצה השמאלי — רק כשבאמת יש מה לגלול (.ovf, נמדד ב-hud.js), כדי שהכפתור האחרון לא יידהה סתם */
+@media (max-width:380px){ #lyr button{padding:0 3px;font-size:12px} }
+/* מתחת ל-340 (אייפון SE הראשון, 320): "איפה הוא עכשיו" בשתי שורות — כך גם שם הכול נכנס, בלי לקצר שם ובלי יעד קטן מ-44 */
+@media (max-width:340px){ #lyr button[data-l="now"]{width:52px;padding:0;font-size:11.5px;white-space:normal;line-height:1.15} #lyr button[data-l="now"]::after{bottom:2px} }
+#lyr:not(.ovf){mask-image:none;-webkit-mask-image:none}
+/* "שאלות" (l26): חלונית קריאה מתחת לתפריט, מימין — שם מתחילים לקרוא. עד מעל השורה הדקה, ונגללת בתוכה.
+   שתי רמות קיפול: קבוצה, ובתוכה שאלה. כל שורה שנוגעים בה — לפחות 44 פיקסלים */
+body.faq-open #lyCap{visibility:hidden}
+body.g-open #faq,body.j-open #faq{display:none}
+#faq{position:absolute;z-index:7;top:calc(var(--e-t) + 32px);right:var(--e-r);width:min(460px,calc(100% - 2 * var(--edge)));
+  max-height:calc(100% - var(--e-t) - 44px - var(--row2));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background:var(--panel);border:1px solid var(--hair);border-radius:8px;padding:0 16px 10px;color:var(--ink);font:400 13.5px/1.5 var(--ui);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#faq .faq-hd{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;margin:0 -16px;padding:6px 16px 0;background:rgba(7,17,26,.97)}
+#faq h2{margin:6px 0 0;font:500 15px var(--ui);color:var(--ink)}
+#faq .x{flex:none;width:44px;height:44px;margin:0 0 0 -12px;border:0;background:none;color:var(--ink2);font-size:22px;line-height:1;cursor:pointer}
+#faq .faq-s{margin:0 0 8px;color:var(--ink3);font-size:11.5px;line-height:1.45}
+#faq details.g{border-top:1px solid var(--hair)}
+#faq summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#faq summary::-webkit-details-marker{display:none}
+#faq summary::after{content:"";flex:none;width:6px;height:6px;margin-inline-start:auto;margin-top:-3px;border:solid var(--ink3);border-width:0 0 1.5px 1.5px;
+  transform:rotate(-45deg);transition:transform .2s}
+#faq details[open]>summary::after{transform:rotate(135deg);margin-top:3px}
+#faq details.g>summary{font:500 14.5px var(--ui);color:var(--ink)}
+#faq details.g>summary .c{font:400 11.5px var(--ui);color:var(--ink3)}
+#faq details.q{border-top:1px solid rgba(205,225,238,.12);margin-inline-start:2px}
+#faq details.g>div{padding:0 0 6px}
+#faq details.q>summary{min-height:44px;padding:4px 0;font:400 13.5px/1.4 var(--ui);color:var(--ink2)}
+#faq details.q[open]>summary{color:var(--ink)}
+#faq details.q>p{margin:0 0 12px;color:var(--ink2);font-size:13px;line-height:1.62}
+#faq b.n,#faq b{color:var(--ink);font-weight:500}
+#faq a{color:var(--ink);text-decoration:underline;text-decoration-color:rgba(225,236,243,.4);text-underline-offset:2px}
+#faq a.src{color:var(--ink3);font-size:11px}
+#faq summary:focus-visible,#faq .x:focus-visible,#faq a:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){ #faq summary::after{transition:none} }
+#faq .faq-foot{border-top:1px solid var(--hair);padding-top:8px}
+#faq .faq-set{display:flex;flex-wrap:wrap;align-items:center;gap:6px 7px}
+#faq .faq-set>span{flex:0 0 100%;color:var(--ink3);font-size:11.5px}
+#faq .faq-set button{min-height:44px;border:1px solid var(--hair);background:rgba(255,255,255,.05);color:var(--ink);font:500 12.5px var(--ui);padding:0 12px;border-radius:4px;cursor:pointer}
+#faq .faq-set button:hover{background:rgba(255,255,255,.11)}
+#faq .faq-set button[aria-pressed=true]{background:#e8f0f5;color:#08141d;border-color:#e8f0f5}
+#faq .faq-set button:disabled{opacity:.4;cursor:default}
+#faq .faq-set button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#faq .faq-fine{margin:8px 0 0;color:var(--ink3);font-size:11.5px;line-height:1.45}
+#faq .faq-fine:empty{display:none}
 
 /* רצועת הזמן (מ-21.9 בערב, לפי הערות בתחנה): בחלק הכי תחתון של המסך, בכל רוחבו, בכל הגדלים.
    שבוע אחד, וההווה תמיד באמצע. בלי שעה, תאריך או "עכשיו" עליה: הזמן שנבחר נקרא בשורות הנתונים,
@@ -610,14 +648,15 @@ body.g-open .hud.vit{display:none}
        והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
   <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
   <!-- 23.9 (l23, מנה 2): התפריט העליון. כל קטגוריה היא שכבה — נגיעה מדליקה, נגיעה נוספת מכבה, וכשהיא דולקת
-       מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. "אודות" הוא הכפתור האחרון, משמאל -->
+       מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. "שאלות" (24.9) הוא הכפתור האחרון, משמאל:
+       חלונית ולא שכבה, ו"אודות" נבלע בה. כלל: כל הקטגוריות נכנסות ברוחב המסך, בלי גלילה (נמדד מ-360 פיקסלים) -->
   <nav id="lyr" hidden aria-label="השכבות">
     <button type="button" data-l="now" aria-pressed="false">איפה הוא עכשיו</button>
     <button type="button" data-l="area" aria-pressed="false">האזור</button>
     <button type="button" data-l="log" aria-pressed="false">היומן</button>
     <button type="button" data-l="race" aria-pressed="false">המירוץ</button>
     <button type="button" data-l="story" aria-pressed="false">הסיפור</button>
-    <button type="button" id="bAbout" aria-expanded="false" aria-controls="menu">אודות</button>
+    <button type="button" id="bFaq" aria-expanded="false" aria-controls="faq">שאלות</button>
   </nav>
   <div id="lyCap" aria-live="polite">
     <p class="cap cap-now" id="capNow"></p>
@@ -708,24 +747,27 @@ body.g-open .hud.vit{display:none}
     <button type="button" class="ly ly-wave" data-layer="wave" aria-pressed="true" aria-label="גל"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M3,31 C6,34 10,34 14,31.5 C20,27.5 23,14 30,13 C35,12.5 37.5,17.5 35.5,22 C35,20 33.5,19.5 32,20.5 C28.5,23 29.5,31.5 34.5,32.5 C38,33.2 41,32.5 45,32"/></svg><b class="n" id="lyWave">—</b><i class="dot"></i></button>
     <span class="lnm lnm-cur" aria-hidden="true">זרם</span>
     <button type="button" class="ly ly-cur" data-layer="cur" aria-pressed="true" aria-label="זרם"><svg class="ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M4,24 C7,17 11,17 14,24 C17,31 21,31 24,24 C26,19.5 29,19 32,21.5 C34,23.2 36,24 41,24 M38,19.3 L42,24 L38,28.7"/></svg><b class="n" id="lyCur">—</b><i class="dot"></i></button>
-    <button type="button" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-label="תפריט"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button>
+    <button type="button" id="menuBtn" aria-expanded="false" aria-controls="faq" aria-label="שאלות והגדרות"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button>
   </div>
 
-  <!-- "אודות" (l23): מי עושה את זה, מאיפה הנתונים, איך יוצרים קשר, וההגדרות. בלי פרט אישי -->
-  <nav id="menu" hidden aria-label="אודות">
-    <button type="button" class="x" id="menuX" aria-label="סגירה">×</button>
-    <p class="about-t">יומן אקסודוס</p>
-    <p class="fine">פרויקט אוהדים עצמאי שעוקב אחרי דניאל פינסקי ואקסודוס בגולדן גלוב רייס 2026. לא אתר רשמי של המרוץ ולא של הצוות של דניאל. המספרים הם תמונת מצב מנקודת הציון האחרונה, לא שידור חי.</p>
-    <p class="fine"><b>מקורות:</b> מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener">YB Tracking, המעקב הרשמי</a> · דיווחים — <a href="https://goldengloberace.com/" rel="noopener">goldengloberace.com</a> · רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (מודל, לא מדידה בסירה) · כדור הארץ — NASA Blue Marble · קו חוף — Natural Earth · מפה — MapLibre</p>
-    <p class="fine"><b>יצירת קשר:</b> הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener">דרך GitHub</a>.</p>
-    <p class="fine">© 2026 יומן אקסודוס · הקוד פתוח, ברישיון MIT.</p>
-    <div class="grp"><span>הגדרות</span>
-      <button type="button" id="bSound" aria-pressed="false">קול</button>
-      <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
-      <button type="button" id="bFull" hidden>מסך מלא</button>
-      <button type="button" id="bInstall" hidden>התקנה כאפליקציה</button></div>
-    <p class="fine" id="mHint"></p>
-  </nav>
+
+  <!-- l26 (24.9): "שאלות" — מה שמי שמגיע בפעם הראשונה רוצה לדעת, ומ-24.9 אחה"צ גם כל מה שהיה ב"אודות". חלונית קריאה, לא שכבה: שש קבוצות מקופלות,
+       וכל שאלה מקופלת בתוך הקבוצה. התשובות נבנות ב-hud.js — עובדות קבועות עם מקור, ומספרי ה"עכשיו" מ-data.js -->
+  <section id="faq" hidden aria-labelledby="faqT">
+    <div class="faq-hd"><h2 id="faqT">שאלות ותשובות</h2><button type="button" class="x" id="faqX" aria-label="סגירה">×</button></div>
+    <p class="faq-s" id="faqS"></p>
+    <div id="faqBody"></div>
+    <!-- מה שהיה ב"אודות" ולא נכנס לשאלה: ההגדרות, רמז ההתקנה והרישיון. גלויים תמיד, בסוף החלונית -->
+    <div class="faq-foot">
+      <div class="faq-set" role="group" aria-label="הגדרות"><span>הגדרות</span>
+        <button type="button" id="bSound" aria-pressed="false">קול</button>
+        <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
+        <button type="button" id="bFull" hidden>מסך מלא</button>
+        <button type="button" id="bInstall" hidden>התקנה כאפליקציה</button></div>
+      <p class="faq-fine" id="mHint"></p>
+      <p class="faq-fine">© 2026 יומן אקסודוס · הקוד פתוח, ברישיון MIT</p>
+    </div>
+  </section>
 
   <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>
 </main>
