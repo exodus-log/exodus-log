@@ -6,7 +6,7 @@ SRC = os.path.join(os.environ.get('GGR_SITE') or (os.path.dirname(os.path.dirnam
 s = io.open(SRC, encoding='utf-8').read()
 import os
 HERE=os.path.dirname(os.path.abspath(__file__))
-add = io.open(os.path.join(HERE,'engine_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'sky_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'flow_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'boat_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'deck9_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'crew_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'whale_add.js'), encoding='utf-8').read()
+add = io.open(os.path.join(HERE,'engine_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'sky_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'flow_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'boat_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'deck9_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'crew_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'whale_add.js'), encoding='utf-8').read() + io.open(os.path.join(HERE,'gfx_add.js'), encoding='utf-8').read()
 
 def rep(old, new, n=1):
     global s
@@ -891,6 +891,9 @@ rep("""  ' float fg=1.0-exp(-pow(dist*uFogD,2.0));',""",
 rep("""  gl.uniform1f(SEA.u('uAmpMax'),ampMax); gl.uniform1f(SEA.u('uFoam'),foam);""",
 """  gl.uniform1f(SEA.u('uAmpMax'),ampMax); gl.uniform1f(SEA.u('uFoam'),foam);
   var hrS=BP.cog*D2R; gl.uniform4f(SEA.u('uHull'),Math.sin(hrS),-Math.cos(hrS),1.0,EXO.quality==='lite'?0.0:1.0);""")
+
+# ======================= שדרוג הגרפיקה, 24.9.2026: הטלאים ב-gfx_patch.py, הקוד ב-gfx_add.js =======================
+exec(io.open(os.path.join(HERE,'gfx_patch.py'), encoding='utf-8').read())
 
 out=os.path.join(HERE,'out','assets','v2'); os.makedirs(out,exist_ok=True)
 io.open(os.path.join(out,'deck.js'), 'w', encoding='utf-8').write(s)
