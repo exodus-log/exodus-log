@@ -46,7 +46,9 @@ function speed(id, tws, twa, wave) {
 function nextNode(dtf, lat, lon) {
   let best = 1e9, k = 0;
   for (let i = 0; i < COURSE.length - 1; i++) {
-    if (Math.abs(CUM[i] - dtf) > 400) continue;
+    /* 24.9.2026: המקטע מתאים אם ה-dtf של הסירה נופל בתוכו (±400 מייל), לא רק ליד תחילתו. קודם נבדקה רק תחילת המקטע,
+       ובמקטע ארוך (כף ורדה → טרינדאדה, כ-1,850 מייל) סירה באמצעו לא מצאה שום מקטע ונשלחה אל הצומת 0 — קו הזינוק. */
+    if (dtf > CUM[i] + 400 || dtf < CUM[i + 1] - 400) continue;
     const a = COURSE[i], b = COURSE[i + 1];
     const d = C.dist(lat, lon, a.lat, a.lon) + C.dist(lat, lon, b.lat, b.lon) - C.dist(a.lat, a.lon, b.lat, b.lon);
     if (d < best) { best = d; k = i + 1; }
