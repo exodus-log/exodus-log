@@ -3,9 +3,9 @@ name: cond-archive
 # Writes only assets/cond/*.json. Never touches data.js, fleet-log.js or story.js.
 # The first runs back-fill from the start (a budget per run keeps it inside Open-Meteo's free quota);
 # after that each run adds what is new and refreshes rows younger than 48 hours.
+# c07 (24.9): the regular runs moved into update-data (woken by the exodus-clock Worker). This file stays
+# for a manual back-fill with a bigger budget.
 on:
-  schedule:
-    - cron: '37 1,7,13,19 * * *'
   workflow_dispatch:
     inputs:
       budget:
