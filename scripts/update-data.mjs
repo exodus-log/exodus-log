@@ -93,6 +93,11 @@ async function main() {
   for (const w of live.warn) say(`> ⚠ ${w}`);
 
   const hardFail = live.check && (Math.abs(live.check.dtfDiff) > 3 || !live.check.rankOk);
+  /* 24.9.2026: הלוח הרשמי מתעדכן כמה דקות אחרי שהמעקב מפרסם נקודה חדשה. ריצה שנופלת בדיוק בפער הזה
+     ראתה נקודה של 08:00 מול לוח של 04:00 ונכשלה (ריצה 161), וחצי שעה אחר כך הכול התיישב בדיוק.
+     לכן: נקודה בת פחות משעה שלא מתיישבת עם הלוח = הלוח כנראה עוד לא הספיק. לא מפרסמים ולא נכשלים;
+     הריצה הבאה בודקת שוב. אי-התאמה שנשארת גם אחרי שעה היא כישלון אמיתי, כמו קודם. */
+  const lbLag = hardFail && now - F.at < 3600;
 
   if (MODE === 'compare') {
     fleetLog(parsed);
@@ -115,13 +120,14 @@ async function main() {
     const errs = wxNow ? C.validate(liveText) : [];
     say('');
     say(errs.length ? `בדיקות הקובץ: ${errs.join('; ')}` : 'בדיקות הקובץ: עבר' + (wxNow ? '' : ' (בלי מזג אוויר)'));
-    say(`במצב publish הריצה הזאת ${F.at > prev.FIX.at && !hardFail ? 'הייתה מפרסמת' : 'לא הייתה מפרסמת'}.`);
+    say(`במצב publish הריצה הזאת ${F.at > prev.FIX.at && !hardFail ? 'הייתה מפרסמת' : lbLag ? 'הייתה ממתינה ללוח הרשמי' : 'לא הייתה מפרסמת'}.`);
     setOut('changed', 'false');
     return;
   }
 
   if (MODE !== 'publish') throw new Error('EXO_MODE לא מוכר: ' + MODE);
-  if (hardFail) throw new Error('החישוב לא מתיישב עם הלוח הרשמי — לא מפרסמים. כנראה שינוי בפורמט של המעקב.');
+  if (lbLag) { say(`נקודת הציון בת ${Math.round((now - F.at) / 60)} דקות והלוח הרשמי עוד לא התיישב איתה — כנראה טרם התעדכן. לא מפרסמים עכשיו; הריצה הבאה תבדוק שוב.`); setOut('changed', 'false'); return; }
+  if (hardFail) throw new Error('החישוב לא מתיישב עם הלוח הרשמי גם שעה אחרי נקודת הציון — לא מפרסמים. כנראה שינוי בפורמט של המעקב.');
 
   const newFix = F.at > prev.FIX.at;
   if (!newFix) { say('אין נקודת ציון חדשה של אקסודוס. לא נכתב כלום (סירות אחרות ייכנסו עם הנקודה הבאה שלה).'); setOut('changed', 'false'); return; }
