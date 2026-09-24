@@ -122,7 +122,38 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .topr .brand{font-weight:500;letter-spacing:.01em}
 .topr .dim{color:var(--ink2)}
 .topr .stale{color:#ffb3a8}
-#vAgeW.stale i,#vAgeW.stale b{color:#ffb3a8}
+#vAgeW.stale i,#vAgeW.stale b,#vUpdW.stale i,#vUpdW.stale b{color:#ffb3a8}
+/* 23.9 (l19): במסך הראשון ארבעה מספרים; כשהמכשירים פתוחים — השורה המלאה של קודם */
+body:not(.more) .vit .v-full,body.more .vit .v-lean,body:not(.more) #vAgeW{display:none}
+/* בלי מפריד לפני הפריט הגלוי הראשון: ה-::before נשען על "span+span", והפריט שלפניו מוסתר */
+body.more .vit>#vDayW+span::before{display:none}
+/* "עוד" ו"תפריט" בסוף שורת המספרים. בלי מפריד — הם לא עוד מספר */
+.vit>.vctl{display:inline-flex;align-items:center;gap:0;margin-inline-start:1.1em;pointer-events:auto;vertical-align:middle}
+.vit>.vctl::before{display:none!important}
+/* אזור המגע 44×44 (הכלל לאצבע); מה שנראה הוא רק הגלולה או העיגול שבפנים, והשורה לא מתעבה (שוליים שליליים) */
+#moreBtn,#menuBtn2{position:relative;height:44px;min-width:44px;margin:-8px 0;border:0;background:none;color:var(--ink);cursor:pointer;
+  -webkit-tap-highlight-color:transparent;display:inline-grid;place-items:center}
+#moreBtn{padding:0 13px;font:500 12.5px/1 var(--ui);text-shadow:none}
+#menuBtn2{width:44px;padding:0}
+#moreBtn::before,#menuBtn2::before{content:"";position:absolute;z-index:-1;border:1px solid rgba(225,236,243,.5);background:rgba(4,12,19,.38)}
+#moreBtn::before{inset:8px 0;border-radius:14px}
+#menuBtn2::before{inset:8px;border-radius:50%}
+#moreBtn,#menuBtn2{isolation:isolate}
+#menuBtn2 svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+#moreBtn:hover::before,#menuBtn2:hover::before,#menuBtn2[aria-expanded=true]::before{background:rgba(255,255,255,.14)}
+#moreBtn:focus-visible,#menuBtn2:focus-visible{outline:none}
+#moreBtn:focus-visible::before,#menuBtn2:focus-visible::before{outline:2px solid #fff;outline-offset:2px}
+body.more #menuBtn2{display:none}
+/* המסך הראשון (בלי "עוד"): ההדמיה, הכותרת וארבעה מספרים. כל השאר מחכה מאחורי הכפתור */
+body:not(.more) #hudBand,body:not(.more) #hudDot,body:not(.more) .mini,body:not(.more) .vw,body:not(.more) .tstrip,
+body:not(.more) .lay,body:not(.more) #sndBtn{display:none!important}
+/* בלי רצועת הזמן השורה יורדת לתחתית */
+body:not(.more){--e-b:calc(12px + env(safe-area-inset-bottom,0px))}
+/* בלי רצועת הזמן אין פס כהה מתחת לשורה, והתוויות האפורות נחו על קצף (נמדד 3.1–3.4:1). הצללה נוספת, רק במסך הראשון */
+body:not(.more) .vig::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--bot) + 34px);
+  background:linear-gradient(to top,rgba(4,12,19,.42) 0,rgba(4,12,19,.30) calc(var(--bot) - 6px),rgba(4,12,19,0) 100%)}
+body:not(.more) #menu{bottom:calc(var(--bot) + 10px + env(safe-area-inset-bottom,0px))}
+@media (min-width:701px) and (min-height:521px){ body:not(.more) #menu{right:50%;transform:translateX(50%)} }
 #hFcast{color:var(--ink3d)}
 .topr .brk{display:none}
 .topr .clocks em{color:var(--ink3d);display:inline!important}
@@ -135,6 +166,26 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
   border:0;padding:0;margin:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #hudDot::before{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;
   background:#e9fbf9;box-shadow:0 0 5px 1px rgba(143,227,222,.9),0 0 14px 4px rgba(143,227,222,.38);transition:background .35s,opacity .3s}
+/* הכותרת (23.9, l19): בראש המסך, מימין, באותם שוליים של הפס. כשהפס נפתח מהנקודה הוא מכסה אותה */
+.lead{position:absolute;z-index:5;top:0;left:0;right:0;margin:0;pointer-events:none;
+  padding:var(--e-t) calc(var(--e-r) + 32px) 18px var(--e-l);text-shadow:var(--shd,var(--sh));
+  background:linear-gradient(to bottom,rgba(4,12,19,.58),rgba(4,12,19,.34) 64%,rgba(4,12,19,0));
+  transition:opacity .28s ease,visibility 0s}
+.lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em;text-wrap:balance}
+.lead-t span{font-weight:400;color:var(--ink2d)}
+.lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
+.lead-t b{font-weight:inherit}
+.lead-s:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:2px}
+body.more:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
+@media (max-width:700px){
+  .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
+  /* בטלפון לאורך המשפט עד שלוש שורות, לרוחב שורה אחת (אחרת הוא יושב על המפרשים); נגיעה פותחת את כולו */
+  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+}
+@media (max-height:520px){
+  .lead{padding-bottom:12px} .lead-t{font-size:15px} .lead-s{font-size:12.5px;margin-top:3px}
+  .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+}
 body.hfold #hudDot::before{animation:hdGlow 3.4s ease-in-out infinite}
 @keyframes hdGlow{50%{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}}
 body:not(.hfold) #hudDot::before{opacity:.75}
@@ -142,6 +193,107 @@ body.t-past #hudDot::before{background:var(--tpast)}
 body.t-fut #hudDot::before{background:var(--tfut);box-shadow:0 0 5px 1px rgba(241,207,138,.9),0 0 14px 4px rgba(241,207,138,.38)}
 #hudDot:focus-visible{outline:2px solid #8fe3de;outline-offset:-6px;border-radius:50%}
 @media (prefers-reduced-motion:reduce){ body.hfold #hudDot::before{animation:none} .topr{transition:none} }
+
+/* ===== 23.9 (l23) הממשק הנקי: ההדמיה, משפט פתיחה שנשאב לעיגול, ושורה דקה בתחתית ===== */
+/* מוסתר כברירת מחדל, מעבר למה שהמסך הראשון של l19 כבר הסתיר: המשואה, שנתות הטבעת, היעד, קנה המידה */
+#labels .dat.gate,.gl-scale{display:none!important}
+/* המפתח: עיגול זוהר קטן בפינה שבה המשפט מתחיל. לפני השאיבה הוא שקוף (אבל נגיש) */
+#key{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);right:calc(var(--e-r) - 15px);width:44px;height:44px;border:0;padding:0;margin:0;
+  background:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#key i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#eefcfb;
+  box-shadow:0 0 5px 1px rgba(143,227,222,.85),0 0 16px 5px rgba(143,227,222,.32);opacity:0;transform:scale(.2);transition:opacity .35s,transform .35s,box-shadow .35s}
+body.keyed #key i{opacity:1;transform:none}
+body.keyed.key-born #key i{animation:keyBorn 2.3s ease-out both}
+@keyframes keyBorn{0%{transform:scale(.2);opacity:.3}14%{transform:scale(1.5);opacity:1}24%{transform:scale(1)}
+  38%{opacity:.25}50%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}
+  64%{opacity:.25}76%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}100%{opacity:1}}
+#key:hover i,#key[aria-expanded=true] i{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}
+#key:focus-visible{outline:none} #key:focus-visible i{outline:2px solid #fff;outline-offset:5px}
+body.g-open #key{display:none}
+/* משפט הפתיחה נשאב: מתכווץ אל נקודת העיגול (transform-origin נקבע ב-JS) ונמוג, בערך שנייה */
+.lead.suck{transition:transform 1s cubic-bezier(.55,0,.85,.35),opacity .9s ease-in .1s,filter 1s ease-in;transform:scale(.015);opacity:0;filter:blur(2px);pointer-events:none;background:none}
+.lead.gone{opacity:0}
+/* השורה הדקה בתחתית: יום · איפה · כמה נשאר */
+.vit{bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--ink2d);gap:2px 0}
+.vit b{font-size:12.5px;color:var(--ink);font-weight:400}
+.hud.vit>span+span::before{content:"·";display:inline;width:auto;height:auto;background:none;margin:0 .6em;color:var(--ink3d);vertical-align:0}
+.vit>#vAgeW.stale{color:#ffb3a8}
+@media (max-width:700px){ .hud.vit>span+span::before{display:inline!important} .vit{font-size:11.5px;gap:2px 0} .vit b{font-size:12px} }
+@media (prefers-reduced-motion:reduce){ .lead.suck{transition:none} body.keyed.key-born #key i{animation:none} }
+
+/* ===== l23 מנה 2: התפריט העליון והשכבות ===== */
+#lyr{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);right:calc(var(--e-r) + 26px);left:calc(var(--e-l) - 6px);height:44px;
+  display:flex;align-items:center;gap:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  mask-image:linear-gradient(to left,#000 calc(100% - 14px),transparent);-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 14px),transparent)}
+#lyr::-webkit-scrollbar{display:none}
+#lyr button{flex:none;position:relative;height:44px;min-width:44px;margin:0;padding:0 8px;border:0;background:none;color:var(--ink2d);cursor:pointer;white-space:nowrap;
+  font:400 13px/1 var(--ui);text-shadow:var(--shd,var(--sh));-webkit-tap-highlight-color:transparent}
+#lyr button::after{content:"";position:absolute;left:50%;bottom:8px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#eefcfb;
+  box-shadow:0 0 4px 1px rgba(143,227,222,.8);opacity:0;transform:scale(.3);transition:opacity .25s,transform .25s}
+#lyr button[aria-pressed=true],#lyr button[aria-expanded=true]{color:var(--ink)}
+#lyr button[aria-pressed=true]::after,#lyr button[aria-expanded=true]::after{opacity:1;transform:none}
+#lyr button:hover{color:var(--ink)}
+#lyr button:focus-visible{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
+#lyr button#bAbout{margin-inline-start:auto;color:var(--ink3d)}
+#lyr button#bAbout[aria-expanded=true]{color:var(--ink)}
+body.g-open #lyr,body.g-open #lyCap,body.j-open #lyr{display:none}
+body.about-open #lyCap{visibility:hidden}
+/* מעט מלל ליד הסימנים: מתחת לתפריט, מימין. רק של השכבות הדולקות */
+#lyCap{position:absolute;z-index:6;top:calc(var(--e-t) + 34px);right:var(--e-r);left:var(--e-l);pointer-events:none;text-shadow:var(--shd,var(--sh))}
+#lyCap .cap{display:none;margin:0 0 6px;max-width:34em;font:400 12.5px/1.45 var(--ui);color:var(--ink2d)}
+#lyCap .cap b{color:var(--ink);font-weight:400}
+#lyCap .cap .n{font-size:1.02em}
+body.ly-now #lyCap .cap-now,body.ly-race #lyCap .cap-race,body.ly-story #lyCap .cap-story{display:block}
+body:not(.lyr-open) #lyCap{top:calc(var(--e-t) + 20px);right:calc(var(--e-r) + 30px)}
+#lyCap .cap-story p{margin:0}
+#capStoryT{font-size:13px;color:var(--ink)}
+.cap-links{margin-top:6px!important;pointer-events:auto}
+.cap-links button,.cap-links a{display:inline-block;margin:0 0 0 14px;padding:10px 0;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);
+  text-decoration:underline;text-decoration-color:rgba(225,236,243,.45);text-underline-offset:3px;cursor:pointer}
+body.t-past #capNow .tv{color:var(--tpast)} body.t-fut #capNow .tv{color:var(--tfut)}
+/* הסימנים שעל ההדמיה: שייכים לשכבות. .deg ו-.dat — "איפה הוא עכשיו"; המשואה — "האזור"; הסירות באופק — "המירוץ" */
+body:not(.ly-now) #labels .deg,body:not(.ly-now) #labels .dat.wind,body:not(.ly-now) #labels .dat.wave,body:not(.ly-now) #labels .dat.cur{display:none!important}
+body:not(.ly-area) #labels .beacon{display:none!important}
+body:not(.ly-race) #labels .fb{display:none!important}
+.lb.fb{color:var(--ink2d);font-size:11.5px;text-align:center;padding-bottom:22px}
+.lb.fb::after{content:"";position:absolute;left:50%;bottom:0;width:1px;height:16px;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0))}
+.lb.fb.edge{padding:0}
+.lb.fb.edge::after{display:none}
+.lb.fb.el::after{display:inline;position:static;content:"‹";width:auto;height:auto;background:none;margin-inline-start:.3em;font-size:1.3em;line-height:0}
+.lb.fb.er::before{content:"›";margin-inline-end:.3em;font-size:1.3em;line-height:0}
+.lb.fb .n{color:var(--ink)}
+/* "היומן" (מנה 4): רצועת הזמן ירדה לגמרי (הקוד שלה נשאר — הוא מזיז את השעון). במקומה שורת זמנים במילים מעל השורה הדקה */
+.tstrip{display:none!important}
+.logbar{position:absolute;z-index:6;left:0;right:0;bottom:calc(var(--bot) + 2px);display:none;justify-content:flex-start;gap:0;
+  overflow-x:auto;scrollbar-width:none;padding:0 var(--e-r) 0 var(--e-l)}
+.logbar::-webkit-scrollbar{display:none}
+body.ly-log .logbar{display:flex}
+/* מרכוז בלי לחתוך: כשהשורה רחבה מהמסך (טלפון) היא נגללת, והקצוות נשארים נגישים */
+.logbar>button:first-child{margin-inline-start:auto} .logbar>button:last-child{margin-inline-end:auto}
+body.g-open .logbar,body.j-open .logbar{display:none!important}
+.logbar button{flex:none;position:relative;height:44px;padding:0 9px;border:0;background:none;color:var(--ink2d);font:400 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap;text-shadow:var(--shd,var(--sh));-webkit-tap-highlight-color:transparent}
+.logbar button::after{content:"";position:absolute;left:50%;bottom:9px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor;opacity:0}
+.logbar button[aria-pressed=true]{color:var(--ink)} .logbar button[aria-pressed=true]::after{opacity:1}
+.logbar button.p[aria-pressed=true]{color:var(--tpast)} .logbar button.f[aria-pressed=true]{color:var(--tfut)}
+.logbar button:disabled{display:none}
+.logbar button:focus-visible{outline:2px solid #fff;outline-offset:-8px;border-radius:6px}
+body.ly-log #lyCap .cap-log{display:block}
+/* "האזור" (מנה 5): מעט על המקום — מה ידוע עליו, ממקור שמקושר בסוף כל פסקה */
+body.ly-area #lyCap .cap-area{display:block}
+#capArea p{margin:0 0 5px}
+#capArea .t{color:var(--ink);font-weight:500}
+#capArea .k{font-size:10.5px;color:var(--ink3d);border:1px solid rgba(225,236,243,.28);border-radius:3px;padding:0 4px;margin-inline-start:4px;white-space:nowrap}
+#capArea a{color:var(--ink2d);font-size:11px;pointer-events:auto;text-decoration:underline;text-decoration-color:rgba(225,236,243,.35);text-underline-offset:2px}
+@media (max-width:700px){ #capArea p{font-size:12px} }
+@media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
+body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
+/* "אודות": חלונית קטנה מתחת לתפריט, בצד שמאל, שם הכפתור */
+#menu{top:calc(var(--e-t) + 32px)!important;bottom:auto!important;left:var(--e-l)!important;right:auto!important;transform:none!important;
+  width:min(360px,calc(100% - 2 * var(--edge)))!important;max-height:calc(100% - var(--e-t) - 90px)!important;border-radius:8px!important;border-bottom:1px solid var(--hair)!important;padding-bottom:12px!important}
+#menu .about-t{margin:10px 0 2px;font:500 15px var(--ui);color:var(--ink)}
+#menu .fine a{color:var(--ink)}
+#menu .fine b{font-weight:500;color:var(--ink2)}
+@media (max-width:420px){ #lyr button{padding:0 6px;font-size:12.5px} }
 
 /* רצועת הזמן (מ-21.9 בערב, לפי הערות בתחנה): בחלק הכי תחתון של המסך, בכל רוחבו, בכל הגדלים.
    שבוע אחד, וההווה תמיד באמצע. בלי שעה, תאריך או "עכשיו" עליה: הזמן שנבחר נקרא בשורות הנתונים,
@@ -298,7 +450,7 @@ body.g-x #globeLayer{visibility:visible}      /* ההצלבה: הגלובוס כ
 .g-leg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .g-leg i{display:inline-block;width:16px;height:0;border-top:2px solid #fff}
 .g-leg .l-todo{border-top:1.5px dashed rgba(255,255,255,.7)} .g-leg .l-fleet{width:7px;height:7px;border:0;border-radius:50%;background:rgba(240,246,249,.9)}
-.g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
+.g-leg .l-mark{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%} .g-leg .l-fan{width:9px;height:9px;border:1px solid #f1cf8a;border-radius:50%;background:rgba(241,207,138,.25)} .g-leg .l-fc{color:#f1cf8a} .g-leg .l-night{width:13px;height:9px;border:1px solid var(--hair);background:rgba(1,4,12,.8)}
 .g-scrub{position:absolute;z-index:3;left:calc(var(--ms) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-left,0px));right:calc(var(--ls) + var(--edge) + 2 * var(--gut) + env(safe-area-inset-right,0px));bottom:calc(var(--row2) + var(--gut));
   display:flex;align-items:center;gap:12px;text-shadow:var(--sh)}
 .g-scrub button{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
@@ -395,6 +547,31 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
   #toast{left:var(--e-l);right:calc(var(--e-r) + 48px + var(--gut));transform:none;max-width:none;text-align:start}
   body.g-open .lay{bottom:var(--row2)}
 }
+/* ===== l23 מנה 3 (23.9): זום אאוט — למעלה רק העיגול ו"חזרה אל הסירה" בקטן; למטה רק קו דק מקצה לקצה ===== */
+body.g-open #key{display:block}
+body.g-open .hud.vit{display:none}
+#globeLayer .g-leg{display:none!important}
+#globeLayer .g-ui{top:calc(var(--e-t) - 15px);left:auto;right:calc(var(--e-r) + 30px);padding:0;justify-content:flex-end}
+#globeLayer .g-ui #gBack{min-height:44px;padding:0 8px;border:0;border-radius:0;background:none;color:var(--ink2d);font:400 13px/1 var(--ui);text-shadow:var(--shd,var(--sh))}
+#globeLayer .g-ui #gBack:hover{color:var(--ink);background:none}
+#globeLayer .g-ui #gBack::before{content:"›";margin-inline-end:.4em;font-size:1.25em;vertical-align:-.06em}
+#globeLayer .g-scrub{left:0!important;right:0!important;bottom:env(safe-area-inset-bottom,0px)!important;top:auto!important;height:40px;padding:0!important;gap:0!important;display:block}
+#globeLayer .g-scrub .sc-track{position:absolute;left:0;right:0;bottom:0;height:40px;padding:0}
+#globeLayer .g-scrub input[type=range]{position:absolute;left:0;right:0;bottom:0;width:100%;height:30px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-runnable-track{height:1px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-thumb{width:9px;height:9px;margin-top:-4px}
+#globeLayer .g-scrub input[type=range]::-moz-range-thumb{width:9px;height:9px}
+#globeLayer .g-scrub .sc-ticks{display:none}
+/* play: קטן, בלי עיגול, יושב על הקו בקצה שבו המסע מתחיל */
+#globeLayer .g-scrub button#scPlay{position:absolute;z-index:2;left:calc(var(--e-l) - 12px);bottom:12px;width:44px;height:44px;border:0;border-radius:0;background:none;color:var(--ink)}
+#globeLayer .g-scrub button#scPlay svg{width:13px;height:13px;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+#globeLayer .g-scrub button#scPlay:hover{background:none;color:#fff}
+#globeLayer .g-scrub button#scPlay:focus-visible{outline:2px solid #fff;outline-offset:-10px}
+/* "עכשיו": שנתה קטנה על הקו. מעבר לה הקו חיוור */
+#globeLayer .sc-now{position:absolute;bottom:10px;width:1px;height:9px;margin-left:-.5px;background:#f2f6f8;pointer-events:none;box-shadow:0 0 3px rgba(3,10,16,.9)}
+/* מתחת לקו: רק תאריך קטן שזז עם נקודת הנגינה */
+#globeLayer .g-scrub output{position:absolute;bottom:0;right:auto;min-width:0;padding:0;transform:translateX(-50%);font-size:10.5px;line-height:12px;color:var(--ink2d);white-space:nowrap;pointer-events:none;text-shadow:var(--sh)}
+#globeLayer .g-scrub output.fut{color:#f1cf8a}
 </style>
 </head>
 <body>
@@ -411,7 +588,7 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <div class="g-ui">
       <button type="button" id="gBack">חזרה אל הסירה</button>
       <!-- תפריט המבטים (אקסודוס / הצי / כל העולם) הוסר ב-21.9: הזום לבדו מוביל מהסירה אל החלל -->
-      <div class="g-leg"><span><i></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span></div>
+      <div class="g-leg"><span><i></i>הופלג</span><span><i class="l-todo"></i>נותר, סכמטי</span><span><i class="l-fleet"></i>הצי</span><span><i class="l-mark"></i>נקודת חובה</span><span><i class="l-night"></i>לילה</span><span class="l-fc" hidden><i class="l-fan"></i>הערכה, 72 שעות</span></div>
     </div>
     <div class="g-scrub" id="scrub">
       <button type="button" id="scPlay" aria-label="נגן את המסע מהזינוק"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="scIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
@@ -422,6 +599,33 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
       <output id="scOut" class="num">—</output>
     </div>
   </section>
+
+  <!-- 23.9 (l19, "המסך הראשון בחיסור"): מי שפותח את הקישור מקבוצה צריך להבין בשלוש שניות מה זה ואיפה הוא.
+       שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
+  <header class="lead" id="lead">
+    <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו ואת תנאי הטבע האמיתיים סביבו.</span></h1>
+    <p class="lead-s" id="leadStory" hidden tabindex="0" role="button" aria-expanded="false"></p>
+  </header>
+  <!-- 23.9 (l23, "הממשק הנקי"): ההדמיה היא האתר. משפט הפתיחה נשאב אחרי ארבע שניות לתוך העיגול הזה,
+       והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
+  <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
+  <!-- 23.9 (l23, מנה 2): התפריט העליון. כל קטגוריה היא שכבה — נגיעה מדליקה, נגיעה נוספת מכבה, וכשהיא דולקת
+       מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. "אודות" הוא הכפתור האחרון, משמאל -->
+  <nav id="lyr" hidden aria-label="השכבות">
+    <button type="button" data-l="now" aria-pressed="false">איפה הוא עכשיו</button>
+    <button type="button" data-l="area" aria-pressed="false">האזור</button>
+    <button type="button" data-l="log" aria-pressed="false">היומן</button>
+    <button type="button" data-l="race" aria-pressed="false">המירוץ</button>
+    <button type="button" data-l="story" aria-pressed="false">הסיפור</button>
+    <button type="button" id="bAbout" aria-expanded="false" aria-controls="menu">אודות</button>
+  </nav>
+  <div id="lyCap" aria-live="polite">
+    <p class="cap cap-now" id="capNow"></p>
+    <p class="cap cap-race" id="capRace"></p>
+    <div class="cap cap-area" id="capArea"></div>
+    <p class="cap cap-log" id="capLog"></p>
+    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a></p></div>
+  </div>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
        לנקודה זוהרת. הקשה על הנקודה פותחת את הכול בבת אחת; גרירת הזמן פותחת אותו לבד -->
@@ -477,16 +681,20 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <canvas id="tsCv" aria-hidden="true"></canvas>
     <input type="range" id="tsRange" min="0" max="1000" value="500" step="1" aria-label="רצועת הזמן: שבוע, וההווה באמצע. שמאלה אחורה בזמן, ימינה קדימה. הקשה במרכז או הקשה כפולה מחזירות להווה">
   </div>
-  <div class="hud vit" aria-label="מספרי המרוץ">
-    <span><i>מקום</i><b class="n" id="vRank">—</b><em id="vOf"></em></span>
-    <span><i>מהירות וכיוון</i><b class="n" id="vSog">—</b></span>
-    <span><i>פער מהמוביל</i><b class="n" id="vGap">—</b><em>מייל</em></span>
-    <span><i>עד קו הסיום</i><b class="n" id="vDtf">—</b><em>מייל</em></span>
-    <!-- מספרי המרוץ הם תמונת המצב של נקודת הציון האחרונה. כשהיא מתיישנת הם נשארים על המסך
-         כאילו הם של עכשיו, ומי שמצלם את השורה הזאת לא יודע מתי היא נכונה. מופיע רק כשיש פער. -->
+  <!-- 23.9 (l19): ארבעה מספרים במסך הראשון — יום כמה למסע, מקום מתוך כמה, כמה נשאר, מתי התעדכן.
+       המהירות והפער מהמוביל מופיעים עם שאר המכשירים (כשפס הנתונים פתוח) -->
+  <!-- 23.9 (l23): שורה דקה אחת צמודה לתחתית — יום כמה, איפה במילים, וכמה נשאר. כל השאר עבר לשכבות שבמפתח.
+       "איפה במילים" אמיתי בלבד: שם היבשה הקרובה מהבוט (FIX.nearLandName, מקו החוף של המעקב) או שם האוקיינוס -->
+  <div class="hud vit" aria-label="איפה אקסודוס עכשיו">
+    <span id="vDayW">יום <b class="n" id="vDay">—</b></span>
+    <span id="vWhere">—</span>
+    <span><b class="n" id="vDtf">—</b> מייל עד קו הסיום</span>
+    <!-- נקודת ציון בת יותר מ-12 שעות: המספרים כבר לא "עכשיו", והשורה אומרת זאת. מוצג רק אז -->
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
   </div>
 
+  <!-- l23 מנה 4: "היומן" — במקום רצועת הזמן. זמנים במילים; נגיעה מעבירה את ההדמיה לשם (הים והרוח מהארכיון או מהתחזית) -->
+  <div class="logbar" id="logBar" role="group" aria-label="היומן: הים והרוח בזמנים אחרים"></div>
   <div id="toast" class="off" role="status"></div>
 
   <!-- רוח, גל, זרם: שלושה שלישים של עיגול אחד (בטלפון לאורך: שלושה עיגולים בטור). התפריט בטבור -->
@@ -503,15 +711,20 @@ body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17
     <button type="button" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-label="תפריט"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14M5 12h14M5 16.5h14"/></svg></button>
   </div>
 
-  <nav id="menu" hidden aria-label="תפריט">
-    <button type="button" class="x" id="menuX" aria-label="סגירת התפריט">×</button>
-    <div class="grp"><span>עוד</span>
+  <!-- "אודות" (l23): מי עושה את זה, מאיפה הנתונים, איך יוצרים קשר, וההגדרות. בלי פרט אישי -->
+  <nav id="menu" hidden aria-label="אודות">
+    <button type="button" class="x" id="menuX" aria-label="סגירה">×</button>
+    <p class="about-t">יומן אקסודוס</p>
+    <p class="fine">פרויקט אוהדים עצמאי שעוקב אחרי דניאל פינסקי ואקסודוס בגולדן גלוב רייס 2026. לא אתר רשמי של המרוץ ולא של הצוות של דניאל. המספרים הם תמונת מצב מנקודת הציון האחרונה, לא שידור חי.</p>
+    <p class="fine"><b>מקורות:</b> מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener">YB Tracking, המעקב הרשמי</a> · דיווחים — <a href="https://goldengloberace.com/" rel="noopener">goldengloberace.com</a> · רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (מודל, לא מדידה בסירה) · כדור הארץ — NASA Blue Marble · קו חוף — Natural Earth · מפה — MapLibre</p>
+    <p class="fine"><b>יצירת קשר:</b> הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener">דרך GitHub</a>.</p>
+    <p class="fine">© 2026 יומן אקסודוס · הקוד פתוח, ברישיון MIT.</p>
+    <div class="grp"><span>הגדרות</span>
       <button type="button" id="bSound" aria-pressed="false">קול</button>
       <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
       <button type="button" id="bFull" hidden>מסך מלא</button>
       <button type="button" id="bInstall" hidden>התקנה כאפליקציה</button></div>
     <p class="fine" id="mHint"></p>
-    <p class="fine">פרויקט אוהדים עצמאי. לא אתר רשמי של המרוץ ולא של הצוות של דניאל. המספרים הם תמונת מצב מנקודת הציון האחרונה, לא שידור חי.</p>
   </nav>
 
   <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>

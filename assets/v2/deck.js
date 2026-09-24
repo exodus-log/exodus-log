@@ -955,7 +955,8 @@ function arcLine(r,b0,b1,px,a,ci,t){ var n=Math.max(2,Math.round(Math.abs(b1-b0)
 
 function worldRing(c,t){
   if(LAB._under) return;
-  var RK=(LAB.ringK===undefined?1:LAB.ringK); if(RK<0.01) return;      /* נעלמת בדרך אל הגלובוס */
+  /* l23 (23.9): ringVis — הטבעת שייכת לשכבה "איפה הוא עכשיו"; 0 = מוסתרת כולה, כולל משולש הצפון */
+  var RK=(LAB.ringK===undefined?1:LAB.ringK)*(LAB.ringVis===undefined?1:LAB.ringVis); if(RK<0.01) return;      /* נעלמת בדרך אל הגלובוס */
   var R=LAB.RR||13, hot=(LAB.ringHot||0)*RK, A=(0.04+0.93*hot)*RK, k;      /* במנוחה כמעט שקופה לגמרי; רק משולש הצפון נשאר כרמז */
   var rOut=R*0.965, rIn=Math.max(6.4,R*0.34), band=function(u){ return rOut-u*(rOut-rIn); };
   /* המעגל: מקווקו, מעלה אחת למקטע, שניים מלאים ואחד ריק */
@@ -1013,6 +1014,12 @@ function labAnchors(VP,t){
   (function(){ var qb=rp(1400,GATE_BRG), m=VP, px=qb[0], pz=qb[1], w=m[3]*px+m[11]*pz+m[15], aw=Math.max(Math.abs(w),1e-3);
     var nx=(m[0]*px+m[8]*pz+m[12])/aw, ny=(m[1]*px+m[9]*pz+m[13])/aw;
     A.beaconEx=[(nx*0.5+0.5)*cw,(1-(ny*0.5+0.5))*ch,w<=0.001?1:0]; })();
+  /* l23 (23.9): נקודות אופק לכל כיוון שה-HUD מבקש (LAB.hz — הכיוונים אל שאר הסירות בשכבה "המירוץ"),
+     באותה שיטה של המשואה: [x, y, מאחורי המצלמה] */
+  if(LAB.hz&&LAB.hz.length){ var HZ=A.hz||(A.hz=[]), hi; HZ.length=LAB.hz.length;
+    for(hi=0;hi<LAB.hz.length;hi++){ var qz=rp(1400,LAB.hz[hi]), mz=VP, wz=mz[3]*qz[0]+mz[11]*qz[1]+mz[15], az=Math.max(Math.abs(wz),1e-3);
+      HZ[hi]=[((mz[0]*qz[0]+mz[8]*qz[1]+mz[12])/az*0.5+0.5)*cw,(1-((mz[1]*qz[0]+mz[9]*qz[1]+mz[13])/az*0.5+0.5))*ch,wz<=0.001?1:0]; } }
+  else A.hz=null;
   EXO.frame.ringR=R;
 }
 
@@ -1732,6 +1739,8 @@ function drawBlows(dt,VP){
     drawMesh(M_PUFF, mMul(mTrans(b.x,b.y,b.z),mScale(r,r*1.25,r)), [0.93,0.95,0.97], 1, 0.55); }
   gl.depthMask(true); gl.disable(gl.BLEND); gl.uniform1f(SOLID.u('uA'),1); }
 function drawWhale(t,dt,eye,under,VP){
+  /* l23 (23.9): הלוויתן ירד מהתצוגה (שמוליק: "יגרום לאנשים לחשוב שזה לא אמיתי"). הקוד נשאר; EXO.whale('on') מפעיל ידנית */
+  if(!WH.on){ WH.blows.length=0; return; }
   if(EXO.quality==='lite'||reduce) return;
   WH.x+=Math.sin(WH.hdg)*WH.spd*dt; WH.z-=Math.cos(WH.hdg)*WH.spd*dt;
   WH.hdg+=Math.sin(t*0.07+WH.ph)*0.0025;
@@ -1771,7 +1780,8 @@ function drawWhale(t,dt,eye,under,VP){
   if(!under) drawBlows(dt,VP); else WH.blows.length=0;
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
 }
-EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'front' מציב אותו מול המצלמה, 150 מ׳ מעבר לסירה, ומזמן נשימה */
+EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'on'/'off' מפעיל ומכבה (כבוי כברירת מחדל מ-23.9); 'front' מציב אותו מול המצלמה, 150 מ׳ מעבר לסירה, ומזמן נשימה */
+  if(cmd==='on'||cmd==='front'||cmd==='surface') WH.on=true; if(cmd==='off'){ WH.on=false; WH.blows.length=0; }
   if(cmd==='front'&&LAB._eye){ var ex=LAB._eye[0], ez=LAB._eye[2], L=Math.hypot(ex,ez)||1; var dd=dist||150; WH.x=-ex/L*dd; WH.z=-ez/L*dd; WH.hdg=Math.atan2(-ez,-ex)+Math.PI/2; WH.next=0; WH.st='deep'; WH.force=!!dist; }
   if(cmd==='surface'){ WH.next=0; var r=Math.hypot(WH.x,WH.z); if(r<70||r>240){ var a=Math.atan2(WH.z,WH.x); WH.x=Math.cos(a)*150; WH.z=Math.sin(a)*150; } } return {st:WH.st,t:+WH.stT.toFixed(1),dep:+WH.dep.toFixed(2),r:Math.round(Math.hypot(WH.x,WH.z)),blows:WH.blows.length}; };
 
