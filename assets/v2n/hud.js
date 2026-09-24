@@ -183,10 +183,10 @@ var keyArm=false; window.addEventListener('pointerdown',function(){ keyArm=keyed
   window.addEventListener(ev,function h(e){ if(ev==='keydown'&&(e.key==='Shift'||e.key==='Alt'||e.key==='Control'||e.key==='Meta')) return;
     suck(); window.removeEventListener(ev,h,true); },{capture:true,passive:true}); });
 
-/* ===== l23 מנה 2: התפריט העליון — שש קטגוריות, כל אחת שכבה ===== */
+/* ===== l23 מנה 2: התפריט העליון — שש קטגוריות, כל אחת שכבה (ומ-24.9 גם "שאלות", שהיא חלונית ולא שכבה) ===== */
 var lyrEl=$('lyr'), lyrIsOpen=false, LY_ON={};
 function lyrOpen(on){ lyrIsOpen=!!on; if(!lyrEl) return; lyrEl.hidden=!on; document.body.classList.toggle('lyr-open',lyrIsOpen);
-  if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(!on&&menuOpen) setMenu(false);
+  if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(!on&&menuOpen) setMenu(false); if(!on&&faqOpen) setFaq(false);
   if(on){ var f=lyrEl.querySelector('button'); if(f&&document.activeElement===keyEl) try{ f.focus({preventScroll:true}); }catch(e){} } }
 var ringAnim=0, ringHold=0;
 function ringTo(v){ if(!LIVE) return; cancelAnimationFrame(ringAnim); var a=LAB.ringVis||0, t0=performance.now();
@@ -202,6 +202,7 @@ function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'
   SZ={}; measureTop(); }
 if(lyrEl) lyrEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button'):null; if(!t) return;
   if(t.id==='bAbout'){ setMenu(!menuOpen); return; }
+  if(t.id==='bFaq'){ setFaq(!faqOpen); return; }
   var n=t.getAttribute('data-l'); if(n) setLy(n,!LY_ON[n]); });
 /* בלי WebGL אין הדמיה לסמן עליה, והמלל הוא כל מה שיש: "איפה הוא עכשיו" דולקת מההתחלה */
 if(!LIVE) setTimeout(function(){ setLy('now',true); },0);
@@ -493,7 +494,7 @@ function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.cl
 
 /* ================= התפריט ================= */
 var menu=$('menu'), menuBtn=$('menuBtn'), menuOpen=false;
-function setMenu(on){ menuOpen=!!on; menu.hidden=!on; document.body.classList.toggle('about-open',menuOpen); menuBtn.setAttribute('aria-expanded',on?'true':'false'); var ab=$('bAbout'); if(ab) ab.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on&&kbNav){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+function setMenu(on){ menuOpen=!!on; if(on&&faqOpen) setFaq(false); menu.hidden=!on; document.body.classList.toggle('about-open',menuOpen); menuBtn.setAttribute('aria-expanded',on?'true':'false'); var ab=$('bAbout'); if(ab) ab.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on&&kbNav){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 /* הפוקוס עובר לחלונית רק למי שמנווט במקלדת; במגע הוא צייר מסגרת לבנה סביב ה-× */
 var kbNav=false; window.addEventListener('keydown',function(){ kbNav=true; },true); window.addEventListener('pointerdown',function(){ kbNav=false; },true);
 menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
@@ -508,6 +509,93 @@ if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
 $('menuX').addEventListener('click',function(){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); });
 document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(keyEl&&keyEl.contains(ev.target))&&!($('bAbout')&&$('bAbout').contains(ev.target))&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
+/* ================= "שאלות" (l26, 24.9) =================
+   מה שמי שמגיע בפעם הראשונה רוצה לדעת, בשש קבוצות מקופלות, וכל שאלה מקופלת בתוך הקבוצה (שמוליק ביקש).
+   חלונית קריאה ולא שכבה: היא לא מסמנת כלום על ההדמיה. נסגרת מ"אודות", מה-×, מ-Escape, וממגע מחוץ לה.
+   האמת: עובדות קבועות — מאתר המרוץ (הכללים, המסלול, דף הסקיפר), מוויקיפדיה ומ-exodussail.com, עם קישור "מקור".
+   כל מספר של המרוץ הנוכחי ("עכשיו") נבנה מ-data.js (FIX, FLEET) בכל פתיחה — אין כאן מספר כזה שכתוב ביד. */
+var faqEl=$('faq'), faqOpen=false, faqBuilt=false;
+function faqN(v){ return '<b class="n">'+thou(v)+'</b>'; }
+function faqEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function faqSrc(u,l){ return ' <a class="src" href="'+u+'" rel="noopener" target="_blank">'+(l||'מקור')+'</a>'; }
+function faqMi(d){ return d<1?'פחות ממייל':faqN(d)+' מייל'; }
+function faqGap(d){ return 'בהפרש של '+faqMi(d); }
+function faqFix(){ var d=new Date(FIX.at*1000), u=d.getUTCDate()+'.'+(d.getUTCMonth()+1)+', <span class="n" dir="ltr">'+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</span>', il='';
+  try{ il=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(d); }catch(e){}
+  return u+(il?' ('+il+' בישראל)':''); }
+var FAQ_NEXT={
+  'לנזרוטה':'אחריה — רוח הסחר הצפונית ואיי כף ורדה, ואז אזור הדממה ליד קו המשווה.',
+  'טרינדאדה':'בדרך אליה: אזור הדממה ליד קו המשווה — רצועה של רוחות חלשות ומשתנות וענני סערה — ואחריו רוח הסחר הדרומית־מזרחית. אחרי טרינדאדה המסלול פונה מזרחה, אל כף התקווה הטובה והים הדרומי.',
+  'כף התקווה הטובה':'אחרי הכף מתחיל הים הדרומי: האוקיינוס ההודי, רוחות מערביות חזקות וגלים ארוכים, עד כף לואין שבאוסטרליה.',
+  'כף לואין':'אחריה — דרום אוסטרליה, ושער קצר ליד הובארט שבטסמניה.',
+  'הובארט':'שער קצר ליד טסמניה, בלי מגע עם אף אחד. אחריו — האוקיינוס השקט, הקטע הארוך והמבודד במסלול, עד כף הורן.',
+  'כף הורן':'אחרי הכף הדרך פונה צפונה, לאורך האטלנטי, הביתה.'};
+function faqData(){
+  var N=FLEET.length, mi=-1, i;
+  for(i=0;i<N;i++) if(FLEET[i][0]===FIX.rank) mi=i;
+  var me=FLEET[mi]||null, up=mi>0?FLEET[mi-1]:null, dn=(mi>=0&&mi<N-1)?FLEET[mi+1]:null, lead=FLEET[0];
+  var gate=FIX.gate||'', rest=FIX.dtf-FIX.toGate, lg=gate?'ל'+gate:'לנקודת החובה הבאה';
+  var near50=0; FLEET.forEach(function(r){ if(r[0]!==FIX.rank&&!r[7]&&Math.abs(r[5]-FIX.dtf)<=50) near50++; });
+  /* דוגמה חיה ל"עיגולים": הסירה הצמודה אליו בטבלה, והמרחק ביניהן בים */
+  var tw=null; FLEET.forEach(function(r){ if(r[0]===FIX.rank||r[7]) return; var dd=Math.abs(r[5]-FIX.dtf); if(!tw||dd<tw.dd) tw={n:r[4],dd:dd,sea:gcNm(FIX.lat,FIX.lon,r[2],r[3])}; });
+  var near=(FIX.nearLand!=null&&FIX.nearLand<=200&&FIX.nearLandName&&FIX.nearLandName!=='החוף הקרוב');
+  var S1='https://en.wikipedia.org/wiki/Sunday_Times_Golden_Globe_Race', RT='https://goldengloberace.com/the-route/', RU='https://goldengloberace.com/the-rules/',
+      SK='https://goldengloberace.com/skippers/daniel-pinsky/', EX='https://exodussail.com/';
+  return [
+  {t:'המרוץ', q:[
+    ['מה זה הגולדן גלוב?','מרוץ הקפת עולם ביחידים, בלי עצירה ובלי עזרה מבחוץ, בסירות ובכלים שהיו קיימים ב־1968. הוא משחזר את מרוץ ״גלובוס הזהב״ של העיתון סאנדיי טיימס מאותה שנה: תשעה יצאו, ורק אחד סיים — רובין נוקס־ג׳ונסטון, אחרי 312 ימים בים על הסירה סוהאילי. הוא היה האדם הראשון שהקיף את העולם לבד בלי לעצור. המרוץ חודש ב־2018, במלאת 50 שנה, וזו המהדורה השלישית שלו.'+faqSrc(S1)],
+    ['מתי יצאו, ומאיפה?','ב־6 בספטמבר 2026, בצהריים, מלה סאבל־ד׳אולון שבחוף האטלנטי של צרפת. יצאו '+faqN(N)+' סירות, ושם גם נמצא קו הסיום.'],
+    ['מה המסלול?','מזרחה סביב העולם, כששלושת הכפים הגדולים — התקווה הטובה, לואין והורן — נשארים משמאל. דרומה לאורך האטלנטי דרך שתי נקודות חובה: לנזרוטה שבאיים הקנריים, והאי טרינדאדה מול ברזיל. משם מזרחה סביב כף התקווה הטובה, לרוחב האוקיינוס ההודי ומצפון לאיי קרוזה וקרגלן, סביב כף לואין שבאוסטרליה, אל שער קצר ליד הובארט שבטסמניה. אחר כך לרוחב האוקיינוס השקט, סביב כף הורן, וצפונה הביתה. בדרום יש קווי רוחב שאסור לרדת מתחתם — 45° באוקיינוס ההודי ו־46° בשקט — מטעמי בטיחות; חצייה עולה בעונש זמן.'+faqSrc(RT)],
+    ['כמה ארוך המסלול?','המארגנים מעריכים כ־30,000 מייל ימי של שייט. קו המסלול של המעקב, שמחבר את נקודות החובה בקווים הקצרים ביותר, קצר יותר: '+faqN(Math.round(FIX.totalNm/100)*100)+' מייל. ההפרש הוא הדרך האמיתית — אף סירה לא שטה בקו ישר, כי הרוח לא נושבת לפי המפה.'+faqSrc(RT)],
+    ['כמה זמן זה לוקח?','לראשונים — שבעה עד שמונה חודשים. ז׳אן־לוק ואן דן הדה ניצח ב־2018 אחרי כ־212 ימים, וקירסטן נוישפר ניצחה ב־2022 אחרי כ־234 ימים, האישה הראשונה שניצחה בגולדן גלוב. הסיום של המרוץ הזה צפוי בין אפריל ליוני 2027.'+faqSrc('https://en.wikipedia.org/wiki/2022_Golden_Globe_Race')],
+    ['כמה מצליחים לסיים?','מעטים. ב־1968 סיים אחד מתוך תשעה. ב־2018 סיימו חמישה מתוך 18, ועוד אחד במחלקת צ׳יצ׳סטר (ראו ״הכללים״). ב־2022 סיימו שלושה מתוך 16, ועוד שניים במחלקת צ׳יצ׳סטר.'+faqSrc('https://en.wikipedia.org/wiki/2018_Golden_Globe_Race')],
+    ['במה זה שונה מהוונדה גלוב?','הוונדה גלוב יוצא מאותו נמל, והוא הקצה השני: סירות מרוץ מודרניות של 60 רגל עם כנפי ריחוף, ניווט לווייני ותחזיות בזמן אמת. השיא שם, מ־2024–25, הוא כ־65 ימים. בגולדן גלוב אותה הקפה לוקחת פי שלושה ויותר, והמבחן הוא סבולת, ניווט ותחזוקה — לא מהירות.'+faqSrc('https://en.wikipedia.org/wiki/2024%E2%80%932025_Vend%C3%A9e_Globe')]]},
+  {t:'הכללים', q:[
+    ['אילו סירות מותרות?','סירות מפרש באורך 32 עד 36 רגל (כ־10 עד 11 מ׳), מדגם שתוכנן לפני 1988 ונבנה בלפחות 20 עותקים, עם שדרית מלאה — סנפיר שנמשך לכל אורך התחתית — והגה שמחובר לקצה האחורי שלה. אלה סירות כבדות ויציבות, איטיות בהרבה מסירות מרוץ, ובנויות לספוג ולא להישבר.'+faqSrc(RU)],
+    ['למה בלי GPS, ואיך מנווטים?','כי מותר רק מה שהיה אפשרי ב־1968. מנווטים עם סקסטנט — מכשיר שמודד את הזווית בין השמש, הירח או כוכב לבין קו האופק — ועם שעון מדויק, טבלאות ומפות נייר. מהזווית ומהשעה מחשבים ביד את המיקום, כשהשמים פתוחים. בימים מעוננים מנווטים בהערכה: כיוון, מהירות והזמן שעבר מאז התצפית האחרונה.'+faqSrc(RU)],
+    ['אז איך אנחנו יודעים איפה הוא?','על הסירה מותקן משדר מעקב לווייני של המרוץ, עם GPS משלו, שמשדר את המיקום לחוף. הוא סגור בפני המלח: דניאל לא רואה את מה שהמשדר שולח. מהמשדר הזה מגיעים כל המיקומים באתר.'+faqSrc(RU)],
+    ['עם מי מותר לו לדבר?','עם מטה המרוץ — בטלפון לווייני ידני ובמכשיר הודעות קצרות, לבטיחות ולדיווח. ברדיו מותר לו לדבר עם משפחה, עם עיתונאים ועם סירות אחרות. אסור לו לקבל ניתוב: עצה אישית מבחוץ לאן להפליג לפי מזג האוויר.'+faqSrc(RU)],
+    ['מה קורה אם משהו נשבר?','הוא מתקן לבד, במה שיש על הסירה. עגינה, קבלת ציוד או עזרה של מישהו אחר נחשבות ״עצירה״. לחירום יש על הסירה ציוד בטיחות מודרני וקופסה חתומה עם GPS וטלפון לווייני. מותר לשבור את החותם, אבל מי שעושה זאת יוצא מהדירוג הראשי.'+faqSrc(RU)],
+    ['מה זו מחלקת צ׳יצ׳סטר?','מי שעוצר פעם אחת, או שובר את החותם של קופסת החירום, עובר למחלקה שנקראת על שם פרנסיס צ׳יצ׳סטר, שהקיף את העולם לבד ב־1966–67 עם עצירה אחת בסידני. הוא יכול להמשיך ולסיים, אבל כבר לא מתחרה על הניצחון. עצירה שנייה מוציאה מהמרוץ.'+faqSrc(RU)]]},
+  {t:'דניאל ואקסודוס', q:[
+    ['מי זה דניאל פינסקי?','ישראלי, בן 35 לפי אתר המרוץ, והישראלי הראשון שמשתתף בגולדן גלוב. בגיל 14 התחיל בפנימייה הימית בעכו, שירת במשמר החופים של חיל הים ולמד הנדסת מכונות. הוא ימאי מסעות שחי על סירה, ועבר יותר מ־20,000 מייל בכמה אוקיינוסים — ובהם הקפה מלאה של האטלנטי בשנים 2021–2024: מישראל דרך הים התיכון אל הקריביים, מרכז ודרום אמריקה, וחזרה לאירופה.'+faqSrc(SK,'אתר המרוץ')+' ·'+faqSrc('https://www.jns.org/news/israel-news/daniel-pinksy-becomes-first-israeli-sailor-to-embark-on-250-day-global-race','JNS')],
+    ['למה הוא יוצא למרוץ הזה?','לדבריו, כדי לייצג את ישראל ולבחון את הגבולות שלו — ״לראות מי אני נהיה כשלא נשאר כלום חוץ מהרוח, הגלים וכוח הרצון״.'+faqSrc(SK)],
+    ['איזו סירה זו?','<span dir="ltr">Baba 35</span> שנבנתה ב־1980, בתכנון של האדריכל הימי רוברט פרי: 10.67 מ׳ אורך ו־3.51 מ׳ רוחב. סירת מסעות, לא סירת מרוץ — גוף כבד, שדרית מלאה, ירכתיים מחודדות כמו החרטום והרבה עץ. דניאל קנה אותה באוקטובר 2025 ושיפץ אותה בקריביים ובצרפת. מספר המפרש שלה 07.'+faqSrc(SK)],
+    ['למה קוראים לה אקסודוס?','על שם יציאת מצרים: מסע ארוך אל הלא נודע, שמשנה את מי שעובר אותו. לדבריו, מי שמתחיל מרוץ כזה ומי שמסיים אותו הם לא אותו אדם.'+faqSrc(EX)]]},
+  {t:'המצב עכשיו', q:[
+    ['איפה הוא עכשיו?',(near?'מול '+faqEsc(FIX.nearLandName)+', '+faqN(FIX.nearLand)+' מייל מהיבשה הקרובה':oceanHe(FIX.lat,FIX.lon))+', ב־<b class="n" dir="ltr">'+dmm(FIX.lat,2,'N','S')+' '+dmm(FIX.lon,3,'E','W')+'</b>.'+' בנקודת הציון האחרונה שט <b class="n">'+FIX.sog.toFixed(1)+'</b> קשר, לכיוון <b class="n">'+deg3(FIX.cog)+'</b>.'],
+    ['באיזה מקום הוא?','מקום '+faqN(FIX.rank)+' מתוך '+faqN(N)+', לפי המרחק שנשאר לו עד הסיום (ראו ״איך מודדים״).'+
+      (up?' לפניו '+faqEsc(up[4])+', '+faqGap(me[5]-up[5])+(dn?';':'.'):'')+(dn?' אחריו '+faqEsc(dn[4])+', '+faqGap(dn[5]-me[5])+'.':'')+
+      (near50>=2?' '+faqN(near50)+' סירות נמצאות עד 50 מייל ממנו בטבלה, ולכן המקום יכול להתחלף בכל עדכון.':'')],
+    ['כמה רחוק הוא מהמוביל?',FIX.rank===1?'הוא המוביל.'+(dn?' '+faqEsc(dn[4])+' אחריו, '+faqGap(dn[5]-me[5])+'.':''):faqN(FIX.dtf-lead[5])+' מייל במרחק לסיום אחרי '+faqEsc(lead[4])+', שמוביל את הצי.'],
+    ['כמה הוא כבר עבר, וכמה נשאר?','זה היום ה־'+FIX.dayN+' של המרוץ. מהזינוק הוא שט '+faqN(FIX.sailed)+' מייל לפי נקודות הציון — בפועל קצת יותר, כי בין נקודה לנקודה הוא לא שט בקו ישר. לפי המעקב נשארו '+faqN(FIX.dtf)+' מייל. ב־24 השעות האחרונות התקרב לסיום ב־'+faqN(FIX.dmg24)+' מייל.'],
+    ['איך הוא ביחס לזוכים הקודמים?',(typeof FIX.ghost==='number')?'המעקב הרשמי משדר גם את המסלול של קירסטן נוישפר, המנצחת ב־2022, על השעון של המרוץ הזה. באותו רגע במרוץ שלה, דניאל '+faqN(Math.abs(FIX.ghost))+' מייל '+(FIX.ghost>=0?'לפניה':'אחריה')+' במרחק לסיום. רוב הדרך, והים הדרומי, עוד לפניו.':'ההשוואה לזוכה הקודמת לא זמינה בעדכון הזה.'],
+    ['מה מחכה לו בהמשך?',(gate?'נקודת החובה הבאה: '+faqEsc(gate)+', '+faqN(FIX.toGate)+' מייל בקו ישר. '+(FAQ_NEXT[gate]||''):'')+' מה שקורה בימים הקרובים — ב״הסיפור״ ובניתוח המלא, שמתעדכנים פעמיים ביום.']]},
+  {t:'איך מודדים', q:[
+    ['איך נקבע המקום?','לפי המרחק שנשאר עד הסיום — <span dir="ltr">DTF, Distance To Finish</span> — ולא לפי מי שנראה מקדימה במפה. המעקב מודד קו ישר מהסירה אל נקודת החובה הבאה, ומוסיף את אורך שאר המסלול, שזהה לכולם.'+
+      (gate?' אצל דניאל עכשיו: '+faqN(FIX.toGate)+' מייל עד '+faqEsc(gate)+', ועוד '+faqN(rest)+' מייל של שאר המסלול — '+faqN(FIX.dtf)+' מייל בסך הכול. בפועל, מי שקרוב יותר '+faqEsc(lg)+' בקו ישר — מקדים.':'')],
+    ['למה במפה נראה שמישהו מאחור, והוא בכל זאת לפני?','דמיינו עיגולים סביב '+(gate?faqEsc(gate):'נקודת החובה הבאה')+', כמו טבעות במים. מי שנמצא על עיגול קטן יותר מקדים — גם אם במפה הוא נראה צפוני יותר או רחוק מהשאר. לכן שתי סירות יכולות להיות רחוקות זו מזו בים, ובכל זאת צמודות בטבלה.'+
+      (tw&&tw.sea>=40&&tw.sea>=4*tw.dd?' עכשיו, למשל: דניאל ו'+faqEsc(tw.n)+' רחוקים זה מזה '+faqN(tw.sea)+' מייל בים, וההפרש ביניהם בטבלה — '+faqMi(tw.dd)+'.':'')],
+    ['כל כמה זמן המיקום מתעדכן?','המשדר שולח נקודת ציון בערך כל ארבע שעות, וכל סירה בשעה אחרת. האתר מתעדכן לבד, תוך כחצי שעה מהגעת נקודה חדשה של אקסודוס, ובודק את עצמו מול הלוח הרשמי. זה לא שידור חי: המספרים הם תמונת מצב של הנקודה האחרונה — כאן, '+faqFix()+'. ומכיוון שכל סירה מדווחת בשעה אחרת, המקום בטבלה יכול לקפוץ בין עדכונים גם כשההבדלים במים קטנים.'],
+    ['מה זה מייל ימי וקשר?','מייל ימי הוא 1.852 ק״מ — דקה אחת של קו רוחב, ולכן זו יחידת המידה של הניווט. קשר הוא מייל ימי לשעה: 6 קשר הם כ־11 קמ״ש. לסירה כמו אקסודוס, 150 מייל ביממה הם יום טוב מאוד.'],
+    ['האם דניאל יודע באיזה מקום הוא?','לא ישירות. המעקב סגור בפניו, והוא לא רואה את המפה והטבלה שאתם רואים. מה שהוא יודע על שאר הצי מגיע מהקשר עם מטה המרוץ ומשיחות ברדיו.'+faqSrc(RU)]]},
+  {t:'האתר', q:[
+    ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח את הקטגוריות, וכל אחת מוסיפה משהו להדמיה: איפה הוא עכשיו, האזור, היומן (הים והרוח בשעות אחרות), המירוץ (הסירות הקרובות, באופק) והסיפור. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
+    ['מה אני רואה — זה צילום?','לא. זה שחזור: המיקום מהמשדר, והרוח, הגלים, הזרם והעננים ממודל מזג אוויר לאותה נקודה ולאותה שעה. השמש והכוכבים מחושבים לפי המקום והזמן, והסירה מצוירת לפי תצלומים של אקסודוס. שום דבר כאן לא נמדד על הסירה עצמה.'],
+    ['מי עומד מאחורי האתר?','אוהדים. זה פרויקט עצמאי, לא אתר רשמי של המרוץ ולא של הצוות של דניאל. הקוד פתוח, והערות ותיקונים מתקבלים ב־GitHub (ראו ״אודות״).'],
+    ['איפה המקורות הרשמיים?','<a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> · <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ והדיווחים היומיים</a> · <a href="'+SK+'" rel="noopener" target="_blank">הדף של דניאל באתר המרוץ</a> · <a href="'+EX+'" rel="noopener" target="_blank">האתר של דניאל</a>']]}
+  ]; }
+function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
+  var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
+    g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
+  $('faqBody').innerHTML=h;
+  $('faqS').innerHTML='על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
+function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(menuOpen) setMenu(false); }
+  faqEl.hidden=!on; document.body.classList.toggle('faq-open',faqOpen);
+  var b=$('bFaq'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+  if(on&&kbNav){ var f=faqEl.querySelector('summary'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+if(faqEl){ $('faqX').addEventListener('click',function(){ setFaq(false); ($('bFaq')||keyEl).focus(); });
+  document.addEventListener('pointerdown',function(ev){ if(faqOpen&&!faqEl.contains(ev.target)&&!($('bFaq')&&$('bFaq').contains(ev.target))&&!(keyEl&&keyEl.contains(ev.target))) setFaq(false); },true); }
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   put('capStoryT',STORY);
@@ -660,7 +748,7 @@ window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return;
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
-document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(menuOpen){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(menuOpen){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
    במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
