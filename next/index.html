@@ -249,7 +249,7 @@ body:not(.lyr-open) #lyCap{top:calc(var(--e-t) + 20px);right:calc(var(--e-r) + 3
 #lyCap .cap-story p{margin:0}
 #capStoryT{font-size:13px;color:var(--ink)}
 .cap-links{margin-top:6px!important;pointer-events:auto}
-.cap-links button,.cap-links a{display:inline-block;margin:0 0 0 14px;padding:10px 0;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);
+.cap-links button,.cap-links a{display:inline-block;margin:0 0 0 14px;padding:13px 0;min-height:44px;box-sizing:border-box;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);
   text-decoration:underline;text-decoration-color:rgba(225,236,243,.45);text-underline-offset:3px;cursor:pointer}
 body.t-past #capNow .tv{color:var(--tpast)} body.t-fut #capNow .tv{color:var(--tfut)}
 /* הסימנים שעל ההדמיה: שייכים לשכבות. .deg ו-.dat — "איפה הוא עכשיו"; המשואה — "האזור"; הסירות באופק — "המירוץ" */
@@ -297,16 +297,16 @@ body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)
 #lyr:not(.ovf){mask-image:none;-webkit-mask-image:none}
 /* "שאלות" (l26): חלונית קריאה מתחת לתפריט, מימין — שם מתחילים לקרוא. עד מעל השורה הדקה, ונגללת בתוכה.
    שתי רמות קיפול: קבוצה, ובתוכה שאלה. כל שורה שנוגעים בה — לפחות 44 פיקסלים */
-body.faq-open #lyCap{visibility:hidden}
-body.g-open #faq,body.j-open #faq{display:none}
-#faq{position:absolute;z-index:7;top:calc(var(--e-t) + 32px);right:var(--e-r);width:min(460px,calc(100% - 2 * var(--edge)));
+body.faq-open #lyCap,body.words-open #lyCap{visibility:hidden}
+body.g-open #faq,body.j-open #faq,body.g-open #words,body.j-open #words{display:none}
+#faq,#words{position:absolute;z-index:7;top:calc(var(--e-t) + 32px);right:var(--e-r);width:min(460px,calc(100% - 2 * var(--edge)));
   max-height:calc(100% - var(--e-t) - 44px - var(--row2));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background:var(--panel);border:1px solid var(--hair);border-radius:8px;padding:0 16px 10px;color:var(--ink);font:400 13.5px/1.5 var(--ui);
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-#faq .faq-hd{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;margin:0 -16px;padding:6px 16px 0;background:rgba(7,17,26,.97)}
-#faq h2{margin:6px 0 0;font:500 15px var(--ui);color:var(--ink)}
-#faq .x{flex:none;width:44px;height:44px;margin:0 0 0 -12px;border:0;background:none;color:var(--ink2);font-size:22px;line-height:1;cursor:pointer}
-#faq .faq-s{margin:0 0 8px;color:var(--ink3);font-size:11.5px;line-height:1.45}
+#faq .faq-hd,#words .faq-hd{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;margin:0 -16px;padding:6px 16px 0;background:rgba(7,17,26,.97)}
+#faq h2,#words h2{margin:6px 0 0;font:500 15px var(--ui);color:var(--ink)}
+#faq .x,#words .x{flex:none;width:44px;height:44px;margin:0 0 0 -12px;border:0;background:none;color:var(--ink2);font-size:22px;line-height:1;cursor:pointer}
+#faq .faq-s,#words .faq-s{margin:0 0 8px;color:var(--ink3);font-size:11.5px;line-height:1.45}
 #faq details.g{border-top:1px solid var(--hair)}
 #faq summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #faq summary::-webkit-details-marker{display:none}
@@ -335,6 +335,20 @@ body.g-open #faq,body.j-open #faq{display:none}
 #faq .faq-set button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 #faq .faq-fine{margin:8px 0 0;color:var(--ink3);font-size:11.5px;line-height:1.45}
 #faq .faq-fine:empty{display:none}
+/* g01 (24.9): "מילים לדניאל" — משפט אחד שנשמר עם הזמן והמקום של הסירה. לא מוצג באתר; נאסף בשביל דניאל */
+#words .w-p{margin:0 0 10px;color:var(--ink2);font-size:13px;line-height:1.6}
+#words label{display:block;margin:0 0 4px;color:var(--ink3);font-size:11.5px}
+#words textarea,#words input[type=text]{box-sizing:border-box;width:100%;min-height:44px;margin:0 0 10px;padding:10px 12px;border:1px solid var(--hair);border-radius:4px;
+  background:rgba(255,255,255,.05);color:var(--ink);font:400 14px/1.5 var(--ui)}
+#words textarea{min-height:96px;resize:vertical}
+#words textarea:focus-visible,#words input:focus-visible,#words .w-send:focus-visible,#words .x:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#words .w-row{display:flex;align-items:center;gap:12px}
+#words .w-send{min-height:44px;padding:0 18px;border:0;border-radius:4px;background:#e8f0f5;color:#08141d;font:500 13.5px var(--ui);cursor:pointer}
+#words .w-send:disabled{opacity:.5;cursor:default}
+#words .w-c{color:var(--ink3);font-size:11.5px}
+#words .w-msg{margin:4px 0 0;color:var(--ink);font-size:13px;line-height:1.5}
+#words .w-msg:empty{display:none}
+#words .w-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 
 /* רצועת הזמן (מ-21.9 בערב, לפי הערות בתחנה): בחלק הכי תחתון של המסך, בכל רוחבו, בכל הגדלים.
    שבוע אחד, וההווה תמיד באמצע. בלי שעה, תאריך או "עכשיו" עליה: הזמן שנבחר נקרא בשורות הנתונים,
@@ -666,7 +680,7 @@ body.g-open .hud.vit{display:none}
     <p class="cap cap-race" id="capRace"></p>
     <div class="cap cap-area" id="capArea"></div>
     <p class="cap cap-log" id="capLog"></p>
-    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a></p></div>
+    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a><button type="button" id="bWords" aria-expanded="false" aria-controls="words">מילים לדניאל</button></p></div>
   </div>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
@@ -770,6 +784,22 @@ body.g-open .hud.vit{display:none}
       <p class="faq-fine" id="mHint"></p>
       <p class="faq-fine">© 2026 יומן אקסודוס · הקוד פתוח, ברישיון MIT</p>
     </div>
+  </section>
+
+  <!-- g01 (24.9): "מילים לדניאל". נפתח מ"הסיפור". הטקסט נשמר ב-/api/words עם הזמן ועם המקום של הסירה מ-data.js (בצד השרת). לא מוצג באתר -->
+  <section id="words" hidden aria-labelledby="wordsT">
+    <div class="faq-hd"><h2 id="wordsT">מילים לדניאל</h2><button type="button" class="x" id="wordsX" aria-label="סגירה">×</button></div>
+    <p class="w-p">משפט אחד לדניאל, מכאן ועכשיו. הוא נשמר עם התאריך ועם המקום שבו הסירה נמצאת עכשיו. ההודעות לא מתפרסמות באתר — הן נאספות בשביל דניאל, לסוף המסע.</p>
+    <form id="wordsF" novalidate>
+      <label for="wordsTx">ההודעה</label>
+      <textarea id="wordsTx" maxlength="500" required></textarea>
+      <label for="wordsNm">חתימה (לא חובה)</label>
+      <input type="text" id="wordsNm" maxlength="40" autocomplete="off">
+      <div class="w-hp" aria-hidden="true"><input type="text" id="wordsHp" tabindex="-1" autocomplete="off"></div>
+      <div class="w-row"><button type="submit" class="w-send" id="wordsGo">שליחה</button><span class="w-c" id="wordsC">0/500</span></div>
+      <p class="w-msg" id="wordsMsg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="faq-s">נשמרים רק ההודעה, החתימה אם נכתבה, הזמן ומקום הסירה. כתובת ה‑IP לא נשמרת — רק סימן חד-כיווני ליום אחד, כדי לעצור הצפה.</p>
   </section>
 
   <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>

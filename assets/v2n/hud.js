@@ -593,12 +593,36 @@ function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
     g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
   $('faqBody').innerHTML=h;
   $('faqS').innerHTML='על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
-function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on) faqBuild();
+function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(wordsOpen) setWords(false); }
   faqEl.hidden=!on; document.body.classList.toggle('faq-open',faqOpen);
   [$('bFaq'),menuBtn,menuBtn2].forEach(function(b){ if(b) b.setAttribute('aria-expanded',on?'true':'false'); });
   if(on&&kbNav){ var f=faqEl.querySelector('summary'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 if(faqEl){ $('faqX').addEventListener('click',function(){ setFaq(false); ($('bFaq')||keyEl).focus(); });
   document.addEventListener('pointerdown',function(ev){ if(faqOpen&&!faqEl.contains(ev.target)&&![$('bFaq'),keyEl,menuBtn,menuBtn2].some(function(b){ return b&&b.contains(ev.target); })) setFaq(false); },true); }
+/* ================= g01 (24.9): "מילים לדניאל" — חלונית עם טופס קצר. נפתחת מ"הסיפור", נסגרת מה-×, מ-Escape וממגע בחוץ.
+   השרת (functions/api/words.js) שומר את הזמן ואת מקום הסירה בעצמו, מ-data.js, ולא סומך על הדפדפן ================= */
+var wordsEl=$('words'), wordsOpen=false;
+function setWords(on){ wordsOpen=!!on; if(!wordsEl) return; if(on&&faqOpen) setFaq(false);
+  wordsEl.hidden=!on; document.body.classList.toggle('words-open',wordsOpen);
+  var b=$('bWords'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+  if(on){ var t=$('wordsTx'); if(t&&kbNav) try{ t.focus({preventScroll:true}); }catch(e){} } }
+if(wordsEl){
+  $('bWords').addEventListener('click',function(){ setWords(!wordsOpen); });
+  $('wordsX').addEventListener('click',function(){ setWords(false); $('bWords').focus(); });
+  document.addEventListener('pointerdown',function(ev){ if(wordsOpen&&!wordsEl.contains(ev.target)&&!$('bWords').contains(ev.target)) setWords(false); },true);
+  var wTx=$('wordsTx'), wGo=$('wordsGo'), wMsg=$('wordsMsg');
+  wTx.addEventListener('input',function(){ $('wordsC').textContent=wTx.value.length+'/500'; });
+  $('wordsF').addEventListener('submit',function(ev){ ev.preventDefault();
+    var text=wTx.value.trim(); if(text.length<2){ wMsg.textContent='צריך לכתוב משהו קודם.'; wTx.focus(); return; }
+    wGo.disabled=true; wMsg.textContent='שולח…';
+    fetch('/api/words',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text,name:$('wordsNm').value.trim(),hp:$('wordsHp').value})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(x){ if(x.ok&&x.j&&x.j.ok){ wTx.value=''; $('wordsC').textContent='0/500'; wMsg.textContent='נשמר. תודה.'; }
+        else wMsg.textContent=(x.j&&x.j.error==='limit')?'אפשר לשלוח עד חמש הודעות ביום. מחר שוב.':'לא נשמר. אפשר לנסות שוב בעוד רגע.'; })
+      .catch(function(){ wMsg.textContent='לא נשמר — אין חיבור. אפשר לנסות שוב.'; })
+      .then(function(){ wGo.disabled=false; });
+  });
+}
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   put('capStoryT',STORY);
@@ -751,7 +775,7 @@ window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return;
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
-document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(wordsOpen){ setWords(false); ($('bWords')||keyEl).focus(); } else if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
    במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
