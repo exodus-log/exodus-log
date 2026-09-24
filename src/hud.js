@@ -183,10 +183,12 @@ var keyArm=false; window.addEventListener('pointerdown',function(){ keyArm=keyed
   window.addEventListener(ev,function h(e){ if(ev==='keydown'&&(e.key==='Shift'||e.key==='Alt'||e.key==='Control'||e.key==='Meta')) return;
     suck(); window.removeEventListener(ev,h,true); },{capture:true,passive:true}); });
 
-/* ===== l23 מנה 2: התפריט העליון — שש קטגוריות, כל אחת שכבה (ומ-24.9 גם "שאלות", שהיא חלונית ולא שכבה) ===== */
+/* ===== l23 מנה 2: התפריט העליון — חמש שכבות, ו"שאלות" (24.9), שהיא חלונית ולא שכבה ו"אודות" נבלע בה ===== */
 var lyrEl=$('lyr'), lyrIsOpen=false, LY_ON={};
-function lyrOpen(on){ lyrIsOpen=!!on; if(!lyrEl) return; lyrEl.hidden=!on; document.body.classList.toggle('lyr-open',lyrIsOpen);
-  if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(!on&&menuOpen) setMenu(false); if(!on&&faqOpen) setFaq(false);
+function lyrOvf(){ if(lyrEl&&!lyrEl.hidden) lyrEl.classList.toggle('ovf',lyrEl.scrollWidth>lyrEl.clientWidth+1); }
+window.addEventListener('resize',lyrOvf);
+function lyrOpen(on){ lyrIsOpen=!!on; if(!lyrEl) return; lyrEl.hidden=!on; document.body.classList.toggle('lyr-open',lyrIsOpen); lyrOvf();
+  if(keyEl) keyEl.setAttribute('aria-expanded',on?'true':'false'); if(!on&&faqOpen) setFaq(false);
   if(on){ var f=lyrEl.querySelector('button'); if(f&&document.activeElement===keyEl) try{ f.focus({preventScroll:true}); }catch(e){} } }
 var ringAnim=0, ringHold=0;
 function ringTo(v){ if(!LIVE) return; cancelAnimationFrame(ringAnim); var a=LAB.ringVis||0, t0=performance.now();
@@ -201,7 +203,6 @@ function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'
   if(n==='log'){ if(on) logBuild(); else { try{ tsSet(0); }catch(e){} logPaint(); } }
   SZ={}; measureTop(); }
 if(lyrEl) lyrEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button'):null; if(!t) return;
-  if(t.id==='bAbout'){ setMenu(!menuOpen); return; }
   if(t.id==='bFaq'){ setFaq(!faqOpen); return; }
   var n=t.getAttribute('data-l'); if(n) setLy(n,!LY_ON[n]); });
 /* בלי WebGL אין הדמיה לסמן עליה, והמלל הוא כל מה שיש: "איפה הוא עכשיו" דולקת מההתחלה */
@@ -492,26 +493,28 @@ document.addEventListener('visibilitychange',function(){ if(AU&&auOn) AU.master.
 /* ================= הודעה קצרה ================= */
 function toast(msg,ms){ var t=$('toast'); if(!t) return; t.textContent=msg; t.classList.remove('off'); clearTimeout(toast.t); toast.t=setTimeout(function(){ t.classList.add('off'); },ms||5200); }
 
-/* ================= התפריט ================= */
-var menu=$('menu'), menuBtn=$('menuBtn'), menuOpen=false;
-function setMenu(on){ menuOpen=!!on; if(on&&faqOpen) setFaq(false); menu.hidden=!on; document.body.classList.toggle('about-open',menuOpen); menuBtn.setAttribute('aria-expanded',on?'true':'false'); var ab=$('bAbout'); if(ab) ab.setAttribute('aria-expanded',on?'true':'false'); if(menuBtn2) menuBtn2.setAttribute('aria-expanded',on?'true':'false'); if(on&&kbNav){ var f=menu.querySelector('button,a'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
+/* ================= התפריט =================
+   24.9 אחה"צ: "אודות" נבלע ב"שאלות" (שמוליק: "תכניס את אודות לתוך שאלות"; כלל — הכול נכנס ברוחב, פשוט ומינימלי).
+   אין יותר חלונית #menu. setMenu נשאר שם נרדף ל-setFaq, כדי שכל נתיב ישן שפתח או סגר את התפריט
+   (הכפתור שבטבעת, פתיחת הגלובוס, "המסע") יפתח או יסגור את "שאלות". menuOpen נשאר false לתמיד. */
+var menuBtn=$('menuBtn'), menuOpen=false;
+function setMenu(on){ setFaq(on); }
 /* הפוקוס עובר לחלונית רק למי שמנווט במקלדת; במגע הוא צייר מסגרת לבנה סביב ה-× */
 var kbNav=false; window.addEventListener('keydown',function(){ kbNav=true; },true); window.addEventListener('pointerdown',function(){ kbNav=false; },true);
-menuBtn.addEventListener('click',function(){ setMenu(!menuOpen); });
+if(menuBtn) menuBtn.addEventListener('click',function(){ setFaq(!faqOpen); });
 /* 23.9 (l19): במסך הראשון התפריט נפתח מהכפתור שבשורת המספרים */
 var menuBtn2=$('menuBtn2');
-if(menuBtn2) menuBtn2.addEventListener('click',function(){ setMenu(!menuOpen); });
+if(menuBtn2) menuBtn2.addEventListener('click',function(){ setFaq(!faqOpen); });
 /* l23: העיגול פותח את התפריט — רק אחרי שהמשפט כבר נשאב אליו (נגיעה לפני כן רק שואבת) */
 if(keyEl){ keyEl.addEventListener('click',function(ev){ if(!keyed||(ev.detail>0&&!keyArm)) return; keyArm=false;
     /* l23 מנה 3: בגלובוס העיגול מחזיר אל הסירה ופותח את השכבות — הן חיות על ההדמיה */
     if(gOpen){ closeGlobe(false); lyrOpen(true); return; }
     lyrOpen(!lyrIsOpen); }); }
 var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried=true; audioSet(!auOn); });
-$('menuX').addEventListener('click',function(){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); });
-document.addEventListener('pointerdown',function(ev){ if(menuOpen&&!menu.contains(ev.target)&&ev.target!==menuBtn&&!menuBtn.contains(ev.target)&&!(keyEl&&keyEl.contains(ev.target))&&!($('bAbout')&&$('bAbout').contains(ev.target))&&!(menuBtn2&&menuBtn2.contains(ev.target))) setMenu(false); },true);
 /* ================= "שאלות" (l26, 24.9) =================
    מה שמי שמגיע בפעם הראשונה רוצה לדעת, בשש קבוצות מקופלות, וכל שאלה מקופלת בתוך הקבוצה (שמוליק ביקש).
-   חלונית קריאה ולא שכבה: היא לא מסמנת כלום על ההדמיה. נסגרת מ"אודות", מה-×, מ-Escape, וממגע מחוץ לה.
+   חלונית קריאה ולא שכבה: היא לא מסמנת כלום על ההדמיה. נסגרת מה-×, מ-Escape, וממגע מחוץ לה.
+   מ-24.9 אחה"צ גם "אודות" כאן: המקורות ויצירת הקשר בקבוצה "האתר", וההגדרות והרישיון בסוף החלונית.
    האמת: עובדות קבועות — מאתר המרוץ (הכללים, המסלול, דף הסקיפר), מוויקיפדיה ומ-exodussail.com, עם קישור "מקור".
    כל מספר של המרוץ הנוכחי ("עכשיו") נבנה מ-data.js (FIX, FLEET) בכל פתיחה — אין כאן מספר כזה שכתוב ביד. */
 var faqEl=$('faq'), faqOpen=false, faqBuilt=false;
@@ -580,22 +583,22 @@ function faqData(){
     ['מה זה מייל ימי וקשר?','מייל ימי הוא 1.852 ק״מ — דקה אחת של קו רוחב, ולכן זו יחידת המידה של הניווט. קשר הוא מייל ימי לשעה: 6 קשר הם כ־11 קמ״ש. לסירה כמו אקסודוס, 150 מייל ביממה הם יום טוב מאוד.'],
     ['האם דניאל יודע באיזה מקום הוא?','לא ישירות. המעקב סגור בפניו, והוא לא רואה את המפה והטבלה שאתם רואים. מה שהוא יודע על שאר הצי מגיע מהקשר עם מטה המרוץ ומשיחות ברדיו.'+faqSrc(RU)]]},
   {t:'האתר', q:[
-    ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח את הקטגוריות, וכל אחת מוסיפה משהו להדמיה: איפה הוא עכשיו, האזור, היומן (הים והרוח בשעות אחרות), המירוץ (הסירות הקרובות, באופק) והסיפור. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
+    ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח את הקטגוריות, וכל אחת מוסיפה משהו להדמיה: איפה הוא עכשיו, האזור, היומן (הים והרוח בשעות אחרות), המירוץ (הסירות הקרובות, באופק) והסיפור. כאן, ב״שאלות״, יש גם הגדרות: קול, מצב קל והתקנה כאפליקציה. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
     ['מה אני רואה — זה צילום?','לא. זה שחזור: המיקום מהמשדר, והרוח, הגלים, הזרם והעננים ממודל מזג אוויר לאותה נקודה ולאותה שעה. השמש והכוכבים מחושבים לפי המקום והזמן, והסירה מצוירת לפי תצלומים של אקסודוס. שום דבר כאן לא נמדד על הסירה עצמה.'],
-    ['מי עומד מאחורי האתר?','אוהדים. זה פרויקט עצמאי, לא אתר רשמי של המרוץ ולא של הצוות של דניאל. הקוד פתוח, והערות ותיקונים מתקבלים ב־GitHub (ראו ״אודות״).'],
-    ['איפה המקורות הרשמיים?','<a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> · <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ והדיווחים היומיים</a> · <a href="'+SK+'" rel="noopener" target="_blank">הדף של דניאל באתר המרוץ</a> · <a href="'+EX+'" rel="noopener" target="_blank">האתר של דניאל</a>']]}
+    ['מי עומד מאחורי האתר, ואיך יוצרים קשר?','אוהדים. זה פרויקט עצמאי, לא אתר רשמי של המרוץ ולא של הצוות של דניאל. הקוד פתוח, ברישיון MIT. הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener" target="_blank">דרך GitHub</a>.'],
+    ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a> ו<a href="'+EX+'" rel="noopener" target="_blank">האתר שלו</a>.']]}
   ]; }
 function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
   var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
     g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
   $('faqBody').innerHTML=h;
   $('faqS').innerHTML='על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
-function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(menuOpen) setMenu(false); }
+function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on) faqBuild();
   faqEl.hidden=!on; document.body.classList.toggle('faq-open',faqOpen);
-  var b=$('bFaq'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+  [$('bFaq'),menuBtn,menuBtn2].forEach(function(b){ if(b) b.setAttribute('aria-expanded',on?'true':'false'); });
   if(on&&kbNav){ var f=faqEl.querySelector('summary'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 if(faqEl){ $('faqX').addEventListener('click',function(){ setFaq(false); ($('bFaq')||keyEl).focus(); });
-  document.addEventListener('pointerdown',function(ev){ if(faqOpen&&!faqEl.contains(ev.target)&&!($('bFaq')&&$('bFaq').contains(ev.target))&&!(keyEl&&keyEl.contains(ev.target))) setFaq(false); },true); }
+  document.addEventListener('pointerdown',function(ev){ if(faqOpen&&!faqEl.contains(ev.target)&&![$('bFaq'),keyEl,menuBtn,menuBtn2].some(function(b){ return b&&b.contains(ev.target); })) setFaq(false); },true); }
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   put('capStoryT',STORY);
@@ -604,10 +607,10 @@ if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
     ls.addEventListener('click',lsTog);
     ls.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); lsTog(); } }); } }
 
-menu.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;
+if(faqEl) faqEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;
   if(t.id==='bSound'){ audioSet(!auOn); }
   else if(t.id==='bLite'&&LIVE){ var n=EXO.quality==='lite'?'full':'lite'; EXO.setQuality(n); store('exo.quality',n); paintLite(false); }
-  else if(t.id==='bFull'){ goFull(); setMenu(false); }
+  else if(t.id==='bFull'){ goFull(); setFaq(false); }
   else if(t.id==='bInstall'&&installEv){ installEv.prompt(); installEv=null; t.hidden=true; }
 });
 function paintLite(auto){ var b=$('bLite'); if(!b||!LIVE) return; var lite=EXO.quality==='lite'; b.setAttribute('aria-pressed',lite?'true':'false');
@@ -748,13 +751,13 @@ window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return;
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
-document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(menuOpen){ setMenu(false); ($('bAbout')||keyEl||menuBtn).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
    במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
    המאיץ, המסירה אל הגלובוס והחזרה ממנו. Ctrl/Cmd עם +/− הם זום הדפדפן ונשארים שלו. */
 document.addEventListener('keydown',function(ev){
-  if(ev.ctrlKey||ev.metaKey||ev.altKey||jOpen||menuOpen) return;
+  if(ev.ctrlKey||ev.metaKey||ev.altKey||jOpen||faqOpen) return;
   var t=ev.target; if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
   var k=ev.key, dir=(k==='-'||k==='_'||k==='Subtract')?1:(k==='+'||k==='='||k==='Add')?-1:0; if(!dir) return;
   var surf=gOpen?document.getElementById('globe'):document.getElementById('sea'); if(!surf) return;
