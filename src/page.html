@@ -104,6 +104,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);ov
 .nojs a{color:var(--ink)}
 
 .n{font-family:var(--inst);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;display:inline-block;letter-spacing:-.01em}
+/* 24.9: בתוך משפט (השורה הדקה, "שאלות") המספר בגופן הטקסט — בגופן המכשירים הפסיק והנקודתיים תופסים תא שלם ונראים כרווח: "24, 538", "16: 00" */
+.vit .n,#faq .n{font-family:var(--ui);letter-spacing:0}
 .hud{position:absolute;pointer-events:none;text-shadow:var(--shd,var(--sh));color:var(--ink);font-size:12.5px;line-height:1.35}
 .hud i{font-style:normal;color:var(--ink3d);margin-inline-end:.45em}
 .hud em{font-style:normal;color:var(--ink3d);margin-inline-start:.55em;font-size:.92em}
