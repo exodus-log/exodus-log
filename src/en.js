@@ -308,7 +308,7 @@ function faq(c){ var FIX=c.FIX, N=c.N, me=c.me, up=c.up, dn=c.dn, lead=c.lead, g
       '<rect x="346" y="34" width="2.4" height="62" fill="#324a56"/><rect x="326" y="44" width="46" height="1.8" fill="#324a56"/><path d="M348 44 L348 60 L374 52 Z" fill="#2b4048"/>'+
       '<rect x="16" y="76" width="16" height="16" fill="#5c4326" stroke="#3c2c19" stroke-width="1"/><rect x="30" y="83" width="13" height="11" fill="#6b4e2c" stroke="#3c2c19" stroke-width="1"/>'+
       '<circle cx="270" cy="97" r="7" fill="none" stroke="#8a6a3c" stroke-width="2"/><circle cx="270" cy="97" r="3.4" fill="none" stroke="#8a6a3c" stroke-width="1.4"/>'+
-      '<rect y="96" width="400" height="7" fill="#4a3722"/><rect y="96" width="400" height="1.6" fill="#6b4e2c"/>'+
+      '<path d="M0 72 Q18 96 42 96 L358 96 Q382 96 400 72 L400 103 L0 103 Z" fill="#4a3722"/><path d="M0 72 Q18 96 42 96 L358 96 Q382 96 400 72" fill="none" stroke="#6b4e2c" stroke-width="1.6"/>'+
       '<rect y="103" width="400" height="37" fill="#0d2430"/>'+
       '<path d="M-50 108 q12 -6 24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0" fill="none" stroke="#214a58" stroke-width="2.2" opacity=".6"><animateTransform attributeName="transform" type="translate" values="0,0; -48,0" dur="7s" repeatCount="indefinite"/></path>'+
       '<path d="M-50 116 q12 7 24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0" fill="none" stroke="#162f3a" stroke-width="2.2" opacity=".55"><animateTransform attributeName="transform" type="translate" values="0,0; -48,0" dur="10s" repeatCount="indefinite"/></path>'+
