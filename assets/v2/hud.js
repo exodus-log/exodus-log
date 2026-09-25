@@ -722,6 +722,11 @@ function faqEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function faqSrc(u,l){ return ' <a class="src" href="'+u+'" rel="noopener" target="_blank">'+(l||'מקור')+'</a>'; }
 function faqMi(d){ return d<1?'פחות ממייל':faqN(d)+' מייל'; }
 function faqGap(d){ return 'בהפרש של '+faqMi(d); }
+/* i-english-toggle (25.9): EN_ON — הדף באנגלית (window.EXO_LANG מהסקריפט שבראש הדף; en.js מתרגם את כל השאר) */
+var EN_ON=window.EXO_LANG==='en';
+function faqFixEn(){ var d=new Date(FIX.at*1000), M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], il='';
+  try{ il=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(d); }catch(e){}
+  return d.getUTCDate()+' '+M[d.getUTCMonth()]+', <span class="n" dir="ltr">'+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</span>'+(il?' ('+il+' in Israel)':''); }
 function faqFix(){ var d=new Date(FIX.at*1000), u=d.getUTCDate()+'.'+(d.getUTCMonth()+1)+', <span class="n" dir="ltr">'+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</span>', il='';
   try{ il=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(d); }catch(e){}
   return u+(il?' ('+il+' בישראל)':''); }
@@ -743,6 +748,8 @@ function faqData(){
   var near=(FIX.nearLand!=null&&FIX.nearLand<=200&&FIX.nearLandName&&FIX.nearLandName!=='החוף הקרוב');
   var S1='https://en.wikipedia.org/wiki/Sunday_Times_Golden_Globe_Race', RT='https://goldengloberace.com/the-route/', RU='https://goldengloberace.com/the-rules/',
       SK='https://goldengloberace.com/skippers/daniel-pinsky/', EX='https://exodussail.com/';
+  if(EN_ON&&window.EXO_EN) return EXO_EN.faq({FIX:FIX,N:N,me:me,up:up,dn:dn,lead:lead,gate:gate,rest:rest,near50:near50,tw:tw,near:near,ocean:oceanHe(FIX.lat,FIX.lon),
+    pos:dmm(FIX.lat,2,'N','S')+' '+dmm(FIX.lon,3,'E','W'),cog:deg3(FIX.cog),faqN:faqN,faqEsc:faqEsc,faqSrc:faqSrc,fixEn:faqFixEn()});
   return [
   {t:'המרוץ', q:[
     ['מה זה הגולדן גלוב?','מרוץ הקפת עולם ביחידים, בלי עצירה ובלי עזרה מבחוץ, בסירות ובכלים שהיו קיימים ב־1968. הוא משחזר את מרוץ ״גלובוס הזהב״ של העיתון סאנדיי טיימס מאותה שנה: תשעה יצאו, ורק אחד סיים — רובין נוקס־ג׳ונסטון, אחרי 312 ימים בים על הסירה סוהאילי. הוא היה האדם הראשון שהקיף את העולם לבד בלי לעצור. המרוץ חודש ב־2018, במלאת 50 שנה, וזו המהדורה השלישית שלו.'+faqSrc(S1)],
@@ -791,7 +798,7 @@ function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
   var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
     g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
   $('faqBody').innerHTML=h;
-  $('faqS').innerHTML='על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
+  $('faqS').innerHTML=EN_ON?'About the race, Daniel and this site. Today’s numbers are from the position fix of '+faqFixEn()+'.':'על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
 function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(wordsOpen) setWords(false); }
   faqEl.hidden=!on; document.body.classList.toggle('faq-open',faqOpen);
   [$('bFaq'),menuBtn,menuBtn2].forEach(function(b){ if(b) b.setAttribute('aria-expanded',on?'true':'false'); });
@@ -822,11 +829,18 @@ if(wordsEl){
       .then(function(){ wGo.disabled=false; });
   });
 }
+/* ================= i-english-toggle (25.9): החלפת שפה — נשמרת, והדף נטען מחדש (en.js נטען רק באנגלית) ================= */
+function langSet(l){ try{ localStorage.setItem('exo.lang',l); }catch(e){}
+  var u=location.pathname+location.search.replace(/([?&])lang=(en|he)&?/,'$1').replace(/[?&]$/,''); u+=(u.indexOf('?')<0?'?':'&')+'lang='+l; location.replace(u+location.hash); }
+(function(){ var b=$('langBtn'), c=$('bLang');
+  if(b){ b.hidden=false; b.textContent=EN_ON?'עב':'EN'; b.setAttribute('lang',EN_ON?'he':'en'); b.setAttribute('aria-label',EN_ON?'עברית':'English'); b.addEventListener('click',function(){ langSet(EN_ON?'he':'en'); }); }
+  if(c){ c.textContent=EN_ON?'עברית':'English'; c.setAttribute('lang',EN_ON?'he':'en'); } })();
 /* ================= l21 (24.9): שיתוף. משפט אחד שאדם ישלח כמו שהוא, והכתובת הראשית (גם מ-/next/) ================= */
 var shareBtn=$('shareBtn');
 if(shareBtn){ shareBtn.hidden=false;
   shareBtn.addEventListener('click',function(){
-    var d={title:'יומן אקסודוס',text:'דניאל פינסקי מקיף את העולם לבד, בלי עצירה. כאן רואים איפה הוא עכשיו:',url:'https://exodus-log.com/'};
+    var d=EN_ON?{title:'Exodus Log',text:'Daniel Pinsky is sailing around the world alone, non-stop. See where he is right now:',url:'https://exodus-log.com/?lang=en'}
+             :{title:'יומן אקסודוס',text:'דניאל פינסקי מקיף את העולם לבד, בלי עצירה. כאן רואים איפה הוא עכשיו:',url:'https://exodus-log.com/'};
     var ok=$('shareOk'), say=function(t){ ok.textContent=t; setTimeout(function(){ ok.textContent=''; },2200); };
     if(navigator.share){ navigator.share(d).catch(function(){}); return; }
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(d.url).then(function(){ say('הקישור הועתק'); },function(){ say(d.url); });
@@ -838,6 +852,7 @@ if(faqEl) faqEl.addEventListener('click',function(ev){ var t=ev.target.closest?e
   if(t.id==='bSound'){ audioSet(!auOn); }
   else if(t.id==='bLite'&&LIVE){ var n=EXO.quality==='lite'?'full':'lite'; EXO.setQuality(n); store('exo.quality',n); paintLite(false); }
   else if(t.id==='bFull'){ goFull(); setFaq(false); }
+  else if(t.id==='bLang'){ langSet(EN_ON?'he':'en'); }
   else if(t.id==='bInstall'&&installEv){ installEv.prompt(); installEv=null; t.hidden=true; }
 });
 function paintLite(auto){ var b=$('bLite'); if(!b||!LIVE) return; var lite=EXO.quality==='lite'; b.setAttribute('aria-pressed',lite?'true':'false');

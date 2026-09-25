@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <base href="/">
+<!-- i-english-toggle (25.9.2026): השפה. ?lang=en|he קובע ונשמר; אחרת מה שנבחר קודם; אחרת עברית.
+     באנגלית: הדף עובר ל-ltr, ו-en.js (מילון + "שאלות" באנגלית) נטען לפני שאר הסקריפטים -->
+<script>(function(){var l=null,m=location.search.match(/[?&]lang=(en|he)\b/);try{l=m?m[1]:localStorage.getItem('exo.lang');if(m)localStorage.setItem('exo.lang',l);}catch(e){l=m?m[1]:null;}
+window.EXO_LANG=(l==='en')?'en':'he';if(window.EXO_LANG==='en'){var h=document.documentElement;h.lang='en';h.dir='ltr';document.write('<script src="assets/v2n/en.js"><\/script>');}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>יומן אקסודוס — דניאל פינסקי בגולדן גלוב</title>
 <meta name="description" content="איפה אקסודוס עכשיו: הסירה, הרוח, הגלים והזרם לפי נקודת הציון האחרונה, והמסע כולו על הגלובוס. דניאל פינסקי, הישראלי הראשון בגולדן גלוב.">
@@ -224,7 +228,11 @@ body.g-open #key{display:none}
 #shareBtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
 #shareBtn:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
 body:not(.keyed) #shareBtn,body.lyr-open #shareBtn,body.g-open #shareBtn,body.j-open #shareBtn,body.faq-open #shareBtn,body.words-open #shareBtn{display:none}
-#shareOk{position:absolute;z-index:7;top:calc(var(--e-t) - 2px);left:calc(var(--edge) + env(safe-area-inset-left,0px) + 32px);color:var(--ink);font:400 12px var(--ui);text-shadow:var(--halo);pointer-events:none}
+#langBtn{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);left:max(44px,calc(var(--edge) + env(safe-area-inset-left,0px) + 29px));width:44px;height:44px;border:0;padding:0;margin:0;
+  background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;font:600 12px var(--ui);letter-spacing:.06em;text-shadow:var(--halo)}
+#langBtn:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
+body:not(.keyed) #langBtn,body.lyr-open #langBtn,body.g-open #langBtn,body.j-open #langBtn,body.faq-open #langBtn,body.words-open #langBtn{display:none}
+#shareOk{position:absolute;z-index:7;top:calc(var(--e-t) - 2px);left:calc(var(--edge) + env(safe-area-inset-left,0px) + 76px);color:var(--ink);font:400 12px var(--ui);text-shadow:var(--halo);pointer-events:none}
 #shareOk:empty{display:none}
 /* משפט הפתיחה נשאב: מתכווץ אל נקודת העיגול (transform-origin נקבע ב-JS) ונמוג, בערך שנייה */
 .lead.suck{transition:transform 1s cubic-bezier(.55,0,.85,.35),opacity .9s ease-in .1s,filter 1s ease-in;transform:scale(.015);opacity:0;filter:blur(2px);pointer-events:none;background:none}
@@ -302,10 +310,10 @@ body.g-open .ss,body.j-open .ss{display:none!important}
 .ss-bar:focus-within{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
 body.ly-story #lyCap .cap-log{display:block}
 /* "האזור" (מנה 5): מעט על המקום — מה ידוע עליו, ממקור שמקושר בסוף כל פסקה */
-#capArea p{margin:0 0 5px}
-#capArea .t{color:var(--ink);font-weight:500}
-#capArea .k{font-size:10.5px;color:var(--ink3d);border:1px solid rgba(225,236,243,.28);border-radius:3px;padding:0 4px;margin-inline-start:4px;white-space:nowrap}
-#capArea a{color:var(--ink2d);font-size:11px;pointer-events:auto;text-decoration:underline;text-decoration-color:rgba(225,236,243,.35);text-underline-offset:2px}
+#capArea p,#capPosArea p{margin:0 0 5px}
+#capArea .t,#capPosArea .t{color:var(--ink);font-weight:500}
+#capArea .k,#capPosArea .k{font-size:10.5px;color:var(--ink3d);border:1px solid rgba(225,236,243,.28);border-radius:3px;padding:0 4px;margin-inline-start:4px;white-space:nowrap}
+#capArea a,#capPosArea a{color:var(--ink2d);font-size:11px;pointer-events:auto;text-decoration:underline;text-decoration-color:rgba(225,236,243,.35);text-underline-offset:2px}
 @media (max-width:700px){ #capArea p{font-size:12px} }
 @media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
 body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
@@ -724,6 +732,7 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
        והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
   <!-- l21 (24.9): שיתוף — בפינה שמול העיגול. בטלפון פותח את חלון השיתוף של המכשיר; בלי חלון כזה מעתיק את הקישור. תמיד לכתובת הראשית -->
   <button type="button" id="shareBtn" aria-label="שיתוף היומן" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M6 11v8h12v-8"/></svg></button>
+  <button type="button" id="langBtn" lang="en" aria-label="English" hidden>EN</button>
   <span id="shareOk" role="status" aria-live="polite"></span>
   <div id="homeHint" hidden role="status"><span id="homeHintT"></span><button type="button" id="homeHintGo" hidden>התקנה</button><button type="button" id="homeHintX" aria-label="סגירה">×</button></div>
   <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
@@ -864,7 +873,8 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
         <button type="button" id="bSound" aria-pressed="false">קול</button>
         <button type="button" id="bLite" aria-pressed="false">מצב קל</button>
         <button type="button" id="bFull" hidden>מסך מלא</button>
-        <button type="button" id="bInstall" hidden>התקנה כאפליקציה</button></div>
+        <button type="button" id="bInstall" hidden>התקנה כאפליקציה</button>
+        <button type="button" id="bLang" lang="en">English</button></div>
       <p class="faq-fine" id="mHint"></p>
       <p class="faq-fine">© 2026 יומן אקסודוס · הקוד פתוח, ברישיון MIT</p>
     </div>

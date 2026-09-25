@@ -179,7 +179,7 @@ subprocess.check_call(['node', os.path.join(HERE, 'bake_coast.js'), '0.10', '0.1
 os.makedirs(os.path.join(OUT, 'assets', 'icons'), exist_ok=True)
 for f in ('icon-32.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'):
     if os.path.exists(os.path.join(HERE, 'icons', f)): shutil.copyfile(os.path.join(HERE, 'icons', f), os.path.join(OUT, 'assets', 'icons', f))
-for f in ('hud.js', 'journey.css', 'names.js', 'stars.js'):
+for f in ('hud.js', 'journey.css', 'names.js', 'stars.js', 'en.js'):
     wr(os.path.join(OUT, 'assets', 'v2', f), rd(os.path.join(HERE, f)))
 wr(os.path.join(OUT, 'assets', 'v2', 'coast.js'), rd(os.path.join(HERE, 'coast.js')))
 FONTS = [('@fontsource-variable/heebo/files', 'heebo-hebrew-wght-normal.woff2'), ('@fontsource-variable/heebo/files', 'heebo-latin-wght-normal.woff2'),

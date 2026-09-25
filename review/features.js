@@ -126,5 +126,7 @@ window.REVIEW_FEATURES = [
   {n:104,key:'fc-anchor', scr:'globe', chip:true,              name:'התחזית בגלובוס מתחילה בדיוק איפה שהסירה על המסך — בלי קפיצה ובלי קו שחוזר על עצמו'},
   {n:105,key:'globe-wind', scr:'globe', chip:true,              name:'"תנאי הטבע" בגלובוס: חץ רוח במקום של כל סירה (Open-Meteo, מהארכיון של הבוט) — השכבה מתאימה את עצמה לגובה'},
   {n:106,key:'globe-seacur', scr:'globe', chip:true,             name:'"תנאי הטבע" בגלובוס: גם גל (שתי קשתות פסגה) וזרם (חץ טורקיז מקווקו) במקום של כל סירה, כל אחד לפי המתג שלו'},
-  {n:107,key:'sextant-link', scr:'sim', sel:'#bSextant',         name:'"לנווט כמו דניאל" — קישור ב"נקודת ציון" שפותח את הסקסטנט'}
+  {n:107,key:'sextant-link', scr:'sim', sel:'#bSextant',         name:'"לנווט כמו דניאל" — קישור ב"נקודת ציון" שפותח את הסקסטנט'},
+  {n:108,key:'lang-chip', scr:'sim', sel:'#langBtn',          name:'כפתור EN / עב ליד השיתוף — מחליף שפה, והבחירה נשמרת (25.9)'},
+  {n:109,key:'lang-set',  scr:'sim', sel:'#bLang',            name:'English / עברית בהגדרות שבשאלות (25.9)'}
 ];
