@@ -128,5 +128,6 @@ window.REVIEW_FEATURES = [
   {n:106,key:'globe-seacur', scr:'globe', chip:true,             name:'"תנאי הטבע" בגלובוס: גם גל (שתי קשתות פסגה) וזרם (חץ טורקיז מקווקו) במקום של כל סירה, כל אחד לפי המתג שלו'},
   {n:107,key:'sextant-link', scr:'sim', sel:'#bSextant',         name:'"לנווט כמו דניאל" — קישור ב"נקודת ציון" שפותח את הסקסטנט'},
   {n:108,key:'lang-chip', scr:'sim', sel:'#langBtn',          name:'כפתור EN / עב ליד השיתוף — מחליף שפה, והבחירה נשמרת (25.9)'},
-  {n:109,key:'lang-set',  scr:'sim', sel:'#bLang',            name:'English / עברית בהגדרות שבשאלות (25.9)'}
+  {n:109,key:'lang-set',  scr:'sim', sel:'#bLang',            name:'English / עברית בהגדרות שבשאלות (25.9)'},
+  {n:110,key:'coffee',    scr:'sim', sel:'#cupBtn',           name:'כוס קפה ליד השיתוף וה-EN — פותחת ב"שאלות" את "קפה לבונה האתר": ההבהרה (לא לדניאל) והכפתור ל-Buy Me a Coffee (25.9)'}
 ];

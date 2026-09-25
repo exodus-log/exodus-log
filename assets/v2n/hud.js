@@ -791,12 +791,13 @@ function faqData(){
   {t:'האתר', q:[
     ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח חמש קטגוריות, וכל אחת מוסיפה משהו להדמיה: נקודת ציון (איפה הוא), תנאי הטבע (רוח, גל וזרם, כל אחד עם מתג), המרוץ (רדאר של הסירות סביבו), הדרך קדימה (כמה נשאר והתחזית) והמסע (הים והרוח בשעות שעברו, הצי ו־24 השעות הקרובות). כאן, ב״שאלות״, יש גם הגדרות: קול, מצב קל והתקנה כאפליקציה. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
     ['מה אני רואה — זה צילום?','לא. זה שחזור: המיקום מהמשדר, והרוח, הגלים, הזרם והעננים ממודל מזג אוויר לאותה נקודה ולאותה שעה. השמש והכוכבים מחושבים לפי המקום והזמן, והסירה מצוירת לפי תצלומים של אקסודוס. שום דבר כאן לא נמדד על הסירה עצמה.'],
+    ['קפה לבונה האתר','יומן אקסודוס הוא אתר עצמאי, לא רשמי, בלי קשר לדניאל או לצוות שלו. הקפה כאן הוא לבונה האתר. רוצים לתמוך בדני ובמסע עצמו? זה נעשה <a href="https://exodussail.com/support/" rel="noopener" target="_blank">באתר של הצוות שלו</a> — יש שם גם עדכונים שוטפים, הסברים מהקהילה והסיפור של דני במילים שלו.'+'<br><a class="cup-go" href="https://buymeacoffee.com/exodus.log" rel="noopener" target="_blank">לקנות קפה לבונה האתר ←</a>','faqCup'],
     ['מי עומד מאחורי האתר, ואיך יוצרים קשר?','יומן אקסודוס הוא אתר עצמאי ולא רשמי, בלי קשר למרוץ, לדניאל או לצוות שלו. רוצים לתמוך בדני ובמסע עצמו? זה נעשה <a href="https://exodussail.com/support/" rel="noopener" target="_blank">באתר של הצוות שלו</a>, ויש שם גם עדכונים שוטפים, הסברים מהקהילה והסיפור של דני במילים שלו. הקוד של האתר הזה פתוח, ברישיון MIT. הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener" target="_blank">דרך GitHub</a>.'],
     ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. הכוכבים — קטלוג הכוכבים הבהירים של ייל; הירח — <a href="https://svs.gsfc.nasa.gov/4720" rel="noopener" target="_blank">NASA\'s Scientific Visualization Studio</a> (LRO); שביל החלב — <a href="https://www.eso.org/public/images/eso0932a/" rel="noopener" target="_blank">ESO/S. Brunier</a>, ברישיון <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>. צבע השמיים מחושב מפיזור האור באוויר, לא מצולם. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a>.']]}
   ]; }
 function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
   var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
-    g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
+    g.q.forEach(function(q){ h+='<details class="q"'+(q[2]?' id="'+q[2]+'"':'')+'><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
   $('faqBody').innerHTML=h;
   $('faqS').innerHTML=EN_ON?'About the race, Daniel and this site. Today’s numbers are from the position fix of '+faqFixEn()+'.':'על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
 function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(wordsOpen) setWords(false); }
@@ -846,6 +847,13 @@ if(shareBtn){ shareBtn.hidden=false;
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(d.url).then(function(){ say('הקישור הועתק'); },function(){ say(d.url); });
     else say(d.url);
   }); }
+/* 25.9: קפה לבונה האתר — הכוס פותחת את "שאלות" על השאלה עצמה: ההבהרה (לא לדניאל ולא בשמו) והכפתור ל-Buy Me a Coffee באותו מקום */
+var cupBtn=$('cupBtn');
+if(cupBtn&&faqEl){ cupBtn.hidden=false;
+  cupBtn.addEventListener('click',function(){ setFaq(true); var q=$('faqCup'); if(!q) return;
+    q.open=true; var g=q.closest?q.closest('details.g'):null; if(g) g.open=true;
+    try{ q.scrollIntoView({block:'start'}); }catch(e){}
+    var s=q.querySelector('summary'); if(s) try{ s.focus({preventScroll:true}); }catch(e){} }); }
 /* 25.9: משפט הסיפור ירד מהאתר יחד עם הניתוח (החלטת בעל האתר) — story.js כבר לא נטען */
 
 if(faqEl) faqEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;

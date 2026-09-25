@@ -232,7 +232,15 @@ body:not(.keyed) #shareBtn,body.lyr-open #shareBtn,body.g-open #shareBtn,body.j-
   background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;font:600 12px var(--ui);letter-spacing:.06em;text-shadow:var(--halo)}
 #langBtn:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
 body:not(.keyed) #langBtn,body.lyr-open #langBtn,body.g-open #langBtn,body.j-open #langBtn,body.faq-open #langBtn,body.words-open #langBtn{display:none}
-#shareOk{position:absolute;z-index:7;top:calc(var(--e-t) - 2px);left:calc(var(--edge) + env(safe-area-inset-left,0px) + 76px);color:var(--ink);font:400 12px var(--ui);text-shadow:var(--halo);pointer-events:none}
+/* קפה לבונה האתר (25.9): כוס שלישית בשורה, אחרי השיתוף והשפה. פותחת את השאלה "קפה לבונה האתר" עם ההבהרה, לא את הקפה ישירות */
+#cupBtn{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);left:max(88px,calc(var(--edge) + env(safe-area-inset-left,0px) + 73px));width:44px;height:44px;border:0;padding:0;margin:0;
+  background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#cupBtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+#cupBtn:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
+body:not(.keyed) #cupBtn,body.lyr-open #cupBtn,body.g-open #cupBtn,body.j-open #cupBtn,body.faq-open #cupBtn,body.words-open #cupBtn{display:none}
+#faq a.cup-go{display:inline-flex;align-items:center;min-height:44px;margin:2px 0 12px;padding:0 16px;border:1px solid #e8f0f5;border-radius:4px;background:#e8f0f5;color:#08141d;font:500 13px var(--ui);text-decoration:none}
+#faq a.cup-go:hover{background:#fff}
+#shareOk{position:absolute;z-index:7;top:calc(var(--e-t) - 2px);left:calc(var(--edge) + env(safe-area-inset-left,0px) + 120px);color:var(--ink);font:400 12px var(--ui);text-shadow:var(--halo);pointer-events:none}
 #shareOk:empty{display:none}
 /* משפט הפתיחה נשאב: מתכווץ אל נקודת העיגול (transform-origin נקבע ב-JS) ונמוג, בערך שנייה */
 .lead.suck{transition:transform 1s cubic-bezier(.55,0,.85,.35),opacity .9s ease-in .1s,filter 1s ease-in;transform:scale(.015);opacity:0;filter:blur(2px);pointer-events:none;background:none}
@@ -733,6 +741,7 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
   <!-- l21 (24.9): שיתוף — בפינה שמול העיגול. בטלפון פותח את חלון השיתוף של המכשיר; בלי חלון כזה מעתיק את הקישור. תמיד לכתובת הראשית -->
   <button type="button" id="shareBtn" aria-label="שיתוף היומן" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M6 11v8h12v-8"/></svg></button>
   <button type="button" id="langBtn" lang="en" aria-label="English" hidden>EN</button>
+  <button type="button" id="cupBtn" aria-label="קפה לבונה האתר" aria-controls="faq" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h11v4a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 11.5h1.3a2.3 2.3 0 0 1 0 4.6H15.6"/><path d="M8.6 3.8c-.9 1.1.9 2.1 0 3.4M12.2 3.8c-.9 1.1.9 2.1 0 3.4"/></svg></button>
   <span id="shareOk" role="status" aria-live="polite"></span>
   <div id="homeHint" hidden role="status"><span id="homeHintT"></span><button type="button" id="homeHintGo" hidden>התקנה</button><button type="button" id="homeHintX" aria-label="סגירה">×</button></div>
   <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
