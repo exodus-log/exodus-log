@@ -289,7 +289,7 @@ rep("EXO.kick=function(){ kick(); };", "EXO.kick=function(){ kick(); };\nEXO.pau
 
 # P4. wording of the no-WebGL fallback: the rest of the page now lives in the menu
 rep("הדפדפן הזה לא מריץ WebGL, אז ההדמיה לא תוצג. כל השאר בעמוד זמין כרגיל.",
-    "הדפדפן הזה לא מריץ WebGL, אז ההדמיה לא תוצג. המסע, הצי והניתוח המלא זמינים מהתפריט.")
+    "הדפדפן הזה לא מריץ WebGL, אז ההדמיה לא תוצג. המסע והצי זמינים מהתפריט.")
 
 # P5. header
 rep("/* ===== deck.js — סצנת הסיפון =====",

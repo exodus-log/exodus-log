@@ -67,7 +67,7 @@ window.REVIEW_FEATURES = [
   {n:56, key:'ahead',     scr:'journey', sel:'#ahead .aheadbox',   name:'"24 השעות הקרובות" — גרפי הרוח והגל'},
   {n:57, key:'daybar',    scr:'journey', sel:'#daybar',            name:'פס היום: זריחה, שקיעה ואיפה השמש'},
   {n:58, key:'sextant',   scr:'journey', sel:'#sextant',           name:'"לנווט כמו דניאל" — הסקסטנט'},
-  {n:59, key:'gobtn',     scr:'journey', sel:'#more .gobtn',       name:'הכפתור אל הניתוח המלא'},
+  {n:59, key:'gobtn',     scr:'journey', sel:'#more .gobtn',       name:'הכפתור אל הניתוח המלא — הוסר 25.9 (הניתוח ירד מהאתר)'},
   {n:60, key:'prov',      scr:'journey', sel:'#more .prov',        name:'"מה כאן נמדד, מה מחושב ומה מודל"'},
   {n:61, key:'j-foot',    scr:'journey', sel:'#journey > footer',  name:'השורה התחתונה: קרדיטים ומקורות'},
   {n:62, key:'ahead-head',scr:'journey', sel:'#ahead > header',    name:'"24 השעות הקרובות" — כותרת ושורת הסיכום'},

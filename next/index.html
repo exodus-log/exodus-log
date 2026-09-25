@@ -259,7 +259,6 @@ body.g-open #lyr,body.g-open #lyCap,body.j-open #lyr{display:none}
 body.ly-pos #lyCap .cap-pos,body.ly-nat #lyCap .cap-nat,body.ly-race #lyCap .cap-race,body.ly-ahead #lyCap .cap-ahead,body.ly-story #lyCap .cap-story{display:block}
 body:not(.lyr-open) #lyCap{top:calc(var(--e-t) + 20px);right:calc(var(--e-r) + 30px)}
 #lyCap .cap-story p{margin:0}
-#capStoryT{font-size:13px;color:var(--ink)}
 .cap-links{margin-top:6px!important;pointer-events:auto}
 .cap-links button,.cap-links a{display:inline-block;margin:0 0 0 14px;padding:13px 0;min-height:44px;box-sizing:border-box;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);
   text-decoration:underline;text-decoration-color:rgba(225,236,243,.45);text-underline-offset:3px;cursor:pointer}
@@ -580,7 +579,7 @@ body.g-open #labels,body.g-open .ly,body.g-open .lnm,body.g-open .lay-ring{displ
 body.g-open .mini canvas{opacity:.95}
 body.g-open #menuBtn{border:1px solid rgba(225,236,243,.55);background:rgba(7,17,26,.35)}
 
-/* "המסע והניתוח": נפתח מעל החלון, וגולל בתוך עצמו */
+/* "המסע": נפתח מעל החלון, וגולל בתוך עצמו */
 #journey{position:fixed;inset:0;z-index:20;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#06121b;color:#eef4f7}
 .j-bar{position:sticky;top:0;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:calc(10px + env(safe-area-inset-top,0px)) calc(clamp(16px,4vw,44px) + env(safe-area-inset-right,0px)) 10px calc(clamp(16px,4vw,44px) + env(safe-area-inset-left,0px));
@@ -720,7 +719,6 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
        באמצע. היא עולה בהדרגה (דהייה פנימה ותזוזה קטנה למעלה), נשארת, ורק אז נשאבת לעיגול. בכל טעינה -->
   <header class="lead" id="lead">
     <h1 class="lead-t"><span>דניאל פינסקי</span> <span>מקיף את העולם לבד</span></h1>
-    <p class="lead-s" id="leadStory" hidden tabindex="0" role="button" aria-expanded="false"></p>
   </header>
   <!-- 23.9 (l23, "הממשק הנקי"): ההדמיה היא האתר. משפט הפתיחה נשאב אחרי ארבע שניות לתוך העיגול הזה,
        והעיגול הוא המפתח לכל השאר: נגיעה פותחת את השכבות -->
@@ -739,7 +737,7 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
     <button type="button" data-l="nat" aria-pressed="false">תנאי הטבע</button>
     <button type="button" data-l="race" aria-pressed="false">המרוץ</button>
     <button type="button" data-l="ahead" aria-pressed="false">הדרך קדימה</button>
-    <button type="button" data-l="story" aria-pressed="false">המסע והניתוח</button>
+    <button type="button" data-l="story" aria-pressed="false">המסע</button>
   </nav>
   <div id="lyCap" aria-live="polite">
     <div class="cap cap-pos" id="capPosW"><p id="capPos"></p><div id="capPosArea"></div>
@@ -755,7 +753,7 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
     <p class="cap cap-race" id="capRace"></p>
     <div class="cap cap-ahead" id="capAheadW"><p id="capAhead"></p><p class="cap-links"><button type="button" id="bAhead24">24 השעות הקרובות, שעה אחר שעה</button></p></div>
     <p class="cap cap-log" id="capLog"></p>
-    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a><button type="button" id="bWords" aria-expanded="false" aria-controls="words">מילים לדניאל</button><button type="button" id="bFaq" aria-expanded="false" aria-controls="faq">שאלות</button></p></div>
+    <div class="cap cap-story" id="capStory"><p class="cap-links"><button type="button" id="bJourney">הצי, קנה המידה ו-24 השעות</button><button type="button" id="bWords" aria-expanded="false" aria-controls="words">מילים לדניאל</button><button type="button" id="bFaq" aria-expanded="false" aria-controls="faq">שאלות</button></p></div>
   </div>
 
   <!-- 24.9 (סעיף 10): רדאר המרוץ — לוח קטן על המסך, לא חלק מהסצנה, ולכן עובד מכל גובה. אקסודוס במרכז, טבעת כיוונים,
@@ -799,8 +797,8 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
 
   <div id="labels" aria-hidden="true"></div>
 
-  <button type="button" class="mini" id="mini" aria-label="מפת המיקומים, הצי מסביב ב-900 מייל. הקשה פותחת את המסע והניתוח: הסיפור, הצי, התחזית, הסקסטנט והניתוח המלא">
-    <canvas id="miniCv" width="300" height="300"></canvas><span>המסע והניתוח</span>
+  <button type="button" class="mini" id="mini" aria-label="מפת המיקומים, הצי מסביב ב-900 מייל. הקשה פותחת את המסע: הצי, קנה המידה, 24 השעות הקרובות והסקסטנט">
+    <canvas id="miniCv" width="300" height="300"></canvas><span>המסע</span>
   </button>
 
   <!-- שלושת המבטים (22.9): סרגל אנכי דק בשוליים השמאליים. הטבעת הקטנה נעה עם כל זום ומראה איפה אנחנו.
@@ -888,18 +886,16 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
     <p class="faq-s">נשמרים רק ההודעה, החתימה אם נכתבה, הזמן ומקום הסירה. כתובת ה‑IP לא נשמרת — רק סימן חד-כיווני ליום אחד, כדי לעצור הצפה.</p>
   </section>
 
-  <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. בלי JavaScript נשאר <a href="deep-dive.html">הניתוח המלא</a>, שהוא טקסט רגיל.</p></noscript>
+  <noscript><p class="nojs">הדף הזה חי מ-JavaScript: ההדמיה, הגלובוס והמספרים. כדי לראות אותם צריך להפעיל JavaScript בדפדפן.</p></noscript>
 </main>
 
-<!-- ============ "המסע והניתוח": הסיפור, הצי, קנה המידה, התחזית, הסקסטנט והקישור לניתוח המלא. נפתח מכפתור מפת המיקומים,
+<!-- ============ "המסע": הצי, קנה המידה, 24 השעות והסקסטנט (25.9: הניתוח והסיפור ירדו מהאתר, החלטת בעל האתר). נפתח מכפתור מפת המיקומים,
      והקבצים שלו נטענים רק אז. הגלובוס כבר לא כאן: הוא שכבה קבועה משלו. ============ -->
-<section id="journey" hidden aria-label="המסע והניתוח">
+<section id="journey" hidden aria-label="המסע">
   <div class="j-bar"><b>יומן אקסודוס</b><button type="button" id="jBack">חזרה אל הסירה</button></div>
 
   <div class="band j-lead">
-    <p class="j-story" id="jLead"></p>
     <p class="j-more" id="voyLine" style="display:block;text-decoration:none"></p>
-    <a class="j-more" href="deep-dive.html">לניתוח המלא</a>
   </div>
 
   <section id="race" class="band">
@@ -929,8 +925,6 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
   </section>
 
   <section id="more" class="band">
-    <a class="gobtn" href="deep-dive.html"><b>הניתוח המלא</b><span>היממה האחרונה, ההחלטות, הפער, התחזיות ומבחן התחזיות הקודמות</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-
     <details class="prov">
       <summary>מה כאן נמדד, מה מחושב ומה מודל</summary>
       <ul>
@@ -956,7 +950,6 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
 
 <script src="assets/data.js"></script>
 <script src="assets/course.js"></script>
-<script src="assets/story.js"></script>
 <script>
 /* אם קובץ הנתונים לא הגיע — רשת שנפלה, פרסום שנתפס באמצע — הדף נשאר עד כה עם שורת מקפים
    ובלי מילה אחת של הסבר, ושאר הממשק המשיך להיראות כאילו הכול בסדר. נמדד ב-audit_truth.py. */
@@ -964,7 +957,7 @@ if(typeof FIX==='undefined'){
   document.documentElement.className+=' nodata';
   document.addEventListener('DOMContentLoaded',function(){
     var d=document.createElement('p'); d.className='fallback';
-    d.innerHTML='\u05e0\u05ea\u05d5\u05e0\u05d9 \u05d4\u05de\u05e2\u05e7\u05d1 \u05dc\u05d0 \u05e0\u05d8\u05e2\u05e0\u05d5 \u05db\u05e8\u05d2\u05e2. \u05e8\u05e2\u05e0\u05d5\u05df \u05d1\u05d3\u05e8\u05da \u05db\u05dc\u05dc \u05e4\u05d5\u05ea\u05e8 \u05d0\u05ea \u05d6\u05d4. \u05d1\u05d9\u05e0\u05ea\u05d9\u05d9\u05dd \u05d0\u05e4\u05e9\u05e8 \u05dc\u05e7\u05e8\u05d5\u05d0 \u05d0\u05ea <a href="deep-dive.html">\u05d4\u05e0\u05d9\u05ea\u05d5\u05d7 \u05d4\u05de\u05dc\u05d0</a>.';
+    d.innerHTML='\u05e0\u05ea\u05d5\u05e0\u05d9 \u05d4\u05de\u05e2\u05e7\u05d1 \u05dc\u05d0 \u05e0\u05d8\u05e2\u05e0\u05d5 \u05db\u05e8\u05d2\u05e2. \u05e8\u05e2\u05e0\u05d5\u05df \u05d1\u05d3\u05e8\u05da \u05db\u05dc\u05dc \u05e4\u05d5\u05ea\u05e8 \u05d0\u05ea \u05d6\u05d4.';
     (document.getElementById('stage')||document.body).appendChild(d);
   });
 }

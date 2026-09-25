@@ -140,7 +140,7 @@ var lastSun=null, lastMoon=null;
 /* ===== gl ===== */
 var gl=C.getContext('webgl',{antialias:true,alpha:false})||C.getContext('experimental-webgl',{antialias:true,alpha:false});
 if(!gl){ C.parentNode.insertAdjacentHTML('beforeend',
-  '<div class="fallback">הדפדפן הזה לא מריץ WebGL, אז ההדמיה לא תוצג. המסע, הצי והניתוח המלא זמינים מהתפריט.</div>');
+  '<div class="fallback">הדפדפן הזה לא מריץ WebGL, אז ההדמיה לא תוצג. המסע והצי זמינים מהתפריט.</div>');
   EXO.noGL=true; EXO.astro={sunPos:sunPos,moonPos:moonPos,sunEvents:sunEvents,sunEcl:sunEcl,days:days};
   EXO.setLayer=EXO.setQuality=EXO.lookToward=EXO.setBearing=EXO.faceBody=EXO.toggleAuto=EXO.reframe=function(){};
   setTimeout(function(){ emitState(pickCond(clockNow()),clockNow()); },0); return; }

@@ -714,7 +714,7 @@ var sndB=$('sndBtn'); if(sndB) sndB.addEventListener('click',function(){ auTried
    מה שמי שמגיע בפעם הראשונה רוצה לדעת, בשש קבוצות מקופלות, וכל שאלה מקופלת בתוך הקבוצה (בקשת בעל האתר).
    חלונית קריאה ולא שכבה: היא לא מסמנת כלום על ההדמיה. נסגרת מה-×, מ-Escape, וממגע מחוץ לה.
    מ-24.9 אחה"צ גם "אודות" כאן: המקורות ויצירת הקשר בקבוצה "האתר", וההגדרות והרישיון בסוף החלונית.
-   האמת: עובדות קבועות — מאתר המרוץ (הכללים, המסלול, דף הסקיפר), מוויקיפדיה ומ-exodussail.com, עם קישור "מקור".
+   האמת: עובדות קבועות — מאתר המרוץ (הכללים, המסלול, דף הסקיפר), ומוויקיפדיה, עם קישור "מקור". exodussail.com (האתר של דני) — רק הפניות, בלי לנסח את דבריו (25.9).
    כל מספר של המרוץ הנוכחי ("עכשיו") נבנה מ-data.js (FIX, FLEET) בכל פתיחה — אין כאן מספר כזה שכתוב ביד. */
 var faqEl=$('faq'), faqOpen=false, faqBuilt=false;
 function faqN(v){ return '<b class="n">'+thou(v)+'</b>'; }
@@ -763,7 +763,7 @@ function faqData(){
     ['מי זה דניאל פינסקי?','ישראלי, בן 35 לפי אתר המרוץ, והישראלי הראשון שמשתתף בגולדן גלוב. בגיל 14 התחיל בפנימייה הימית בעכו, שירת במשמר החופים של חיל הים ולמד הנדסת מכונות. הוא ימאי מסעות שחי על סירה, ועבר יותר מ־20,000 מייל בכמה אוקיינוסים — ובהם הקפה מלאה של האטלנטי בשנים 2021–2024: מישראל דרך הים התיכון אל הקריביים, מרכז ודרום אמריקה, וחזרה לאירופה.'+faqSrc(SK,'אתר המרוץ')+' ·'+faqSrc('https://www.jns.org/news/israel-news/daniel-pinksy-becomes-first-israeli-sailor-to-embark-on-250-day-global-race','JNS')],
     ['למה הוא יוצא למרוץ הזה?','לדבריו, כדי לייצג את ישראל ולבחון את הגבולות שלו — ״לראות מי אני נהיה כשלא נשאר כלום חוץ מהרוח, הגלים וכוח הרצון״.'+faqSrc(SK)],
     ['איזו סירה זו?','<span dir="ltr">Baba 35</span> שנבנתה ב־1980, בתכנון של האדריכל הימי רוברט פרי: 10.67 מ׳ אורך ו־3.51 מ׳ רוחב. סירת מסעות, לא סירת מרוץ — גוף כבד, שדרית מלאה, ירכתיים מחודדות כמו החרטום והרבה עץ. דניאל קנה אותה באוקטובר 2025 ושיפץ אותה בקריביים ובצרפת. מספר המפרש שלה 07.'+faqSrc(SK)],
-    ['למה קוראים לה אקסודוס?','על שם יציאת מצרים: מסע ארוך אל הלא נודע, שמשנה את מי שעובר אותו. לדבריו, מי שמתחיל מרוץ כזה ומי שמסיים אותו הם לא אותו אדם.'+faqSrc(EX)]]},
+    ['למה קוראים לה אקסודוס?','דני מספר על זה בעצמו, <a href="'+EX+'" rel="noopener" target="_blank">באתר שלו ←</a>']]},
   {t:'המצב עכשיו', q:[
     ['איפה הוא עכשיו?',(near?'מול '+faqEsc(FIX.nearLandName)+', '+faqN(FIX.nearLand)+' מייל מהיבשה הקרובה':oceanHe(FIX.lat,FIX.lon))+', ב־<b class="n" dir="ltr">'+dmm(FIX.lat,2,'N','S')+' '+dmm(FIX.lon,3,'E','W')+'</b>.'+' בנקודת הציון האחרונה שט <b class="n">'+FIX.sog.toFixed(1)+'</b> קשר, לכיוון <b class="n">'+deg3(FIX.cog)+'</b>.'],
     ['באיזה מקום הוא?','מקום '+faqN(FIX.rank)+' מתוך '+faqN(N)+', לפי המרחק שנשאר לו עד הסיום (ראו ״איך מודדים״).'+
@@ -772,7 +772,7 @@ function faqData(){
     ['כמה רחוק הוא מהמוביל?',FIX.rank===1?'הוא המוביל.'+(dn?' '+faqEsc(dn[4])+' אחריו, '+faqGap(dn[5]-me[5])+'.':''):faqN(FIX.dtf-lead[5])+' מייל במרחק לסיום אחרי '+faqEsc(lead[4])+', שמוביל את הצי.'],
     ['כמה הוא כבר עבר, וכמה נשאר?','זה היום ה־'+FIX.dayN+' של המרוץ. מהזינוק הוא שט '+faqN(FIX.sailed)+' מייל לפי נקודות הציון — בפועל קצת יותר, כי בין נקודה לנקודה הוא לא שט בקו ישר. לפי המעקב נשארו '+faqN(FIX.dtf)+' מייל. ב־24 השעות האחרונות התקרב לסיום ב־'+faqN(FIX.dmg24)+' מייל.'],
     ['איך הוא ביחס לזוכים הקודמים?',(typeof FIX.ghost==='number')?'המעקב הרשמי משדר גם את המסלול של קירסטן נוישפר, המנצחת ב־2022, על השעון של המרוץ הזה. באותו רגע במרוץ שלה, דניאל '+faqN(Math.abs(FIX.ghost))+' מייל '+(FIX.ghost>=0?'לפניה':'אחריה')+' במרחק לסיום. רוב הדרך, והים הדרומי, עוד לפניו.':'ההשוואה לזוכה הקודמת לא זמינה בעדכון הזה.'],
-    ['מה מחכה לו בהמשך?',(gate?'נקודת החובה הבאה: '+faqEsc(gate)+', '+faqN(FIX.toGate)+' מייל בקו ישר. '+(FAQ_NEXT[gate]||''):'')+' מה שקורה בימים הקרובים — ב״הסיפור״ ובניתוח המלא, שמתעדכנים פעמיים ביום.']]},
+    ['מה מחכה לו בהמשך?',(gate?'נקודת החובה הבאה: '+faqEsc(gate)+', '+faqN(FIX.toGate)+' מייל בקו ישר. '+(FAQ_NEXT[gate]||''):'')+'']]},
   {t:'איך מודדים', q:[
     ['איך נקבע המקום?','לפי המרחק שנשאר עד הסיום — <span dir="ltr">DTF, Distance To Finish</span> — ולא לפי מי שנראה מקדימה במפה. המעקב מודד קו ישר מהסירה אל נקודת החובה הבאה, ומוסיף את אורך שאר המסלול, שזהה לכולם.'+
       (gate?' אצל דניאל עכשיו: '+faqN(FIX.toGate)+' מייל עד '+faqEsc(gate)+', ועוד '+faqN(rest)+' מייל של שאר המסלול — '+faqN(FIX.dtf)+' מייל בסך הכול. בפועל, מי שקרוב יותר '+faqEsc(lg)+' בקו ישר — מקדים.':'')],
@@ -782,10 +782,10 @@ function faqData(){
     ['מה זה מייל ימי וקשר?','מייל ימי הוא 1.852 ק״מ — דקה אחת של קו רוחב, ולכן זו יחידת המידה של הניווט. קשר הוא מייל ימי לשעה: 6 קשר הם כ־11 קמ״ש. לסירה כמו אקסודוס, 150 מייל ביממה הם יום טוב מאוד.'],
     ['האם דניאל יודע באיזה מקום הוא?','לא ישירות. המעקב סגור בפניו, והוא לא רואה את המפה והטבלה שאתם רואים. מה שהוא יודע על שאר הצי מגיע מהקשר עם מטה המרוץ ומשיחות ברדיו.'+faqSrc(RU)]]},
   {t:'האתר', q:[
-    ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח חמש קטגוריות, וכל אחת מוסיפה משהו להדמיה: נקודת ציון (איפה הוא), תנאי הטבע (רוח, גל וזרם, כל אחד עם מתג), המרוץ (רדאר של הסירות סביבו), הדרך קדימה (כמה נשאר והתחזית) והמסע והניתוח (הסיפור, והים והרוח בשעות שעברו). כאן, ב״שאלות״, יש גם הגדרות: קול, מצב קל והתקנה כאפליקציה. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
+    ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח חמש קטגוריות, וכל אחת מוסיפה משהו להדמיה: נקודת ציון (איפה הוא), תנאי הטבע (רוח, גל וזרם, כל אחד עם מתג), המרוץ (רדאר של הסירות סביבו), הדרך קדימה (כמה נשאר והתחזית) והמסע (הים והרוח בשעות שעברו, הצי ו־24 השעות הקרובות). כאן, ב״שאלות״, יש גם הגדרות: קול, מצב קל והתקנה כאפליקציה. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
     ['מה אני רואה — זה צילום?','לא. זה שחזור: המיקום מהמשדר, והרוח, הגלים, הזרם והעננים ממודל מזג אוויר לאותה נקודה ולאותה שעה. השמש והכוכבים מחושבים לפי המקום והזמן, והסירה מצוירת לפי תצלומים של אקסודוס. שום דבר כאן לא נמדד על הסירה עצמה.'],
-    ['מי עומד מאחורי האתר, ואיך יוצרים קשר?','זה פרויקט עצמאי, לא אתר רשמי של המרוץ ולא של הצוות של דניאל. הקוד פתוח, ברישיון MIT. הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener" target="_blank">דרך GitHub</a>.'],
-    ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. הכוכבים — קטלוג הכוכבים הבהירים של ייל; הירח — <a href="https://svs.gsfc.nasa.gov/4720" rel="noopener" target="_blank">NASA\'s Scientific Visualization Studio</a> (LRO); שביל החלב — <a href="https://www.eso.org/public/images/eso0932a/" rel="noopener" target="_blank">ESO/S. Brunier</a>, ברישיון <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>. צבע השמיים מחושב מפיזור האור באוויר, לא מצולם. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a> ו<a href="'+EX+'" rel="noopener" target="_blank">האתר שלו</a>.']]}
+    ['מי עומד מאחורי האתר, ואיך יוצרים קשר?','יומן אקסודוס הוא אתר עצמאי ולא רשמי, בלי קשר למרוץ, לדניאל או לצוות שלו. רוצים לתמוך בדני ובמסע עצמו? זה נעשה <a href="https://exodussail.com/support/" rel="noopener" target="_blank">באתר של הצוות שלו</a>, ויש שם גם עדכונים שוטפים, הסברים מהקהילה והסיפור של דני במילים שלו. הקוד של האתר הזה פתוח, ברישיון MIT. הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener" target="_blank">דרך GitHub</a>.'],
+    ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. הכוכבים — קטלוג הכוכבים הבהירים של ייל; הירח — <a href="https://svs.gsfc.nasa.gov/4720" rel="noopener" target="_blank">NASA\'s Scientific Visualization Studio</a> (LRO); שביל החלב — <a href="https://www.eso.org/public/images/eso0932a/" rel="noopener" target="_blank">ESO/S. Brunier</a>, ברישיון <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>. צבע השמיים מחושב מפיזור האור באוויר, לא מצולם. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a>.']]}
   ]; }
 function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
   var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
@@ -832,13 +832,7 @@ if(shareBtn){ shareBtn.hidden=false;
     if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(d.url).then(function(){ say('הקישור הועתק'); },function(){ say(d.url); });
     else say(d.url);
   }); }
-if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
-  /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
-  put('capStoryT',STORY);
-  var ls=$('leadStory'); if(ls){ ls.textContent=STORY;      /* l23: המשפט עובר ל"הסיפור"; במסך הראשון רק משפט הפתיחה */
-    var lsTog=function(){ var o=ls.classList.toggle('open'); ls.setAttribute('aria-expanded',o?'true':'false'); measureTop(); };
-    ls.addEventListener('click',lsTog);
-    ls.addEventListener('keydown',function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); lsTog(); } }); } }
+/* 25.9: משפט הסיפור ירד מהאתר יחד עם הניתוח (החלטת בעל האתר) — story.js כבר לא נטען */
 
 if(faqEl) faqEl.addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('button,a'):ev.target; if(!t) return;
   if(t.id==='bSound'){ audioSet(!auOn); }
