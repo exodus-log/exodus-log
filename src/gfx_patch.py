@@ -301,7 +301,11 @@ rep("  ' if(uGR>0.001&&uUnder<0.5){", T2+"  ' if(uGR>0.001&&uUnder<0.5){")
 rep("  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',\n", "  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',\n"+EN)
 rep(" ' if(uRich>0.5){ for(int i=0;i<9;i++){", " '#if TIER>=2',\n ' if(uRich>0.5){ for(int i=0;i<9;i++){")
 rep("0.16,p,dsp,n,j); } }',\n", "0.16,p,dsp,n,j); } }',\n '#endif',\n")
-rep("  ' if(det>0.012&&uRich>0.5){", T2+"  ' if(det>0.012&&uRich>0.5){")
+rep("  ' if(det>0.012&&uRich>0.5){", T1+"  ' if(det>0.012){")
+# אדוות גם בדרגה 1 (שש במקום שתים-עשרה): רעש הערכים הישן, שמשקף את זוהר השקיעה, יוצר כתמים עגולים כתומים על המים
+rep("  '  for(int i=0;i<12;i++){ float fi=float(i), an=", "  '  for(int i=0;i<NRIP;i++){ float fi=float(i), an=")
+rep("  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl,uRich; uniform vec4 uWake;',",
+    "  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl,uRich; uniform vec4 uWake;',\n  '#if TIER>=2',\n  '#define NRIP 12',\n  '#else',\n  '#define NRIP 6',\n  '#endif',")
 rep("  ' else if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',\n",
     "  ' else',\n"+EN+"  ' if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',\n")
 rep("  ' vec3 skyR=uEnvOn>0.5?", T1+"  ' vec3 skyR=uEnvOn>0.5?")
@@ -310,7 +314,7 @@ rep("mix(uHor,uDuskCol,uDusk*sdR*0.5); vec3 col=mix(body,skyR,fres);',\n",
 rep("  ' if(uUnder<0.5&&uWake.x>0.05){", T1+"  ' if(uUnder<0.5&&uWake.x>0.05){")
 rep("  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',\n", "  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',\n"+EN)
 rep("  ' vec3 fogc=uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n",
-    T1+"  ' vec3 fogc=uEnvOn>0.5?envRd(vec2(atan(-V.x,V.z)*0.1591549+0.5,0.0),0.0):uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EL+"  ' vec3 fogc=mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EN)
+    T1+"  ' vec3 fogc=uEnvOn>0.5?envRd(vec2(fract(atan(-V.x,V.z)*0.1591549+1.0),0.0),0.0):uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EL+"  ' vec3 fogc=mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EN)
 rep("  ' if(uSailA.w>0.5){", T1+"  ' if(uSailA.w>0.5){")
 rep("  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',\n", "  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',\n"+EN)
 rep("  var c=cond;\n\n  /* camera: orbit with momentum */", "  var c=cond; flagsFrame(nowMs);\n\n  /* camera: orbit with momentum */")
