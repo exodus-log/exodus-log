@@ -41,6 +41,32 @@ async function get(url, kind, tries = 3) {
   throw new Error(`${url.split('?')[0]}: ${last.message}`);
 }
 
+/* 25.9.2026 (שדרוג הגרפיקה, פריט 14): מדד Kp של NOAA SWPC — שמונת הימים האחרונים, כל שלוש שעות — נכתב בסוף
+   data.js כ-SPACE, בשביל הזוהר הקוטבי בהדמיה. הזוהר מופיע רק כשהמדד בשעה המוצגת מצדיק אותו בקו הרוחב של הסירה.
+   נכשל או פורמט לא צפוי — נשאר הבלוק הקודם מ-data.js; אין קודם — אין בלוק, ואין זוהר. לא עוצר את הפרסום. */
+const KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json';
+async function space(prevText) {
+  try {
+    const j = await get(KP_URL, 'json', 2), out = [];
+    for (const r of Array.isArray(j) ? j : []) {
+      let t, k;
+      if (Array.isArray(r)) { if (r[0] === 'time_tag') continue; t = r[0]; k = +r[1]; }
+      else if (r && typeof r === 'object') { t = r.time_tag; k = +(r.Kp ?? r.kp ?? r.kp_index); }
+      else continue;
+      const s = String(t).replace(' ', 'T'), ts = Date.parse(/Z$/.test(s) ? s : s + 'Z') / 1000;
+      if (isFinite(ts) && isFinite(k) && k >= 0 && k <= 9) out.push([ts, Math.round(k * 100) / 100]);
+    }
+    if (out.length < 4) throw new Error('פורמט לא צפוי');
+    out.sort((a, b) => a[0] - b[0]);
+    say(`Kp: ${out.length} ערכים, האחרון ${out[out.length - 1][1]} (${iso(out[out.length - 1][0])}).`);
+    return `\n/* מדד Kp (כל שלוש שעות), NOAA SWPC — לזוהר הקוטבי בהדמיה */\nvar SPACE = { src:'NOAA SWPC', kp:${JSON.stringify(out.slice(-64))} };\n`;
+  } catch (e) {
+    say(`> Kp לא התעדכן: ${e.message}`);
+    const m = /\n\/\* מדד Kp[^\n]*\nvar SPACE = [^\n]*\n/.exec(prevText || '');
+    return m ? m[0] : '';
+  }
+}
+
 async function weather(samples) {
   const u = C.meteoUrls(samples);
   const [wx, sea] = await Promise.all([get(u.wx, 'json'), get(u.sea, 'json')]);
@@ -116,7 +142,7 @@ async function main() {
     say(`### השוואה ברגע של data.js הנוכחי (${iso(prev.FIX.at)})`);
     say(table(C.diff(C.readData(pastText), prev)));
     const liveText = C.render(live.v, prev, liveCond);
-    writeFileSync(`${OUT}/data.js`, liveText);
+    writeFileSync(`${OUT}/data.js`, liveText + await space(prevText));
     const errs = wxNow ? C.validate(liveText) : [];
     say('');
     say(errs.length ? `בדיקות הקובץ: ${errs.join('; ')}` : 'בדיקות הקובץ: עבר' + (wxNow ? '' : ' (בלי מזג אוויר)'));
@@ -143,8 +169,9 @@ async function main() {
   const text = C.render(live.v, prev, cond);
   const errs = C.validate(text).filter(e => wxOk || !/COND לא מגיע/.test(e));
   if (errs.length) throw new Error('הקובץ נכשל בבדיקות: ' + errs.join('; '));
-  writeFileSync('assets/data.js', text);
-  writeFileSync(`${OUT}/data.js`, text);
+  const text2 = text + await space(prevText);
+  writeFileSync('assets/data.js', text2);
+  writeFileSync(`${OUT}/data.js`, text2);
   const msg = `נתונים ${iso(F.at)}: מקום ${F.rank}, ${F.dtf} מייל לסיום` + (wxOk ? '' : ' (מזג אוויר לא התעדכן)');
   say(`נכתב: ${msg}`);
   setOut('changed', 'true');

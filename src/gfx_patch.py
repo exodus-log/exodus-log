@@ -107,17 +107,17 @@ rep("  ' vec3 r=normalize(uFwd+uRight*((vN.x-uOff.x)*uTanF*uAsp)+uUp*((vN.y-uOff
     "  ' vec3 r=uEnv>0.5?envDir(vN):normalize(uFwd+uRight*((vN.x-uOff.x)*uTanF*uAsp)+uUp*((vN.y-uOff.y)*uTanF));',")
 rep("  PHYS_GLSL,\n  'float h21c(vec2 p){", "  PHYS_GLSL,ENV_GLSL,\n  'float h21c(vec2 p){")
 rep("  ' vec3 cl=ainv(c)+uSunL*(pow(d,7000.0)*9.0+pow(d,1400.0)*0.45)*uSunUp*sv*sv;',\n  ' gl_FragColor=vec4(tmo(cl),1.0);}'",
-    "  ' vec3 cl=ainv(c)+uSunL*(pow(d,7000.0)*9.0+pow(d,1400.0)*0.45)*uSunUp*sv*sv*(1.0-uEnv);',\n  ' gl_FragColor=vec4(uEnv>0.5?tmoN(cl):tmo(cl),1.0);}'")
+    "  ' vec3 cl=ainv(c)+uSunL*(pow(d,7000.0)*9.0+pow(d,1400.0)*0.45)*uSunUp*sv*sv*(1.0-uEnv);',\n  ' gl_FragColor=vec4(uEnv>0.5?sqrt(clamp(cl/uEnvK,0.0,1.0)):tmo(cl),1.0);}'")
 rep("  gl.drawArrays(gl.TRIANGLES,0,3);\n  gl.disableVertexAttribArray(SKY.a('aP')); gl.depthMask(true);\n",
     "  var envOn=physOn&&!under; if(envOn&&envDue(t)) envRender(t,nowMs,starsOn,nightF,moonUp,mp.illum,moonDir,cl,-Math.sin(cwr),Math.cos(cwr));\n"
     "  envOn=envOn&&ENV.ok;\n"
     "  gl.drawArrays(gl.TRIANGLES,0,3);\n  gl.disableVertexAttribArray(SKY.a('aP')); gl.depthMask(true);\n")
 rep("  TMO_GLSL,PHYS_GLSL,\n  'uniform vec3 uDeep,", "  TMO_GLSL,PHYS_GLSL,ENV_GLSL,\n  'uniform vec3 uDeep,")
 rep("  ' vec3 skyR=uPhys>0.5?physSky(vec3(Rf.x,max(Rf.y,0.0),Rf.z)):",
-    "  ' vec3 skyR=uEnvOn>0.5?ainv(texture2D(uEnvT,envUV(Rf)).rgb):uPhys>0.5?physSky(vec3(Rf.x,max(Rf.y,0.0),Rf.z)):")
+    "  ' vec3 skyR=uEnvOn>0.5?envRd(envUV(Rf),2.5):uPhys>0.5?physSky(vec3(Rf.x,max(Rf.y,0.0),Rf.z)):")
 rep("  gl.uniform3fv(SEA.u('uEye'),eye); physUniforms(SEA,physOn,ov,sunDir,moonDir);\n",
     "  gl.uniform3fv(SEA.u('uEye'),eye); physUniforms(SEA,physOn,ov,sunDir,moonDir);\n"
-    "  gl.uniform1f(SEA.u('uEnvOn'),envOn?1:0); if(envOn){ gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex); gl.uniform1i(SEA.u('uEnvT'),5); gl.activeTexture(gl.TEXTURE0); }\n")
+    "  gl.uniform1f(SEA.u('uEnvOn'),envOn?1:0); gl.uniform1f(SEA.u('uEnvK'),ENV.k); if(envOn){ gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex); gl.uniform1i(SEA.u('uEnvT'),5); gl.activeTexture(gl.TEXTURE0); }\n")
 
 # ---------- G2. שביל הירח: אותו מודל נצנוצים של השמש, עם הירח (בלילה lightDir כבר מכוון אל הירח) ----------
 # העוצמה לפי הגובה, החלק המואר (בחזקת 1.2) והחשכה; קרוב — שדה נצנוצים שבור; רחוק — פס רך שמצטמצם אל האופק.
@@ -189,9 +189,128 @@ rep("  ' float cov=0.0;',",
   ' float cov=0.0;',""")
 rep("""  '  vec3 lit=mix(vec3(0.97,0.98,1.0),uSunCol,0.30)*(0.22+0.78*uSunUp)+uSunCol*toSun*0.35*uSunUp+uDuskCol*uDusk*0.40;',""",
 """  '  vec3 lit=mix(vec3(0.97,0.98,1.0),uSunCol,0.30)*(0.22+0.78*uSunUp)+uSunCol*toSun*0.35*uSunUp+uDuskCol*uDusk*0.40;',
-  '  lit+=uSunCol*pow(max(dot(r,uSunDir),0.0),28.0)*(1.0-dens)*(1.0-dens)*1.3*uSunUp;',""")
+  '  lit+=uSunCol*pow(max(dot(r,uSunDir),0.0),60.0)*(1.0-dens)*(1.0-dens)*(1.0-dens)*0.8*uSunUp;',""")
 rep("""  '  cc=mix(cc,cc*0.12+vec3(0.018,0.026,0.045),uNight*0.88);',""",
 """  '  cc=mix(cc,cc*0.12+vec3(0.018,0.026,0.045),uNight*0.88);',
   '  cc+=vec3(0.46,0.50,0.60)*uMoonUp*uIllum*uNight*(0.05+0.45*pow(max(dot(r,uMoonDir),0.0),10.0)*(1.0-dens)*(1.0-dens));',""")
 rep("  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0);",
     "  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);")
+
+# ---------- G5. מפרשים חיים: נשימה עם המשבים (הבטן מתמלאת ומתרוקנת לפי היחס בין המשב לרוח הממוצעת בנתון),
+#            ורפרוף קטן בקצה האחורי (ה-leech), חזק יותר ברוח חזקה. רק למפרשי הבד — לא לדגל ולא למדבקות ----------
+rep("""  'void main(){ vec3 p=vec3(aP.x,aP.y,aP.z*uZS); vec4 w=uM*vec4(p,1.0); vW=w.xyz;',
+  ' vN=mat3(uM[0].xyz,uM[1].xyz,uM[2].xyz)*aN; vUV=aUV; gl_Position=uVP*w;}'].join('\\n'),""",
+"""  'uniform vec4 uSailA;',
+  'void main(){ vec3 p=vec3(aP.x,aP.y,aP.z*uZS);',
+  ' if(uSailA.w>0.5){ float br=1.0+uSailA.x*sin(aUV.y*2.2+uSailA.z*0.9)*0.35+uSailA.x;',
+  '  float fl=uSailA.y*smoothstep(0.72,1.0,aUV.x)*(0.55+0.45*sin(aUV.y*37.0+uSailA.z*13.0))*sin(aUV.y*23.0-uSailA.z*17.0);',
+  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',
+  ' vec4 w=uM*vec4(p,1.0); vW=w.xyz;',
+  ' vN=mat3(uM[0].xyz,uM[1].xyz,uM[2].xyz)*aN; vUV=aUV; gl_Position=uVP*w;}'].join('\\n'),""")
+rep("  var mB=(boomA>=0), jB=(jibA>=0);", "  sailAnim(c,t,1);\n  var mB=(boomA>=0), jB=(jibA>=0);")
+rep("  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);\n  var enR=",
+    "  sailAnim(c,t,0);\n  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);\n  var enR=")
+
+# ---------- G4. שובל קצף וגל חרטום. במסגרת של הסירה: המים זורמים לאחור במהירות הסירה (SOG מהמעקב).
+#            מאחור — פס קצף שמתרחב ודועך, ושתי זרועות של גל קלווין בזווית 19.5°; מלפנים — קצף סביב החרטום,
+#            שמתנפץ כשהחרטום צולל לגל (לפי קצב השינוי של העלרוד). במהירות אפס — אין שובל ----------
+rep("  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl;',", "  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl,uRich; uniform vec4 uWake;',")
+rep("  ' col=mix(col,uFoamC,clamp(cap+crest,0.0,0.92));',",
+"""  ' col=mix(col,uFoamC,clamp(cap+crest,0.0,0.92));',
+  ' if(uUnder<0.5&&uWake.x>0.05){ vec2 q=vW.xz, f2=uHull.xy; float la=dot(q,f2), lb=q.y*f2.x-q.x*f2.y;',
+  '  if(la>-160.0&&la<8.0&&abs(lb)<70.0){ float sp=uWake.x, d=max(0.0,-la-4.2);',
+  '   float wn=vn(vec2(la+uTime*sp,lb*1.6)*0.85)*0.65+vn(vec2(la+uTime*sp,lb)*2.3+7.0)*0.35;',
+  '   float wd=1.1+d*0.085, core=exp(-lb*lb/(wd*wd))*exp(-d/(7.0+sp*3.2))*step(la,-3.6);',
+  '   float kd=abs(abs(lb)-0.354*d)/(0.5+0.035*d), kel=exp(-kd*kd)*exp(-d/(12.0+sp*4.0))*smoothstep(1.0,6.0,d);',
+  '   float e=length(vec2(la/5.45,lb/1.78))-1.0, bow=exp(-e*e*55.0)*smoothstep(-1.0,4.5,la)*(0.35+uWake.y*1.6);',
+  '   float wf=(core*0.85+kel*0.45)*smoothstep(0.35,0.75,wn+core*0.25)+bow*smoothstep(0.25,0.7,wn);',
+  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',""")
+rep("  gl.uniform1f(SEA.u('uMoonGl'),", "  wakeUniforms(t,dtF);\n  gl.uniform1f(SEA.u('uMoonGl'),")
+
+# ---------- G6. ים עשיר (דרגה 2): תשעה גלי Gerstner נוספים (16 בסך הכול) בפריסה סביב כיוון הים והרוח, ועוד
+#            12 אדוות אנליטיות בנורמל במקום רעש הערכים. אמת: הגובה הכולל נשמר — כשהגלים הנוספים נכנסים,
+#            שבעת הגלים של הנתון מוקטנים כך שהשונות (ולכן גובה הגל המשמעותי) לא משתנה ----------
+rep(" 'uniform vec4 uW0,uW1,uW2,uW3,uW4,uW5,uW6; uniform vec4 uSpA,uSpB,uStA,uStB;',",
+    " 'uniform vec4 uW0,uW1,uW2,uW3,uW4,uW5,uW6; uniform vec4 uSpA,uSpB,uStA,uStB; uniform vec4 uWX[9]; uniform float uRich;',")
+rep(" ' addWave(uW6,uSpB.z,uStB.z,p,dsp,n,j);',",
+    " ' addWave(uW6,uSpB.z,uStB.z,p,dsp,n,j);',\n ' if(uRich>0.5){ for(int i=0;i<9;i++){ addWave(uWX[i],1.249*sqrt(uWX[i].w),0.16,p,dsp,n,j); } }',")
+rep("""  ' if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',
+  '  float n1=vn(q), nx1=vn(q+vec2(e,0.0)), nz1=vn(q+vec2(0.0,e));',
+  '  N=normalize(vN+vec3((nx1-n1)*1.35,0.0,(nz1-n1)*1.35)*det); }',""",
+"""  ' if(det>0.012&&uRich>0.5){ vec2 g0=uWindV, gp=vec2(-g0.y,g0.x); vec2 nd=vec2(0.0); float L=3.2;',
+  '  float fp=dist*0.0022/max(0.07,abs(normalize(uEye-vW).y));',
+  '  for(int i=0;i<12;i++){ float fi=float(i), an=(fract(fi*0.6180339+0.13)-0.5)*2.3; vec2 dd=g0*cos(an)+gp*sin(an);',
+  '   float k=6.2831853/L, ph=k*dot(dd,vW.xz)-sqrt(9.81*k)*uTime+fi*2.39+sin(fi*3.7)*1.3; nd+=dd*k*cos(ph)*L*0.012*clamp((L-2.5*fp)/(2.5*fp),0.0,1.0); L*=0.7713; }',
+  '  N=normalize(vN-vec3(nd.x,0.0,nd.y)*det*det*1.35); }',
+  ' else if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',
+  '  float n1=vn(q), nx1=vn(q+vec2(e,0.0)), nz1=vn(q+vec2(0.0,e));',
+  '  N=normalize(vN+vec3((nx1-n1)*1.35,0.0,(nz1-n1)*1.35)*det); }',""")
+rep("  for(var wq=0;wq<NWV;wq++)\n    gl.uniform4f(SEA.u('uW'+wq),wDir[wq][0],wDir[wq][1],wAmp[wq],wLen[wq]);",
+    "  for(var wq=0;wq<NWV;wq++)\n    gl.uniform4f(SEA.u('uW'+wq),wDir[wq][0],wDir[wq][1],wAmp[wq]*richScale(),wLen[wq]);\n  richUniforms();")
+
+# ---------- G16. קרני שמש מבין העננים (דרגה 2): לכל פיקסל בשמיים, שש דגימות של כיסוי העננים בדרך אל השמש.
+#            איפה שהדרך פנויה — האוויר מואר (קרן); איפה שענן חוסם — צל. רק כשיש עננים, השמש גבוהה עד 35°,
+#            והפיקסל בתוך 60° מהשמש ----------
+rep("  ' float sv=1.0-cov*0.93;',",
+"""  ' if(uGR>0.001&&uUnder<0.5){ float sd=dot(r,uSunDir); if(sd>0.5&&r.y>0.0){ float acc=0.0;',
+  '   for(int i=1;i<=6;i++){ vec3 s=normalize(mix(r,uSunDir,float(i)/7.0)); if(s.y>0.012){ vec2 cp2=s.xz/(s.y+0.11)*1.10+uCloudV*uTime*0.0065;',
+  '    acc+=1.0-smoothstep(uCloudTh-0.10,uCloudTh+0.14,fbm3(cp2))*smoothstep(0.012,0.15,s.y); } else acc+=1.0; }',
+  '   float ray=acc/6.0, fall=smoothstep(0.5,1.0,sd)*(1.0-cov);',
+  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',
+  ' float sv=1.0-cov*0.93;',""")
+rep("  PHYS_GLSL,ENV_GLSL,'uniform float uMoonTex,uMWTex;", "  PHYS_GLSL,ENV_GLSL,'uniform float uGR;','uniform float uMoonTex,uMWTex;")
+rep("  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);",
+    "  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);\n"
+    "  gl.uniform1f(SKY.u('uGR'),(GFX.tier>=2&&cl>0.12&&cl<0.92)?sunUp*smooth(35,5,sAlt)*Math.min(1,(cl-0.12)*4):0);")
+
+# ---------- G13+14. מטאורים וזוהר קוטבי — בשיידר השמיים, לפני העננים (העננים מסתירים אותם) ----------
+rep("  PHYS_GLSL,ENV_GLSL,'uniform float uGR;',", "  PHYS_GLSL,ENV_GLSL,'uniform float uGR; uniform vec3 uMetA,uMetN; uniform vec4 uMetP,uAur;',")
+rep("""  ' if(uCiOn>0.5 && r.y>0.008 && uUnder<0.5){',""",
+"""  ' if(uAur.w>0.001&&r.y>0.0&&uUnder<0.5){ float daz=atan(r.x,-r.z)-uAur.x; daz=atan(sin(daz),cos(daz)); float el=asin(r.y);',
+  '  float x=daz*5.0; float rays=0.5+0.5*sin(x*9.0+fbm3(vec2(x*0.7,uTime*0.05))*7.0); rays=mix(0.25,1.0,rays)*(0.4+0.8*fbm3(vec2(x*1.9,uTime*0.03)));',
+  '  float b0=uAur.y+0.03*sin(daz*3.0+uTime*0.06), hh=(el-b0)/(uAur.z-b0);',
+  '  float cur=smoothstep(-0.06,0.06,hh)*exp(-max(hh,0.0)*1.9)*smoothstep(1.6,1.0,hh)*exp(-daz*daz/0.8);',
+  '  c+=mix(vec3(0.16,0.95,0.42),vec3(0.90,0.22,0.32),smoothstep(0.35,1.05,hh))*cur*rays*uAur.w*0.5; }',
+  ' if(uMetP.w>0.5&&uUnder<0.5){ float dn=dot(r,uMetN); if(abs(dn)<0.006){ vec3 rp=normalize(r-uMetN*dn);',
+  '  float ang=atan(dot(cross(uMetA,rp),uMetN),dot(uMetA,rp)); if(ang<uMetP.x&&ang>uMetP.x-uMetP.y){ float k=(ang-(uMetP.x-uMetP.y))/max(uMetP.y,1e-4);',
+  '   c+=vec3(0.86,0.93,1.0)*exp(-dn*dn/(3.2e-6*(0.35+k)))*k*k*uMetP.z*1.8; } } }',
+  ' if(uCiOn>0.5 && r.y>0.008 && uUnder<0.5){',""")
+rep("  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);",
+    "  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);\n"
+    "  metFrame(nowMs,t,dtF,fwd,right,upv,nightF,moonUp,mp.illum,cl); metUniforms(t); auroraFrame(nowMs,sAlt,moonUp,mp.illum,cl); auroraUniforms();")
+# ---------- G15. האלבטרוס, עם גוף הסירה והצוות (אותה תוכנית SOLID) ----------
+rep("  drawMesh(CREW.gl, dM, COL.shade);\n  }\n", "  drawMesh(CREW.gl, dM, COL.shade);\n  }\n  drawBird(t,nowMs,sunUp);\n")
+
+# ---------- דרגות בזמן הבנייה של השיידר: SKY, SEA ו-SAILP נבנים לכל דרגה בנפרד (progV/progT ב-gfx_head.js),
+#            והקוד של כל פריט עטוף ב-#if TIER. דרגה 0 = כמעט השיידרים של היום (ועוד ACES) ----------
+rep("var SKY=prog('attribute vec2 aP;", "var SKY=progV('SKY','attribute vec2 aP;")
+rep("var SEA=prog(['precision highp float; attribute vec2 aP;", "var SEA=progV('SEA',['precision highp float; attribute vec2 aP;")
+rep("var SAILP=prog(\n", "var SAILP=progV('SAILP',\n")
+rep("  if(q==='lite') GFX.tier=EXO.tier=0; else if(GFX.tier===0) GFX.tier=EXO.tier=1;\n  resize();",
+    "  if(q==='lite') GFX.tier=EXO.tier=0; else if(GFX.tier===0) GFX.tier=EXO.tier=1;\n  tierProgs(); resize();")
+T1="  '#if TIER>=1',\n"; T2="  '#if TIER>=2',\n"; EL="  '#else',\n"; EN="  '#endif',\n"
+rep("  ' vec3 c=(uPhys>0.5&&uUnder<0.5)?tmoN(physSky(r)):mix(uHor,uZen,pow(h,0.62));',\n",
+    T1+"  ' vec3 c=(uPhys>0.5&&uUnder<0.5)?tmoN(physSky(r)):mix(uHor,uZen,pow(h,0.62));',\n"+EL+"  ' vec3 c=mix(uHor,uZen,pow(h,0.62));',\n"+EN)
+rep("  ' if(uAur.w>0.001&&r.y>0.0&&uUnder<0.5){", "  '#if defined(AUR)',\n  ' if(uAur.w>0.001&&r.y>0.0&&uUnder<0.5){")
+rep("  '  c+=mix(vec3(0.16,0.95,0.42),vec3(0.90,0.22,0.32),smoothstep(0.35,1.05,hh))*cur*rays*uAur.w*0.5; }',\n",
+    "  '  c+=mix(vec3(0.16,0.95,0.42),vec3(0.90,0.22,0.32),smoothstep(0.35,1.05,hh))*cur*rays*uAur.w*0.5; }',\n  '#endif',\n  '#if defined(MET)',\n")
+rep("  '   c+=vec3(0.86,0.93,1.0)*exp(-dn*dn/(3.2e-6*(0.35+k)))*k*k*uMetP.z*1.8; } } }',\n",
+    "  '   c+=vec3(0.86,0.93,1.0)*exp(-dn*dn/(3.2e-6*(0.35+k)))*k*k*uMetP.z*1.8; } } }',\n  '#endif',\n"+T1)
+rep("  '  c=mix(c,max(c,cic),ca*0.75); }',\n", "  '  c=mix(c,max(c,cic),ca*0.75); }',\n"+EN)
+rep("  ' if(uGR>0.001&&uUnder<0.5){", T2+"  ' if(uGR>0.001&&uUnder<0.5){")
+rep("  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',\n", "  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',\n"+EN)
+rep(" ' if(uRich>0.5){ for(int i=0;i<9;i++){", " '#if TIER>=2',\n ' if(uRich>0.5){ for(int i=0;i<9;i++){")
+rep("0.16,p,dsp,n,j); } }',\n", "0.16,p,dsp,n,j); } }',\n '#endif',\n")
+rep("  ' if(det>0.012&&uRich>0.5){", T2+"  ' if(det>0.012&&uRich>0.5){")
+rep("  ' else if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',\n",
+    "  ' else',\n"+EN+"  ' if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',\n")
+rep("  ' vec3 skyR=uEnvOn>0.5?", T1+"  ' vec3 skyR=uEnvOn>0.5?")
+rep("mix(uHor,uDuskCol,uDusk*sdR*0.5); vec3 col=mix(body,skyR,fres);',\n",
+    "mix(uHor,uDuskCol,uDusk*sdR*0.5); vec3 col=mix(body,skyR,fres);',\n"+EL+"  ' vec3 col=mix(body,mix(uHor,uDuskCol,uDusk*sdR*0.5),fres);',\n"+EN)
+rep("  ' if(uUnder<0.5&&uWake.x>0.05){", T1+"  ' if(uUnder<0.5&&uWake.x>0.05){")
+rep("  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',\n", "  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',\n"+EN)
+rep("  ' vec3 fogc=uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n",
+    T1+"  ' vec3 fogc=uEnvOn>0.5?envRd(vec2(atan(-V.x,V.z)*0.1591549+0.5,0.0),0.0):uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EL+"  ' vec3 fogc=mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',\n"+EN)
+rep("  ' if(uSailA.w>0.5){", T1+"  ' if(uSailA.w>0.5){")
+rep("  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',\n", "  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',\n"+EN)
+rep("  var c=cond;\n\n  /* camera: orbit with momentum */", "  var c=cond; flagsFrame(nowMs);\n\n  /* camera: orbit with momentum */")

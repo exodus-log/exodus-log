@@ -1,3 +1,20 @@
+/* ---- דרגות איכות: GFX וההחלטה ההתחלתית (ההסבר המלא ב-gfx_add.js, ליד gfxProbe) ---- */
+var GFX=EXO.gfx={ tier:1, auto:true, fps:0, ms:0, probe:true, noUp:false };
+(function(){
+  var m=/[?&]q=([012])(?:&|$)/.exec(location.search);
+  var coarse=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
+  /* כולם מתחילים בדרגה 1 (גם מחשב): לדרגה 2 עולים רק אחרי שהמדידה הראתה 54 פריימים בשנייה ומעלה */
+  if(m){ GFX.tier=+m[1]; GFX.auto=false; } else GFX.tier=1;
+  if(GFX.tier===0) EXO.quality='lite';
+  EXO.tier=GFX.tier;
+})();
+var GFXV={};
+/* גרסה לכל דרגה ולכל צירוף של שכבות נדירות (זוהר, מטאור): הקוד שלהן נבנה רק בלילות שבהם הן באמת קיימות */
+GFX.flags='';
+function progT(P,t){ var key=t+GFX.flags; if(!P.v[key]){ var d='#define TIER '+t+'\n'+(GFX.flags.indexOf('a')>=0?'#define AUR 1\n':'')+(GFX.flags.indexOf('m')>=0?'#define MET 1\n':'');
+  P.v[key]=prog(d+P.vs,d+P.fs); } return P.v[key]; }
+function progV(name,vs,fs){ var P=GFXV[name]={vs:vs,fs:fs,v:{}}; return progT(P,GFX.tier); }
+
 /* ===== שדרוג הגרפיקה (gfx_head.js): מה שהשיידרים צריכים כבר בבנייה שלהם, לפני השמיים =====
    tmo = ACES (Hill) ואחריו קידוד למסך; ainv = ההפך המדויק שלו, לצבעים שכוילו במסך.
    הקידוד הוא גמא 2 (שורש) ולא 2.2 — זול בהרבה בטלפון, ו-ainv משתמש באותה גמא, כך שצבע שכויל חוזר בדיוק.
@@ -29,10 +46,13 @@ var PHYS_GLSL=[
  ' float lu=dot(L,vec3(0.2126,0.7152,0.0722)); return mix(L,lu*vec3(0.95,0.98,1.03),uOvS); }'
 ].join('\n');
 
-/* 1+12. מפת הסביבה: חצי הכדור העליון, u = אזימוט (כמו dirVec: 0 צפון, עם כיוון השעון), v = שורש הגובה */
+/* 1+12. מפת הסביבה: חצי הכדור העליון, u = אזימוט (כמו dirVec: 0 צפון, עם כיוון השעון), v = שורש של sin(גובה)
+   (בלי asin בים). הערכים לינאריים, מקודדים בשורש ביחס לתקרה uEnvK שמשתנה עם האור (ביום 8, בלילה 0.12),
+   כך שהים קורא ב-3 כפלים ולא בהיפוך ACES */
 var ENV_GLSL=[
- 'uniform float uEnv,uEnvOn; uniform sampler2D uEnvT;',
- 'vec3 envDir(vec2 n){ float az=(n.x*0.5+0.5)*6.2831853, v=n.y*0.5+0.5, el=v*v*1.5707963;',
- ' return vec3(sin(az)*cos(el),sin(el),-cos(az)*cos(el)); }',
- 'vec2 envUV(vec3 d){ float az=atan(d.x,-d.z); return vec2(az*0.1591549+(az<0.0?1.0:0.0),sqrt(clamp(asin(clamp(d.y,0.0,1.0))*0.6366198,0.0,1.0))); }'
+ 'uniform float uEnv,uEnvOn,uEnvK; uniform sampler2D uEnvT;',
+ 'vec3 envDir(vec2 n){ float az=(n.x*0.5+0.5)*6.2831853, v=n.y*0.5+0.5, sy=v*v, cy=sqrt(1.0-sy*sy);',
+ ' return vec3(sin(az)*cy,sy,-cos(az)*cy); }',
+ 'vec2 envUV(vec3 d){ float az=atan(d.x,-d.z); return vec2(az*0.1591549+(az<0.0?1.0:0.0),sqrt(clamp(d.y,0.0,1.0))); }',
+ 'vec3 envRd(vec2 uv,float b){ vec3 e=texture2D(uEnvT,uv,b).rgb; return e*e*uEnvK; }'
 ].join('\n');

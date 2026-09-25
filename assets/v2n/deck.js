@@ -173,6 +173,23 @@ function project(m,p){ var w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];
   if(w<=0.001) return null;
   return [(m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12])/w, (m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13])/w]; }
 
+/* ---- דרגות איכות: GFX וההחלטה ההתחלתית (ההסבר המלא ב-gfx_add.js, ליד gfxProbe) ---- */
+var GFX=EXO.gfx={ tier:1, auto:true, fps:0, ms:0, probe:true, noUp:false };
+(function(){
+  var m=/[?&]q=([012])(?:&|$)/.exec(location.search);
+  var coarse=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
+  /* כולם מתחילים בדרגה 1 (גם מחשב): לדרגה 2 עולים רק אחרי שהמדידה הראתה 54 פריימים בשנייה ומעלה */
+  if(m){ GFX.tier=+m[1]; GFX.auto=false; } else GFX.tier=1;
+  if(GFX.tier===0) EXO.quality='lite';
+  EXO.tier=GFX.tier;
+})();
+var GFXV={};
+/* גרסה לכל דרגה ולכל צירוף של שכבות נדירות (זוהר, מטאור): הקוד שלהן נבנה רק בלילות שבהם הן באמת קיימות */
+GFX.flags='';
+function progT(P,t){ var key=t+GFX.flags; if(!P.v[key]){ var d='#define TIER '+t+'\n'+(GFX.flags.indexOf('a')>=0?'#define AUR 1\n':'')+(GFX.flags.indexOf('m')>=0?'#define MET 1\n':'');
+  P.v[key]=prog(d+P.vs,d+P.fs); } return P.v[key]; }
+function progV(name,vs,fs){ var P=GFXV[name]={vs:vs,fs:fs,v:{}}; return progT(P,GFX.tier); }
+
 /* ===== שדרוג הגרפיקה (gfx_head.js): מה שהשיידרים צריכים כבר בבנייה שלהם, לפני השמיים =====
    tmo = ACES (Hill) ואחריו קידוד למסך; ainv = ההפך המדויק שלו, לצבעים שכוילו במסך.
    הקידוד הוא גמא 2 (שורש) ולא 2.2 — זול בהרבה בטלפון, ו-ainv משתמש באותה גמא, כך שצבע שכויל חוזר בדיוק.
@@ -204,31 +221,39 @@ var PHYS_GLSL=[
  ' float lu=dot(L,vec3(0.2126,0.7152,0.0722)); return mix(L,lu*vec3(0.95,0.98,1.03),uOvS); }'
 ].join('\n');
 
-/* 1+12. מפת הסביבה: חצי הכדור העליון, u = אזימוט (כמו dirVec: 0 צפון, עם כיוון השעון), v = שורש הגובה */
+/* 1+12. מפת הסביבה: חצי הכדור העליון, u = אזימוט (כמו dirVec: 0 צפון, עם כיוון השעון), v = שורש של sin(גובה)
+   (בלי asin בים). הערכים לינאריים, מקודדים בשורש ביחס לתקרה uEnvK שמשתנה עם האור (ביום 8, בלילה 0.12),
+   כך שהים קורא ב-3 כפלים ולא בהיפוך ACES */
 var ENV_GLSL=[
- 'uniform float uEnv,uEnvOn; uniform sampler2D uEnvT;',
- 'vec3 envDir(vec2 n){ float az=(n.x*0.5+0.5)*6.2831853, v=n.y*0.5+0.5, el=v*v*1.5707963;',
- ' return vec3(sin(az)*cos(el),sin(el),-cos(az)*cos(el)); }',
- 'vec2 envUV(vec3 d){ float az=atan(d.x,-d.z); return vec2(az*0.1591549+(az<0.0?1.0:0.0),sqrt(clamp(asin(clamp(d.y,0.0,1.0))*0.6366198,0.0,1.0))); }'
+ 'uniform float uEnv,uEnvOn,uEnvK; uniform sampler2D uEnvT;',
+ 'vec3 envDir(vec2 n){ float az=(n.x*0.5+0.5)*6.2831853, v=n.y*0.5+0.5, sy=v*v, cy=sqrt(1.0-sy*sy);',
+ ' return vec3(sin(az)*cy,sy,-cos(az)*cy); }',
+ 'vec2 envUV(vec3 d){ float az=atan(d.x,-d.z); return vec2(az*0.1591549+(az<0.0?1.0:0.0),sqrt(clamp(d.y,0.0,1.0))); }',
+ 'vec3 envRd(vec2 uv,float b){ vec3 e=texture2D(uEnvT,uv,b).rgb; return e*e*uEnvK; }'
 ].join('\n');
 
 /* ===== sky ===== */
-var SKY=prog('attribute vec2 aP; varying vec2 vN; void main(){ vN=aP; gl_Position=vec4(aP,0.999,1.0);} ',
+var SKY=progV('SKY','attribute vec2 aP; varying vec2 vN; void main(){ vN=aP; gl_Position=vec4(aP,0.999,1.0);} ',
  ['precision highp float; varying vec2 vN;',TMO_GLSL,'uniform vec3 uSunL;',
   'uniform vec3 uFwd,uRight,uUp,uSunDir,uMoonDir,uMoonR,uMoonU,uZen,uHor,uSunCol;',
   'uniform float uTanF,uAsp,uSunUp,uNight,uMoonUp,uIllum,uWax,uDusk,uTime; uniform vec2 uOff; uniform vec3 uDuskCol;',
   'uniform float uCloudOn,uCloudTh,uUnder,uUGlow,uStarCat,uMW; uniform vec2 uCloudV; uniform vec3 uAbyss; uniform mat3 uCel;',
-  PHYS_GLSL,ENV_GLSL,'uniform float uMoonTex,uMWTex; uniform sampler2D uMoonT,uMWT;',
+  PHYS_GLSL,ENV_GLSL,'uniform float uGR; uniform vec3 uMetA,uMetN; uniform vec4 uMetP,uAur;','uniform float uMoonTex,uMWTex; uniform sampler2D uMoonT,uMWT; uniform float uCiOn,uCiA,uSunAltR; uniform vec2 uCiDir; uniform vec3 uHiCol;',
   'float h21c(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
   'float vnc(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);',
   ' float a=h21c(i), b=h21c(i+vec2(1.0,0.0)), c=h21c(i+vec2(0.0,1.0)), d=h21c(i+vec2(1.0,1.0));',
   ' return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }',
   'float fbmc(vec2 p){ float s=0.0, a=0.5; for(int i=0;i<5;i++){ s+=a*vnc(p); p=p*2.03+vec2(11.3,7.7); a*=0.5; } return s; }',
   'float hash(vec3 p){ return fract(sin(dot(p,vec3(12.9898,78.233,45.164)))*43758.5453); }',
+  'float fbm3(vec2 p){ float s=0.0, a=0.5; for(int i=0;i<3;i++){ s+=a*vnc(p); p=p*2.07+vec2(5.1,9.3); a*=0.5; } return s*1.143; }',
   'void main(){',
   ' vec3 r=uEnv>0.5?envDir(vN):normalize(uFwd+uRight*((vN.x-uOff.x)*uTanF*uAsp)+uUp*((vN.y-uOff.y)*uTanF));',
   ' float h=clamp(r.y*1.15+0.06,0.0,1.0);',
+  '#if TIER>=1',
   ' vec3 c=(uPhys>0.5&&uUnder<0.5)?tmoN(physSky(r)):mix(uHor,uZen,pow(h,0.62));',
+  '#else',
+  ' vec3 c=mix(uHor,uZen,pow(h,0.62));',
+  '#endif',
   ' if(uUnder>0.5){ float up=clamp(r.y,0.0,1.0), dn=clamp(-r.y,0.0,1.0);',
   '  c=mix(uHor,uZen,pow(up,0.85)); c=mix(c,uAbyss,pow(dn,0.55));',
   '  c+=vec3(0.55,0.85,0.80)*pow(max(dot(r,uSunDir),0.0),5.0)*0.30*uUGlow; }',
@@ -271,6 +296,29 @@ var SKY=prog('attribute vec2 aP; varying vec2 vN; void main(){ vN=aP; gl_Positio
   '   else c=mix(c,vec3(0.93,0.94,0.97)*shade,f*uMoonUp*(0.35+0.65*uNight)); } }',
   /* הילה עדינה סביב הירח: כמה קטרים, לפי החלק המואר; ברקע השמיים הכחלחלים כבר באים מהפיזור */
   ' if(uMoonTex>0.5&&md>0.955){ float ar=acos(clamp(md,-1.0,1.0)); c+=vec3(0.70,0.76,0.86)*(exp(-ar*ar/0.0009)*0.10+exp(-ar*ar/0.012)*0.035)*uMoonUp*uIllum*uNight; }',
+  '#if defined(AUR)',
+  ' if(uAur.w>0.001&&r.y>0.0&&uUnder<0.5){ float daz=atan(r.x,-r.z)-uAur.x; daz=atan(sin(daz),cos(daz)); float el=asin(r.y);',
+  '  float x=daz*5.0; float rays=0.5+0.5*sin(x*9.0+fbm3(vec2(x*0.7,uTime*0.05))*7.0); rays=mix(0.25,1.0,rays)*(0.4+0.8*fbm3(vec2(x*1.9,uTime*0.03)));',
+  '  float b0=uAur.y+0.03*sin(daz*3.0+uTime*0.06), hh=(el-b0)/(uAur.z-b0);',
+  '  float cur=smoothstep(-0.06,0.06,hh)*exp(-max(hh,0.0)*1.9)*smoothstep(1.6,1.0,hh)*exp(-daz*daz/0.8);',
+  '  c+=mix(vec3(0.16,0.95,0.42),vec3(0.90,0.22,0.32),smoothstep(0.35,1.05,hh))*cur*rays*uAur.w*0.5; }',
+  '#endif',
+  '#if defined(MET)',
+  ' if(uMetP.w>0.5&&uUnder<0.5){ float dn=dot(r,uMetN); if(abs(dn)<0.006){ vec3 rp=normalize(r-uMetN*dn);',
+  '  float ang=atan(dot(cross(uMetA,rp),uMetN),dot(uMetA,rp)); if(ang<uMetP.x&&ang>uMetP.x-uMetP.y){ float k=(ang-(uMetP.x-uMetP.y))/max(uMetP.y,1e-4);',
+  '   c+=vec3(0.86,0.93,1.0)*exp(-dn*dn/(3.2e-6*(0.35+k)))*k*k*uMetP.z*1.8; } } }',
+  '#endif',
+  '#if TIER>=1',
+  ' if(uCiOn>0.5 && r.y>0.008 && uUnder<0.5){',
+  '  vec2 q0=r.xz/(r.y+0.035), cq=q0*0.33; cq=vec2(dot(cq,uCiDir),dot(cq,vec2(-uCiDir.y,uCiDir.x)))*vec2(0.30,2.4)+vec2(uTime*0.0035,0.0);',
+  '  float ci=fbm3(cq+vec2(fbm3(cq*1.9+3.1)*0.8,0.0));',
+  '  float ca=smoothstep(0.50,0.80,ci)*smoothstep(0.008,0.10,r.y)*uCiA;',
+  '  float dkm=length(q0)*9.0, sAz=dot(normalize(r.xz+vec2(1e-5)),normalize(uSunDir.xz+vec2(1e-5)));',
+  '  float litH=smoothstep(-0.063,-0.047,uSunAltR+dkm/6360.0*sAz);',
+  '  vec3 cic=uHiCol*litH*(0.45+0.55*uSunUp)+pow(max(dot(r,uSunDir),0.0),10.0)*uHiCol*0.35*litH;',
+  '  cic+=vec3(0.30,0.34,0.42)*uMoonUp*uIllum*uNight*0.12;',
+  '  c=mix(c,max(c,cic),ca*0.75); }',
+  '#endif',
   ' float cov=0.0;',
   ' if(uCloudOn>0.5 && r.y>0.012 && uUnder<0.5){',
   '  vec2 cp=r.xz/(r.y+0.11)*1.10+uCloudV*uTime*0.0065;',
@@ -279,20 +327,29 @@ var SKY=prog('attribute vec2 aP; varying vec2 vN; void main(){ vN=aP; gl_Positio
   '  float dens=smoothstep(uCloudTh,uCloudTh+0.34,n);',
   '  float toSun=pow(max(dot(r,uSunDir),0.0),6.0);',
   '  vec3 lit=mix(vec3(0.97,0.98,1.0),uSunCol,0.30)*(0.22+0.78*uSunUp)+uSunCol*toSun*0.35*uSunUp+uDuskCol*uDusk*0.40;',
+  '  lit+=uSunCol*pow(max(dot(r,uSunDir),0.0),60.0)*(1.0-dens)*(1.0-dens)*(1.0-dens)*0.8*uSunUp;',
   '  vec3 shade=mix(uHor*0.85,vec3(0.36,0.40,0.47)*(0.20+0.80*uSunUp),0.62);',
   '  vec3 cc=mix(lit,shade,dens*0.80);',
   '  cc=mix(cc,cc*0.12+vec3(0.018,0.026,0.045),uNight*0.88);',
+  '  cc+=vec3(0.46,0.50,0.60)*uMoonUp*uIllum*uNight*(0.05+0.45*pow(max(dot(r,uMoonDir),0.0),10.0)*(1.0-dens)*(1.0-dens));',
   '  c=mix(c,cc,cov*0.95); }',
+  '#if TIER>=2',
+  ' if(uGR>0.001&&uUnder<0.5){ float sd=dot(r,uSunDir); if(sd>0.5&&r.y>0.0){ float acc=0.0;',
+  '   for(int i=1;i<=6;i++){ vec3 s=normalize(mix(r,uSunDir,float(i)/7.0)); if(s.y>0.012){ vec2 cp2=s.xz/(s.y+0.11)*1.10+uCloudV*uTime*0.0065;',
+  '    acc+=1.0-smoothstep(uCloudTh-0.10,uCloudTh+0.14,fbm3(cp2))*smoothstep(0.012,0.15,s.y); } else acc+=1.0; }',
+  '   float ray=acc/6.0, fall=smoothstep(0.5,1.0,sd)*(1.0-cov);',
+  '   c+=uSunCol*(ray-0.55)*0.22*fall*uGR; } }',
+  '#endif',
   ' float sv=1.0-cov*0.93;',
   ' float d=max(dot(r,uSunDir),0.0);',
   ' c+=uSunCol*pow(d,9.0)*0.30*uSunUp*sv; c+=uSunCol*pow(d,90.0)*0.55*uSunUp*sv;',
   ' vec3 cl=ainv(c)+uSunL*(pow(d,7000.0)*9.0+pow(d,1400.0)*0.45)*uSunUp*sv*sv*(1.0-uEnv);',
-  ' gl_FragColor=vec4(uEnv>0.5?tmoN(cl):tmo(cl),1.0);}'].join('\n'));
+  ' gl_FragColor=vec4(uEnv>0.5?sqrt(clamp(cl/uEnvK,0.0,1.0)):tmo(cl),1.0);}'].join('\n'));
 var quadB=buf([-1,-1, 3,-1, -1,3]);
 
 /* ===== ocean: seven Gerstner trains, two directional families ===== */
 var WAVE=[
- 'uniform vec4 uW0,uW1,uW2,uW3,uW4,uW5,uW6; uniform vec4 uSpA,uSpB,uStA,uStB;',
+ 'uniform vec4 uW0,uW1,uW2,uW3,uW4,uW5,uW6; uniform vec4 uSpA,uSpB,uStA,uStB; uniform vec4 uWX[9]; uniform float uRich;',
  'uniform float uTime;',
  'void addWave(vec4 w,float spd,float stp,vec2 p,inout vec3 dsp,inout vec3 n,inout float jac){',
  ' float k=6.2831853/max(w.w,0.5); vec2 d=normalize(w.xy);',
@@ -306,9 +363,12 @@ var WAVE=[
  ' addWave(uW2,uSpA.z,uStA.z,p,dsp,n,j); addWave(uW3,uSpA.w,uStA.w,p,dsp,n,j);',
  ' addWave(uW4,uSpB.x,uStB.x,p,dsp,n,j); addWave(uW5,uSpB.y,uStB.y,p,dsp,n,j);',
  ' addWave(uW6,uSpB.z,uStB.z,p,dsp,n,j);',
+ '#if TIER>=2',
+ ' if(uRich>0.5){ for(int i=0;i<9;i++){ addWave(uWX[i],1.249*sqrt(uWX[i].w),0.16,p,dsp,n,j); } }',
+ '#endif',
  ' fold=1.0-j; nrm=normalize(vec3(n.x,1.0,n.z)); return dsp; }'].join('\n');
 
-var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; uniform float uWaveK;',WAVE,
+var SEA=progV('SEA',['precision highp float; attribute vec2 aP; uniform mat4 uVP; uniform float uWaveK;',WAVE,
   'varying vec3 vW,vN; varying float vH; varying float vJ;',
   'void main(){ float rr=length(aP);',
   ' float kf=(1.0-smoothstep(420.0,2600.0,rr))*uWaveK;',   /* רחוק מהסירה, או גבוה מעליה: משטח שטוח */
@@ -317,7 +377,7 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   ' vec3 p=vec3(aP.x+d.x,d.y,aP.y+d.z);',
   ' vW=p; vN=n; vH=d.y; vJ=fold; gl_Position=uVP*vec4(p,1.0);}'].join('\n'),
  ['precision highp float;',
-  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl;',
+  TMO_GLSL,PHYS_GLSL,ENV_GLSL,'uniform float uMoonGl,uRich; uniform vec4 uWake;',
   'uniform vec3 uDeep,uShal,uHor,uSunDir,uSunCol,uFogCol,uEye,uSss,uFoamC;',
   'uniform float uSunUp,uFogD,uAmpMax,uFoam,uChop,uDusk; uniform vec2 uWindV; uniform float uTime; uniform vec3 uDuskCol,uGlowDir;',
   'uniform float uUnder; uniform vec4 uHull;',
@@ -331,6 +391,14 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   /* high-frequency detail, faded out with distance so it never aliases */
   ' float det=clamp(1.0-dist/140.0,0.0,1.0)*uChop;',
   ' vec3 N=normalize(vN);',
+  '#if TIER>=2',
+  ' if(det>0.012&&uRich>0.5){ vec2 g0=uWindV, gp=vec2(-g0.y,g0.x); vec2 nd=vec2(0.0); float L=3.2;',
+  '  float fp=dist*0.0022/max(0.07,abs(normalize(uEye-vW).y));',
+  '  for(int i=0;i<12;i++){ float fi=float(i), an=(fract(fi*0.6180339+0.13)-0.5)*2.3; vec2 dd=g0*cos(an)+gp*sin(an);',
+  '   float k=6.2831853/L, ph=k*dot(dd,vW.xz)-sqrt(9.81*k)*uTime+fi*2.39+sin(fi*3.7)*1.3; nd+=dd*k*cos(ph)*L*0.012*clamp((L-2.5*fp)/(2.5*fp),0.0,1.0); L*=0.7713; }',
+  '  N=normalize(vN-vec3(nd.x,0.0,nd.y)*det*det*1.35); }',
+  ' else',
+  '#endif',
   ' if(det>0.012){ vec2 q=vW.xz*0.55-uWindV*uTime*0.55; float e=0.32;',
   '  float n1=vn(q), nx1=vn(q+vec2(e,0.0)), nz1=vn(q+vec2(0.0,e));',
   '  N=normalize(vN+vec3((nx1-n1)*1.35,0.0,(nz1-n1)*1.35)*det); }',
@@ -341,7 +409,11 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   ' vec3 body=mix(uDeep,uShal,hn*0.85);',
   ' vec2 gd=normalize(uGlowDir.xz+vec2(1e-5));',
   ' vec3 Rf=reflect(-V,N); float sdR=pow(clamp(dot(normalize(Rf.xz+vec2(1e-5)),gd)*0.5+0.5,0.0,1.0),3.0);',
-  ' vec3 skyR=uEnvOn>0.5?ainv(texture2D(uEnvT,envUV(Rf)).rgb):uPhys>0.5?physSky(vec3(Rf.x,max(Rf.y,0.0),Rf.z)):mix(uHor,uDuskCol,uDusk*sdR*0.5); vec3 col=mix(body,skyR,fres);',
+  '#if TIER>=1',
+  ' vec3 skyR=uEnvOn>0.5?envRd(envUV(Rf),2.5):uPhys>0.5?physSky(vec3(Rf.x,max(Rf.y,0.0),Rf.z)):mix(uHor,uDuskCol,uDusk*sdR*0.5); vec3 col=mix(body,skyR,fres);',
+  '#else',
+  ' vec3 col=mix(body,mix(uHor,uDuskCol,uDusk*sdR*0.5),fres);',
+  '#endif',
   ' vec3 L=normalize(uSunDir), H=normalize(L+V);',
   /* light coming through the back of a crest */
   ' float sss=pow(max(0.0,dot(V,-L)),3.0)*smoothstep(0.35,1.0,hn)*uSunUp;',
@@ -359,6 +431,16 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   ' float cap=smoothstep(0.12,0.60,fold*(0.32+uFoam*1.6)*(0.35+fm*1.1));',
   ' float crest=smoothstep(0.86,1.0,hn)*uFoam*0.34*(0.30+0.70*fm);',
   ' col=mix(col,uFoamC,clamp(cap+crest,0.0,0.92));',
+  '#if TIER>=1',
+  ' if(uUnder<0.5&&uWake.x>0.05){ vec2 q=vW.xz, f2=uHull.xy; float la=dot(q,f2), lb=q.y*f2.x-q.x*f2.y;',
+  '  if(la>-160.0&&la<8.0&&abs(lb)<70.0){ float sp=uWake.x, d=max(0.0,-la-4.2);',
+  '   float wn=vn(vec2(la+uTime*sp,lb*1.6)*0.85)*0.65+vn(vec2(la+uTime*sp,lb)*2.3+7.0)*0.35;',
+  '   float wd=1.1+d*0.085, core=exp(-lb*lb/(wd*wd))*exp(-d/(7.0+sp*3.2))*step(la,-3.6);',
+  '   float kd=abs(abs(lb)-0.354*d)/(0.5+0.035*d), kel=exp(-kd*kd)*exp(-d/(12.0+sp*4.0))*smoothstep(1.0,6.0,d);',
+  '   float e=length(vec2(la/5.45,lb/1.78))-1.0, bow=exp(-e*e*55.0)*smoothstep(-1.0,4.5,la)*(0.35+uWake.y*1.6);',
+  '   float wf=(core*0.85+kel*0.45)*smoothstep(0.35,0.75,wn+core*0.25)+bow*smoothstep(0.25,0.7,wn);',
+  '   col=mix(col,uFoamC,clamp(wf*min(1.0,sp/2.5),0.0,0.72)); } }',
+  '#endif',
   ' if(uUnder>0.5){ float up=clamp(dot(N,-V),0.0,1.0);',
   '  vec3 uc=mix(uDeep*0.55,uShal*1.45+vec3(0.05,0.17,0.17)*uSunUp,pow(up,1.5));',
   '  uc+=uSunCol*pow(max(dot(-V,normalize(uSunDir)),0.0),22.0)*0.60*uSunUp;',
@@ -372,7 +454,11 @@ var SEA=prog(['precision highp float; attribute vec2 aP; uniform mat4 uVP; unifo
   '  col*=1.0-(0.42*ao+0.50*shd)*uHull.w; }',
   ' float fg=1.0-exp(-pow(dist*uFogD,2.0));',
   ' float sdV=pow(clamp(dot(normalize(-V.xz+vec2(1e-5)),gd)*0.5+0.5,0.0,1.0),3.0);',
-  ' vec3 fogc=uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',
+  '#if TIER>=1',
+  ' vec3 fogc=uEnvOn>0.5?envRd(vec2(atan(-V.x,V.z)*0.1591549+0.5,0.0),0.0):uPhys>0.5?physSky(normalize(vec3(-V.x,0.0,-V.z)+vec3(1e-5,0.0,0.0))):mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',
+  '#else',
+  ' vec3 fogc=mix(uFogCol,uDuskCol,uDusk*sdV*0.87);',
+  '#endif',
   ' gl_FragColor=vec4(tmo(mix(col,fogc,clamp(fg,0.0,1.0))),1.0);}'].join('\n'));
 
 /* ===== flow overlay: streaks in the air, darts on the water ===== */
@@ -422,10 +508,17 @@ var SOLID=prog(
   ' vec3 col=mix(lit,uCol,uFlat);',
   ' float fg=1.0-exp(-pow(length(uEye-vW)*uFogD,2.0));',
   ' gl_FragColor=vec4(tmo(mix(col,uFogCol,clamp(fg,0.0,1.0))),uA);}'].join('\n'));
-var SAILP=prog(
+var SAILP=progV('SAILP',
  ['precision highp float; attribute vec3 aP,aN; attribute vec2 aUV; uniform mat4 uVP,uM; uniform float uZS;',
   'varying vec3 vW,vN; varying vec2 vUV;',
-  'void main(){ vec3 p=vec3(aP.x,aP.y,aP.z*uZS); vec4 w=uM*vec4(p,1.0); vW=w.xyz;',
+  'uniform vec4 uSailA;',
+  'void main(){ vec3 p=vec3(aP.x,aP.y,aP.z*uZS);',
+  '#if TIER>=1',
+  ' if(uSailA.w>0.5){ float br=1.0+uSailA.x*sin(aUV.y*2.2+uSailA.z*0.9)*0.35+uSailA.x;',
+  '  float fl=uSailA.y*smoothstep(0.72,1.0,aUV.x)*(0.55+0.45*sin(aUV.y*37.0+uSailA.z*13.0))*sin(aUV.y*23.0-uSailA.z*17.0);',
+  '  p.z=p.z*br+fl*sign(uZS+1e-4); }',
+  '#endif',
+  ' vec4 w=uM*vec4(p,1.0); vW=w.xyz;',
   ' vN=mat3(uM[0].xyz,uM[1].xyz,uM[2].xyz)*aN; vUV=aUV; gl_Position=uVP*w;}'].join('\n'),
  ['precision highp float;',LIT,TMO_GLSL,'uniform sampler2D uTex; uniform float uTwo;','varying vec3 vW,vN; varying vec2 vUV;',
   'void main(){ vec3 N=normalize(vN); float dl=dot(N,normalize(uLightDir));',
@@ -1091,7 +1184,7 @@ function starsInit(){
     STARP=prog(
      ['precision highp float; attribute vec3 aD; attribute float aM,aK;',
       'uniform mat4 uVP; uniform mat3 uRot; uniform vec3 uEye,uMoonDir; uniform float uR,uLim,uTime,uPx,uTw,uCloudOn,uCloudTh,uMoonUp; uniform vec2 uCloudV;',
-      'varying float vA; varying vec3 vC;',
+      'varying float vA; varying vec3 vC; varying float vG;',
       'float h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
       'float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);',
       ' float a=h21(i), b=h21(i+vec2(1.0,0.0)), c=h21(i+vec2(0.0,1.0)), d=h21(i+vec2(1.0,1.0)); return mix(mix(a,b,f.x),mix(c,d,f.x),f.y); }',
@@ -1103,14 +1196,18 @@ function starsInit(){
       ' if(uCloudOn>0.5 && r.y>0.012){ vec2 cp=r.xz/(r.y+0.11)*1.10+uCloudV*uTime*0.0065;',      /* אותם עננים בדיוק כמו בשיידר השמיים: הם מסתירים, לא רק מעמעמים */
       '  a*=1.0-smoothstep(uCloudTh-0.10,uCloudTh+0.14,fbm(cp))*smoothstep(0.012,0.15,r.y)*0.97; }',
       ' a*=1.0-uMoonUp*smoothstep(0.99975,0.99992,dot(r,uMoonDir));',              /* לא מציירים כוכב על דיסקת הירח */
-      ' float ph=fract(aD.x*91.7+aD.y*57.3)*6.2832, tw=1.0+uTw*(0.10+0.55*pow(1.0-up,4.0))*sin(uTime*(3.0+fract(aD.z*33.1)*5.0)+ph);',
+      ' float ph=fract(aD.x*91.7+aD.y*57.3)*6.2832, lo=pow(1.0-up,3.0), sp=uTime*(3.0+fract(aD.z*33.1)*5.0)+ph;',
+      ' float tw=1.0+uTw*(0.12+0.80*lo)*(0.6*sin(sp)+0.4*sin(sp*2.7+1.3));',
       ' float b=clamp((2.2-aM)/3.4,0.0,1.0);',                                     /* הבהירים גם גדולים יותר, לא רק בהירים יותר */
-      ' gl_PointSize=uPx*(2.1+3.4*b*b+0.9*clamp((4.5-aM)/4.0,0.0,1.0));',
+      ' vG=clamp((1.2-aM)/2.6,0.0,1.0);',
+      ' gl_PointSize=uPx*(2.1+3.4*b*b+0.9*clamp((4.5-aM)/4.0,0.0,1.0))*(1.0+1.8*vG);',
       ' vA=a*tw*(0.50+0.50*clamp((4.6-m)/3.6,0.0,1.0));',
       ' float k=clamp((aK-2600.0)/4200.0,0.0,1.0), hot=clamp((aK-7000.0)/16000.0,0.0,1.0);',
-      ' vC=mix(mix(vec3(1.0,0.74,0.52),vec3(1.0,0.97,0.93),k),vec3(0.74,0.84,1.0),hot); }'].join('\n'),
-     ['precision highp float; varying float vA; varying vec3 vC;',
-      'void main(){ float d=length(gl_PointCoord-0.5); float s=smoothstep(0.5,0.16,d); gl_FragColor=vec4(vC,vA*s); }'].join('\n'));
+      ' vC=mix(mix(vec3(1.0,0.74,0.52),vec3(1.0,0.97,0.93),k),vec3(0.74,0.84,1.0),hot);',
+      ' float cs=uTime*(9.0+fract(aD.y*41.3)*6.0)+ph; vC*=1.0+uTw*0.45*lo*vec3(sin(cs),sin(cs+2.1),sin(cs+4.2)); }'].join('\n'),
+     ['precision highp float; varying float vA; varying vec3 vC; varying float vG;',
+      'void main(){ float d=length(gl_PointCoord-0.5)*2.0, k=1.0+1.8*vG; float s=smoothstep(1.0/k,0.32/k,d);',
+      ' float halo=vG*0.30*exp(-d*d*7.0)*(1.0-d); gl_FragColor=vec4(vC,vA*max(s,halo)); }'].join('\n'));
     starBuf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,starBuf); gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW); starN=n;
     planetBuf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,planetBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(20),gl.DYNAMIC_DRAW);
   }catch(e){ starBuf=null; STARP=null; window.STARS_B64=undefined; return false; }
@@ -1842,35 +1939,35 @@ EXO.whale=function(cmd,dist){ /* לבדיקות בלבד: 'on'/'off' מפעיל 
    הראשונים איטיים מ-30 מ"ש — אז אין מה לבדוק), ומודדים כמה המכשיר
    באמת מספיק: 54 פריימים בשנייה ומעלה בדרגה 1 → עולים ל-2. אחר כך, כל הזמן: ממוצע של 60 פריימים מעל 41 מ"ש
    (פחות מ-24 בשנייה) → יורדים דרגה, ולא עולים שוב. ?q=0|1|2 קובע דרגה ונועל. ?fps=1 מציג מונה פינתי. */
-var GFX=EXO.gfx={ tier:1, auto:true, fps:0, ms:0, probe:true, noUp:false };
-(function(){
-  var m=/[?&]q=([012])(?:&|$)/.exec(location.search);
-  var coarse=!!(window.matchMedia&&matchMedia('(pointer: coarse)').matches);
-  if(m){ GFX.tier=+m[1]; GFX.auto=false; } else GFX.tier=coarse?1:2;
-  if(GFX.tier===0) EXO.quality='lite';
-  EXO.tier=GFX.tier;
-})();
+/* GFX והדרגה ההתחלתית מוגדרים ב-gfx_head.js — השיידרים נבנים לפי הדרגה */
 function setTier(n,why){ n=Math.max(0,Math.min(2,n)); if(n===GFX.tier) return;
   var was=GFX.tier; GFX.tier=EXO.tier=n; GFX.why=why||'';
   if(n===0&&EXO.quality!=='lite'){ EXO.setQuality('lite',true); return; }
   if(n>0&&EXO.quality==='lite') EXO.quality='full';
   if(n<2&&EXO.dprMax>1.5) EXO.dprMax=1.5;
   if(was<2&&n===2&&GFX.onTier2) GFX.onTier2();
-  resize(); }
+  tierProgs(); resize(); }
 EXO.setTier=function(n){ GFX.auto=false; setTier(n,'ידני'); kick(); };
 
 /* המדידה — מחליפה את perfProbe הישן (שם הקצב היה מוגבל ל-32, ולכן "מתחת ל-20 מ"ש" לא יכול היה לקרות) */
 var GP={ n:0, last:0, win:[], cool:0, cnt:0, t1:0 };
+/* חלון מוסתר או מוקטן: הדפדפן מאט את הפריימים בכוונה — לא מודדים, ומתחילים את החלון מחדש כשחוזרים */
+document.addEventListener('visibilitychange',function(){ GP.win.length=0; GP.last=0; GP.cool=performance.now()+2500; });
 function gfxProbe(pNow){
+  if(document.hidden){ GP.last=0; return; }
   var d=GP.last?pNow-GP.last:0; GP.last=pNow;
-  if(d>0&&d<2000){ GP.win.push(d); if(GP.win.length>90) GP.win.shift(); }
+  if(d>0&&d<1000){ GP.win.push(d); if(GP.win.length>90) GP.win.shift(); }
   GP.cnt++; if(!GP.t1) GP.t1=pNow;
   if(pNow-GP.t1>=500){ GFX.fps=GP.cnt*1000/(pNow-GP.t1); GP.cnt=0; GP.t1=pNow;
     var s=0,i; for(i=0;i<GP.win.length;i++) s+=GP.win[i]; GFX.ms=GP.win.length?s/GP.win.length:0; fpsPaint(); }
   if(reduce) { GFX.probe=false; return; }
   if(GFX.probe){ GP.n++;
     /* מכשיר שכבר בפריימים הראשונים איטי מ-30 מ"ש לא יעלה דרגה בכל מקרה: מפסיקים לבדוק מיד, וחוזרים לתקרה של 32 */
-    if(GP.n>=8&&avgLast(6)>30){ GFX.probe=false; GP.win.length=0; GP.cool=pNow+3000; return; }
+    if(GP.n>=16&&avgLast(8)>30){ var a0=avgLast(8); GFX.probe=false; GP.win.length=0; GP.cool=pNow+3000;
+      /* איטי מאוד כבר בפתיחה ( הפריימים הראשונים, עם בניית השיידרים והטבלאות, לא נספרים):
+         מתחת ל-9 בשנייה — ישר ל"קל"; מתחת ל-16 — מדרגה 2 ל-1. בלי לחכות לחלון של 60 פריימים */
+      if(GFX.auto){ if(a0>110&&!EXO.qualityLocked) setTier(0,'איטי מאוד בפתיחה'); else if(a0>60&&GFX.tier>1) setTier(1,'איטי בפתיחה'); }
+      return; }
     if(GP.n>=70){ GFX.probe=false; var a=avgLast(45); EXO.frameMs=a;
       if(GFX.auto){
         if(a>48&&!EXO.qualityLocked) setTier(0,'מדידת פתיחה');
@@ -2046,14 +2143,14 @@ function physUniforms(PR,on,ov,sunDir,moonDir){ gl.uniform1f(PR.u('uPhys'),on?1:
    שווה-שטח של חצי הכדור העליון (אזימוט × שורש הגובה, כך שיש יותר פיקסלים ליד האופק — שם רוב ההשתקפויות),
    עם העננים, הירח, שביל החלב והכוכבים. הים קורא ממנה בכיוון ההשתקפות של כל פיקסל, ולכן הכוכבים והירח
    נשברים בגלים כמו במציאות. בלי דיסקת השמש — הנצנוצים שלה מחושבים בנפרד. דרגה 1: 256×64, דרגה 2: 512×128. */
-var ENV={tex:null,fb:null,w:0,h:0,t:-1e9,ok:false,lutT:-1};
+var ENV={tex:null,fb:null,w:0,h:0,t:-1e9,ok:false,lutT:-1,k:1};
 function envEnsure(){ var w=GFX.tier>=2?512:256, h=w/4;
   if(ENV.tex&&ENV.w===w) return true;
   try{
     if(!ENV.tex){ ENV.tex=gl.createTexture(); ENV.fb=gl.createFramebuffer(); }
     gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
     gl.bindFramebuffer(gl.FRAMEBUFFER,ENV.fb); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,ENV.tex,0);
     var st=gl.checkFramebufferStatus(gl.FRAMEBUFFER); gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.bindTexture(gl.TEXTURE_2D,null); gl.activeTexture(gl.TEXTURE0);
@@ -2071,7 +2168,7 @@ function envStars(nowMs,t,nightF,moonUp,illum,moonDir,cl,cwx,cwz){
       'uniform mat3 uRot; uniform vec3 uMoonDir; uniform float uLim,uMoonUp,uPx;',
       'varying float vA; varying float vB;',
       'void main(){ vec3 r=uRot*aD; float az=atan(r.x,-r.z); float u=az/6.2831853+(az<0.0?1.0:0.0);',
-      ' float v=sqrt(clamp(asin(clamp(r.y,-1.0,1.0))/1.5707963,0.0,1.0));',
+      ' float v=sqrt(clamp(r.y,0.0,1.0));',
       ' gl_Position=r.y<0.0?vec4(2.0,2.0,2.0,1.0):vec4(u*2.0-1.0,v*2.0-1.0,0.0,1.0);',
       ' float up=max(r.y,0.0), m=aM+0.28*(1.0/(up+0.025)-1.0);',
       ' vA=clamp((uLim-m)/1.6,0.0,1.0)*(1.0-uMoonUp*smoothstep(0.99975,0.99992,dot(r,uMoonDir)));',
@@ -2097,13 +2194,17 @@ function envRender(t,nowMs,starsOn,nightF,moonUp,illum,moonDir,cl,cwx,cwz){
   gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,null); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,null);
   gl.uniform1i(SKY.u('uEnvT'),6);
   gl.bindFramebuffer(gl.FRAMEBUFFER,ENV.fb); gl.viewport(0,0,ENV.w,ENV.h);
-  gl.uniform1f(SKY.u('uEnv'),1); gl.disable(gl.DEPTH_TEST);
+  /* תקרת הקידוד: לפי בהירות האופק (לינארית) — ביום בערך 8, בלילה כעשירית */
+  ENV.k=Math.max(0.03,Math.min(8,lum3(LNf(SKYP.hor||[0.5,0.6,0.7]))*14));
+  gl.uniform1f(SKY.u('uEnvK'),ENV.k); gl.uniform1f(SKY.u('uEnv'),1); gl.disable(gl.DEPTH_TEST);
   gl.drawArrays(gl.TRIANGLES,0,3);
   gl.uniform1f(SKY.u('uEnv'),0); gl.enable(gl.DEPTH_TEST);
   if(starsOn){ envStars(nowMs,t,nightF,moonUp,illum,moonDir,cl,cwx,cwz); gl.useProgram(SKY);
     /* הכוכבים כיבו את מערך הקודקודים שהשמיים משתמשים בו — מחזירים אותו */
     gl.bindBuffer(gl.ARRAY_BUFFER,quadB); gl.enableVertexAttribArray(SKY.a('aP')); gl.vertexAttribPointer(SKY.a('aP'),2,gl.FLOAT,false,0,0); }
   gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,C.width,C.height);
+  /* מיפמפים: הים קורא מהמפה בטשטוש (bias 2.5) — השתקפות של עננים בגלים נמרחת, לא נשברת לכתמים עגולים */
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex); gl.generateMipmap(gl.TEXTURE_2D); gl.bindTexture(gl.TEXTURE_2D,null); gl.activeTexture(gl.TEXTURE0);
   ENV.t=t; ENV.ok=true; ENV.lutT=LUT_S?LUT_S.t:0; }
 
 /* ================= 8+9. הירח מצילום, ושביל החלב מפנורמה אמיתית =================
@@ -2139,6 +2240,147 @@ function skyTexUniforms(moonDir,cr){
   var U=norm3([N[0]-moonDir[0]*k,N[1]-moonDir[1]*k,N[2]-moonDir[2]*k]), R=cross3(moonDir,U);
   gl.uniform3fv(SKY.u('uMoonR'),R); gl.uniform3fv(SKY.u('uMoonU'),U); }
 GFX.sky=SKYTEX;
+
+/* 10. ה-cirrus: אור השמש בגובה 9 ק"מ (מסונן בדרך — אדום כשהשמש נמוכה), ועוצמה לפי העננות הכוללת */
+function cirrusUniforms(cl,windDir,sAltR){
+  var on=GFX.tier>0&&cl>0.08; gl.uniform1f(SKY.u('uCiOn'),on?1:0); if(!on) return;
+  gl.uniform1f(SKY.u('uCiA'),Math.min(1,(cl-0.08)/0.45)*0.85);
+  var a=(windDir+180)*D2R; gl.uniform2f(SKY.u('uCiDir'),Math.sin(a),-Math.cos(a));
+  gl.uniform1f(SKY.u('uSunAltR'),sAltR);
+  var T=ATM.trans(9,Math.sin(Math.max(sAltR,-0.052)),[0,0,0]), m=Math.max(T[0],T[1],T[2],1e-6);
+  gl.uniform3f(SKY.u('uHiCol'),0.15+0.85*T[0]/m,0.15+0.85*T[1]/m,0.15+0.85*T[2]/m); }
+
+/* 5. נשימה ורפרוף. g = כמה המשב חזק מהרוח הממוצעת (מהנתון); הנשימה היא סכום של שלושה גלי סינוס איטיים שלא חוזרים */
+function sailAnim(c,t,on){ if(!on||GFX.tier<1||reduce){ gl.uniform4f(SAILP.u('uSailA'),0,0,t,0); return; }
+  var w=Math.max(1,c.wind||0), g=Math.max(0,Math.min(1.2,((c.gust||w)-w)/w));
+  var br=(0.04+0.16*g)*(0.55*Math.sin(t*0.53)+0.30*Math.sin(t*1.37+1.1)+0.15*Math.sin(t*2.9+2.3));
+  var fl=Math.min(0.06,0.012+0.0022*w)*(0.7+0.3*Math.sin(t*0.9));
+  gl.uniform4f(SAILP.u('uSailA'),br,fl,t,1); }
+
+/* 4. השובל: מהירות הסירה (SOG) במטרים לשנייה, והתנפצות החרטום מקצב הצלילה שלו */
+var WK={pit:null,sp:0};
+function wakeUniforms(t,dt){ var sog=(BP.sog||0)*0.5144, pit=LAB._pit||0;
+  if(WK.pit!==null&&dt>0){ var dp=(pit-WK.pit)/dt; if(dp<0) WK.sp=Math.max(WK.sp,Math.min(1,-dp*4.0)); }
+  WK.pit=pit; WK.sp*=Math.exp(-(dt||0.03)/0.9);
+  gl.uniform4f(SEA.u('uWake'),GFX.tier>0?sog:0,WK.sp,0,0); }
+
+/* 6. הגלים הנוספים (דרגה 2). הגבהים: מודל לפי אורך הגל והרוח — תלילות קטנה (עד 1:14) — והכול מאוזן לשונות של הנתון */
+var RICH={f:1,set:null,key:''};
+function richBuild(){ var c=cond||{}; var key=[c.waveDir,c.windDir,c.wind,c.waveH,c.waveT].join(',');
+  if(key===RICH.key) return; RICH.key=key;
+  var sd=((c.waveDir||0)+180)%360, wd=((c.windDir||0)+180)%360, Ls=Math.max(9,1.56*(c.waveT||6)*(c.waveT||6)), Lw=Math.max(6,0.075*(c.wind||8)*(c.wind||8));
+  var spec=[[sd-9,Ls*0.86,0.30],[sd+13,Ls*0.64,0.22],[sd-35,Ls*0.46,0.14],[wd+17,Lw*0.84,0.40],[wd-24,Lw*0.55,0.32],
+            [wd+62,Lw*0.36,0.22],[wd-71,Lw*0.26,0.16],[wd+33,Lw*0.19,0.12],[wd-12,Lw*0.12,0.09]];
+  var base=0,i; for(i=0;i<NWV;i++) base+=wAmp[i]*wAmp[i];
+  var ext=0, set=[]; for(i=0;i<9;i++){ var L=Math.max(2.2,spec[i][1]), a=Math.min(L/(14*6.2832)*3.0,spec[i][2]*(i<3?Math.max(0.08,c.waveH||0.3)*0.5:Math.max(0.03,(c.wind||0)*0.006)));
+    var d=bearing2(spec[i][0]); set.push([d[0],d[1],a,L]); ext+=a*a; }
+  if(ext>base*0.35){ var s=Math.sqrt(base*0.35/ext); for(i=0;i<9;i++) set[i][2]*=s; ext=base*0.35; }
+  RICH.f=Math.sqrt(Math.max(0.1,1-ext/Math.max(base,1e-6))); RICH.set=set; }
+function richScale(){ return GFX.tier>=2?(richBuild(),RICH.f):1; }
+function richUniforms(){ var on=GFX.tier>=2&&RICH.set; gl.uniform1f(SEA.u('uRich'),on?1:0); if(!on) return;
+  for(var i=0;i<9;i++) gl.uniform4f(SEA.u('uWX['+i+']'),RICH.set[i][0],RICH.set[i][1],RICH.set[i][2],RICH.set[i][3]); }
+
+/* ================= 13. מטאורים — רק בלילות של מטר אמיתי =================
+   הרשימה: מטרי המטאורים של ה-IMO (International Meteor Organization), תקופת הפעילות, השיא, ZHR והקורן, מהלוח של 2026
+   (דרך רשימת המטרים בוויקיפדיה, שמבוססת עליו). רק מטרים עם ZHR של 5 ומעלה, לילה בלבד. הקצב כמו שמודדים אותו:
+   ZHR × sin(גובה הקורן) × 2.5^(בהירות הגבול − 6.5), ובערך שליש מהשמיים בתוך המסך. בשיא הגמינידים זה בערך מטאור
+   בכמה דקות; בערבי מטר חלש — לפעמים אף אחד. כל מטאור יוצא מהקורן. מחוץ לתקופות — אף פעם. ?met=1 — מצב בדיקה. */
+var SHOWERS=[ /* שם, התחלה (חודש,יום), סוף, שיא, ZHR, RA°, Dec°, מהירות ק"מ/ש, רוחב השיא בימים */
+ ['Orionids',[10,2],[11,7],[10,21],20,94.5,16,66,3],['Southern Taurids',[9,20],[11,20],[11,5],7,52.5,15,27,12],
+ ['Northern Taurids',[10,20],[12,10],[11,12],5,58.5,22,29,12],['Draconids',[10,6],[10,10],[10,9],5,262.5,54,20,1],
+ ['Leonids',[11,6],[11,30],[11,17],15,151.5,22,71,2],['Geminids',[12,4],[12,20],[12,14],150,112.5,33,35,1.2],
+ ['Ursids',[12,17],[12,26],[12,22],10,217.5,76,33,1],['Quadrantids',[12,28],[1,12],[1,3],80,229.5,49,41,0.6],
+ ['Puppid-Velids',[12,1],[12,15],[12,7],10,123,-45,44,4],['Sigma Hydrids',[12,3],[12,20],[12,9],7,124.5,2,58,3],
+ ['Alpha Centaurids',[1,31],[2,20],[2,8],6,211.5,-58,58,3],['Lyrids',[4,14],[4,30],[4,22],18,271.5,34,49,1.5]];
+var MET={on:false,t0:0,dur:1,len:0.2,A:null,N:null,br:1,rate:0,name:''}, METDBG=/[?&]met=1/.test(location.search);
+function dayOfYearMD(m,d,y){ return (Date.UTC(y,m-1,d)-Date.UTC(y,0,1))/86400000; }
+function showersNow(nowMs){ var dt=new Date(nowMs), y=dt.getUTCFullYear(), doy=(nowMs-Date.UTC(y,0,1))/86400000, out=[];
+  SHOWERS.forEach(function(s){ var a=dayOfYearMD(s[1][0],s[1][1],y), b=dayOfYearMD(s[2][0],s[2][1],y), p=dayOfYearMD(s[3][0],s[3][1],y), dd=doy;
+    if(b<a){ if(dd<a&&dd>b) return; if(dd<=b) dd+=365; b+=365; if(p<a) p+=365; } else if(dd<a||dd>b) return;
+    var prof=Math.max(0.12,Math.exp(-Math.abs(dd-p)/s[8])); out.push({s:s,zhr:s[4]*prof}); });
+  return out; }
+function metFrame(nowMs,t,dt,fwd,right,upv,nightF,moonUp,illum,cl){
+  if(GFX.tier<1){ MET.on=false; return; }
+  if(MET.on&&t-MET.t0>MET.dur) MET.on=false;
+  if(MET.on||nightF<0.9||reduce) return;
+  var act=METDBG?[{s:SHOWERS[5],zhr:150}]:showersNow(nowMs); if(!act.length) return;
+  var cr=celestialRot(nowMs), lm=6.5-3.0*moonUp*illum*(1-cl)-1.5*(1-nightF), best=null, rate=0;
+  act.forEach(function(x){ var ra=x.s[5]*D2R, de=x.s[6]*D2R, e=[Math.cos(de)*Math.cos(ra),Math.cos(de)*Math.sin(ra),Math.sin(de)];
+    var R=[cr[0]*e[0]+cr[3]*e[1]+cr[6]*e[2], cr[1]*e[0]+cr[4]*e[1]+cr[7]*e[2], cr[2]*e[0]+cr[5]*e[1]+cr[8]*e[2]];
+    if(R[1]<=0.02) return; var hr=x.zhr*R[1]*Math.pow(2.5,lm-6.5)*(1-0.9*cl); rate+=hr; if(!best||hr>best.hr) best={hr:hr,R:R,s:x.s}; });
+  if(!best&&METDBG) best={hr:1,R:norm3([0.3,0.8,0.2]),s:SHOWERS[5]};
+  if(!best) return; MET.rate=rate;
+  var perSec=METDBG?0.25:rate/3600*0.33;
+  if(Math.random()>perSec*dt) return;
+  var P=norm3([fwd[0]+right[0]*(Math.random()-0.5)*1.3+upv[0]*Math.random()*0.7, fwd[1]+right[1]*(Math.random()-0.5)*1.3+upv[1]*Math.random()*0.7, fwd[2]+right[2]*(Math.random()-0.5)*1.3+upv[2]*Math.random()*0.7]);
+  if(P[1]<0.18) return;
+  var N=cross3(best.R,P), nl=Math.hypot(N[0],N[1],N[2]); if(nl<0.05) return; N=[N[0]/nl,N[1]/nl,N[2]/nl];
+  var v=best.s[7]; MET.on=true; MET.t0=t; MET.A=P; MET.N=N; MET.len=0.10+Math.random()*0.25; MET.dur=MET.len*(1.6+(71-v)/40)*(0.7+Math.random()*0.6);
+  MET.br=0.5+Math.random()*1.4; MET.name=best.s[0]; if(METDBG){ MET.dur=2.5; MET.br=1.6; } }
+function metUniforms(t){ if(!MET.on){ gl.uniform4f(SKY.u('uMetP'),0,0,0,0); return; }
+  var k=Math.min(1,(t-MET.t0)/MET.dur), head=MET.len*k, fade=k<0.8?1:(1-k)/0.2;
+  gl.uniform3fv(SKY.u('uMetA'),MET.A); gl.uniform3fv(SKY.u('uMetN'),MET.N);
+  gl.uniform4f(SKY.u('uMetP'),head,Math.min(head,0.09),MET.br*fade,1); }
+
+/* ================= 14. זוהר קוטבי — רק כשמדד Kp של NOAA מצדיק אותו בקו הרוחב של הסירה =================
+   Kp מגיע מהבוט (data.js → SPACE, כל שלוש שעות). קו הרוחב הגאומגנטי: דיפול, קטבים 80.8°N 72.7°W / 80.8°S 107.3°E.
+   הגבול הקרוב של הטבעת: כ-66.5° פחות 2.1 מעלות לכל יחידת Kp; מהסירה רואים אותה עד כ-9° (כ-1000 ק"מ) לפני שהיא
+   מעל הראש, נמוך באופק לכיוון הקוטב המגנטי. תחתית הווילון כ-110 ק"מ, הראש כ-250 (ירוק למטה, אדום למעלה).
+   בלי SPACE, או כשהשעה המוצגת רחוקה מהמדידות — אין זוהר. ?aur=1 — מצב בדיקה. */
+var AURDBG=/[?&]aur=1/.test(location.search), AUR={w:0};
+function kpAt(nowMs){ var S=window.SPACE; if(!S||!S.kp||!S.kp.length) return null; var t=nowMs/1000, k=S.kp, best=null;
+  for(var i=0;i<k.length;i++){ if(k[i][0]<=t&&t<k[i][0]+3*3600) return k[i][1]; if(k[i][0]<=t) best=k[i]; }
+  return (best&&t-best[0]<6*3600)?best[1]:null; }
+function auroraFrame(nowMs,sAlt,moonUp,illum,cl){
+  AUR.w=0; if(GFX.tier<1) return;
+  var la=BP.lat*D2R, lo=BP.lon*D2R, south=BP.lat<0, pla=(south?-80.8:80.8)*D2R, plo=(south?107.3:-72.7)*D2R;
+  var mag=Math.asin(Math.sin(la)*Math.sin(80.8*D2R)+Math.cos(la)*Math.cos(80.8*D2R)*Math.cos(lo-(-72.7*D2R)))*R2D;
+  var kp=AURDBG?8:kpAt(nowMs); if(kp==null) return;
+  var dist=(66.5-2.1*kp)-Math.abs(mag); if(AURDBG) dist=Math.min(dist,5);
+  if(dist>9) return;
+  var e0,e1; if(dist<=0){ e0=0.35; e1=1.25; } else { var d=dist*111; e0=Math.atan((110-d*d/12742)/d); e1=Math.atan((250-d*d/12742)/d); }
+  AUR.az=bearingTo(BP.lat,BP.lon,pla*R2D,plo*R2D)*D2R; AUR.e0=Math.max(0.01,e0); AUR.e1=Math.max(AUR.e0+0.05,e1);
+  AUR.w=Math.min(1,(9-dist)/9)*smooth(-12,-17,sAlt)*(1-0.7*cl)*(1-0.5*moonUp*illum)*Math.min(1,0.4+0.1*kp); AUR.kp=kp; }
+function auroraUniforms(){ gl.uniform4f(SKY.u('uAur'),AUR.az||0,AUR.e0||0,AUR.e1||0,AUR.w||0); }
+
+/* ================= 15. אלבטרוס — רחוק, ורק ביום, ורק איפה שחיים אלבטרוסים =================
+   אמת: אלבטרוסים חיים בעיקר באוקיינוס הדרומי (וגם בצפון האוקיינוס השקט) — לא באטלנטי הצפוני והטרופי שבו הסירה עכשיו.
+   לכן הוא מופיע רק כשהסירה מדרום ל-25°S. אז: פעם בכמה דקות, לכמה עשרות שניות, במרחק 50–160 מ׳ (רחוק מזה הוא נבלע באובך של הסצנה), בדאייה דינמית —
+   קשתות גדולות, עלייה וירידה מעל הגלים, כנפיים ישרות (כמעט בלי נפנוף). מוטת כנפיים 3 מ׳. ?bird=1 — מצב בדיקה. */
+var BIRD={m1:null,m2:null,m3:null}, BIRDDBG=/[?&]bird=1/.test(location.search);
+function birdMesh(){ if(BIRD.m1) return;
+  var W=[], Wi=[], sp=1.55;
+  /* כנף עם זווית קלה (הקצוות נמוכים ב-18 ס"מ) ועובי — מהצד, באופק, היא עדיין קו ולא נעלמת */
+  var dy=-0.18;
+  W.push(0.10,0,0, -0.25,dy,sp, -0.42,dy,sp*0.96, -0.30,0,0.10,  0.10,0,0, -0.30,0,-0.10, -0.42,dy,-sp*0.96, -0.25,dy,-sp);
+  W.push(0.10,-0.07,0, -0.25,dy-0.03,sp, -0.42,dy-0.03,sp*0.96, -0.30,-0.07,0.10,  0.10,-0.07,0, -0.30,-0.07,-0.10, -0.42,dy-0.03,-sp*0.96, -0.25,dy-0.03,-sp);
+  Wi.push(0,1,2, 0,2,3, 4,5,6, 4,6,7, 8,10,9, 8,11,10, 12,14,13, 12,15,14, 0,8,9, 0,9,1, 4,15,12, 4,7,15);
+  BIRD.m1=mesh(W,Wi); BIRD.m2=boxMesh(1.05,0.16,0.18,-0.10,0,0);
+  BIRD.m3=mesh([-0.25,dy+0.004,sp, -0.42,dy+0.004,sp*0.96, -0.36,dy*0.7+0.004,sp*0.70, -0.25,dy+0.004,-sp, -0.42,dy+0.004,-sp*0.96, -0.36,dy*0.7+0.004,-sp*0.70],[0,1,2,3,4,5]); }
+var COL_BIRDW=[0.30,0.31,0.33], COL_BIRDB=[0.90,0.90,0.88], COL_BIRDT=[0.10,0.10,0.11];
+function drawBird(t,nowMs,sunUp){
+  if(GFX.tier<1||sunUp<0.5) return; if(!(BIRDDBG||BP.lat<-25)) return;
+  var slot=Math.floor(nowMs/240000), h=fract(Math.sin(slot*12.9898)*43758.5453), ph=(nowMs/1000)%240-h*150;
+  if(!BIRDDBG&&(ph<0||ph>55)) return; if(BIRDDBG) ph=t%55;
+  birdMesh();
+  var az=h*6.2832, D=85+h*70, cx=Math.sin(az)*D, cz=-Math.cos(az)*D, w=ph/55*6.2832*1.3, R=38;
+  var x=cx+Math.cos(w)*R, z=cz+Math.sin(w)*R*0.55, y=3.5+7.5*(0.5+0.5*Math.sin(w*2.0+1.0));
+  var hd=Math.atan2(-Math.sin(w)*R, Math.cos(w)*R*0.55), bank=0.55*Math.cos(w*2.0+1.0);
+  var M=mMul(mMul(mTrans(x,y,z),mRotY(-hd)),mRotX(bank));
+  GFX.birdAt=[x,y,z];
+  drawMesh(BIRD.m1,M,COL_BIRDW); drawMesh(BIRD.m2,M,COL_BIRDB); drawMesh(BIRD.m3,M,COL_BIRDT); }
+function fract(x){ return x-Math.floor(x); }
+GFX.met=MET; GFX.aur=AUR;
+
+/* השיידרים של כל דרגה נבנים בנפרד (#define TIER), כך שבדרגה נמוכה הקוד הכבד לא קיים בכלל — לא רק מדולג
+   (בחלק מהמעבדים הגרפיים, ובוודאי בעיבוד בתוכנה, ענף שלא נלקח עדיין עולה). מעבר דרגה בונה את הגרסה החדשה פעם אחת */
+function tierProgs(){ var t=GFX.tier; SKY=progT(GFXV.SKY,t); SEA=progT(GFXV.SEA,t); SAILP=progT(GFXV.SAILP,t); }
+
+/* הדגלים של השכבות הנדירות: מטאור (בלילות מטר) וזוהר (כשה-Kp מצדיק). משתנים לעתים רחוקות → בנייה מחדש של השיידר */
+var FLG={t:-1,sh:false};
+function flagsFrame(nowMs){ var f=''; if(Math.abs(nowMs-FLG.t)>60000){ FLG.t=nowMs; FLG.sh=showersNow(nowMs).length>0; }
+  if(GFX.tier>0){ if(AUR.w>0.001) f+='a'; if(METDBG||FLG.sh) f+='m'; }
+  if(f!==GFX.flags){ GFX.flags=f; tierProgs(); } }
 
 function buildFlow(c,t,dt,eye,bodyY){
   flowN=0; rngCur=[0,0]; rngSurf=[0,0]; rngAir=[0,0];
@@ -2379,7 +2621,7 @@ function frameBody(){
   var nowMs=clockNow(), t=reduce?12:(performance.now()-tStart)/1000;
   var dtF=Math.min(0.12,Math.max(0,t-lastFrameT)); lastFrameT=t;
   if(!cond||Math.abs(nowMs-condAt)>60000){ cond=pickCond(nowMs); condAt=nowMs; applyConditions(cond); emitState(cond,nowMs); }
-  var c=cond;
+  var c=cond; flagsFrame(nowMs);
 
   /* camera: orbit with momentum */
   if(camFly){ var ft=(pNow-camFly.t0)/camFly.dur;
@@ -2487,7 +2729,9 @@ function frameBody(){
   gl.uniform3fv(SKY.u('uZen'),under?wUp:zen); gl.uniform3fv(SKY.u('uHor'),under?wFog:hor); gl.uniform3fv(SKY.u('uSunCol'),sunCol);
   gl.uniform1f(SKY.u('uUnder'),under?1:0); gl.uniform1f(SKY.u('uUGlow'),sunUp*(1-0.7*cl));
   gl.uniform3f(SKY.u('uAbyss'),wDeep[0]*0.10,wDeep[1]*0.12,wDeep[2]*0.16);
-  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); gl.uniform1f(SKY.u('uCloudTh'),0.485+0.118*probit(1-cl));
+  gl.uniform1f(SKY.u('uCloudOn'),cl>0.02?1:0); cirrusUniforms(cl,c.windDir,sp.alt);
+  metFrame(nowMs,t,dtF,fwd,right,upv,nightF,moonUp,mp.illum,cl); metUniforms(t); auroraFrame(nowMs,sAlt,moonUp,mp.illum,cl); auroraUniforms();
+  gl.uniform1f(SKY.u('uGR'),(GFX.tier>=2&&cl>0.12&&cl<0.92)?sunUp*smooth(35,5,sAlt)*Math.min(1,(cl-0.12)*4):0); gl.uniform1f(SKY.u('uCloudTh'),0.485+0.118*probit(1-cl));
   var cwr=((c.windDir+180)%360)*D2R; gl.uniform2f(SKY.u('uCloudV'),-Math.sin(cwr),Math.cos(cwr));
   gl.uniform3fv(SKY.u('uDuskCol'),duskCol); gl.uniform1f(SKY.u('uDusk'),duskAmt); gl.uniform1f(SKY.u('uTime'),t);
   gl.uniform1f(SKY.u('uTanF'),Math.tan(fovy/2)); gl.uniform1f(SKY.u('uAsp'),asp);
@@ -2523,7 +2767,8 @@ function frameBody(){
   gl.uniformMatrix4fv(SEA.u('uVP'),false,new Float32Array(VP));
   gl.uniform1f(SEA.u('uTime'),t);
   for(var wq=0;wq<NWV;wq++)
-    gl.uniform4f(SEA.u('uW'+wq),wDir[wq][0],wDir[wq][1],wAmp[wq],wLen[wq]);
+    gl.uniform4f(SEA.u('uW'+wq),wDir[wq][0],wDir[wq][1],wAmp[wq]*richScale(),wLen[wq]);
+  richUniforms();
   gl.uniform4f(SEA.u('uSpA'),wSpd[0],wSpd[1],wSpd[2],wSpd[3]);
   gl.uniform4f(SEA.u('uSpB'),wSpd[4],wSpd[5],wSpd[6],0);
   gl.uniform4f(SEA.u('uStA'),wStp[0],wStp[1],wStp[2],wStp[3]);
@@ -2541,8 +2786,9 @@ function frameBody(){
   var sgl=LNf(sunCol), sgm=Math.max(sgl[0],sgl[1],sgl[2],1e-4); sgl=[sgl[0]/sgm*0.7+0.3,sgl[1]/sgm*0.7+0.3,sgl[2]/sgm*0.7+0.3];
   gl.uniform3fv(SEA.u('uSunDir'),lightDir); gl.uniform3fv(SEA.u('uSunCol'),sgl);
   gl.uniform3fv(SEA.u('uEye'),eye); physUniforms(SEA,physOn,ov,sunDir,moonDir);
+  wakeUniforms(t,dtF);
   gl.uniform1f(SEA.u('uMoonGl'),(sAlt<=-3)?moonUp*Math.pow(mp.illum,1.2)*nightF*(1-0.85*cl*cl):0);
-  gl.uniform1f(SEA.u('uEnvOn'),envOn?1:0); if(envOn){ gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex); gl.uniform1i(SEA.u('uEnvT'),5); gl.activeTexture(gl.TEXTURE0); }
+  gl.uniform1f(SEA.u('uEnvOn'),envOn?1:0); gl.uniform1f(SEA.u('uEnvK'),ENV.k); if(envOn){ gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D,ENV.tex); gl.uniform1i(SEA.u('uEnvT'),5); gl.activeTexture(gl.TEXTURE0); }
   gl.uniform1f(SEA.u('uSunUp'),sunSea); gl.uniform1f(SEA.u('uFogD'),fogD);
   gl.uniform1f(SEA.u('uAmpMax'),ampMax); gl.uniform1f(SEA.u('uFoam'),foam);
   var hrS=BP.cog*D2R; gl.uniform4f(SEA.u('uHull'),Math.sin(hrS),-Math.cos(hrS),1.0,EXO.quality==='lite'?0.0:1.0);
@@ -2620,6 +2866,7 @@ function frameBody(){
   drawMesh(C_HAIR,  dM, COL.hair);
   drawMesh(CREW.gl, dM, COL.shade);
   }
+  drawBird(t,nowMs,sunUp);
 
   gl.disableVertexAttribArray(SOLID.a('aP')); gl.disableVertexAttribArray(SOLID.a('aN'));
 
@@ -2635,6 +2882,7 @@ function frameBody(){
   gl.uniform1f(SAILP.u('uFlat'),0); gl.uniform1f(SAILP.u('uTwo'),SAIL_FLIP);
   gl.enableVertexAttribArray(SAILP.a('aP')); gl.enableVertexAttribArray(SAILP.a('aN'));
   gl.enableVertexAttribArray(SAILP.a('aUV'));
+  sailAnim(c,t,1);
   var mB=(boomA>=0), jB=(jibA>=0);                    /* הבטן לאותו צד שאליו יצא הבום או המפרש הקדמי */
   if(plan==='spin'){
     drawSail(mB?M_MAIN:M_MAINX, mainM, TEX_NUM, flatS);
@@ -2647,6 +2895,7 @@ function frameBody(){
     drawSail(jB?M_STAY:M_STAYX, stayM, TEX_PLAIN, flatS);
     drawSail(jB?M_YANK:M_YANKX, yankM, TEX_PLAIN, flatS);
   }
+  sailAnim(c,t,0);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
   var enR=(((c.windDir+180)-BP.cog+540)%360-180)*D2R, enW=Math.min(1,c.wind/16);
   var enM=mMul(mMul(mMul(boatM,mTrans(-1.32,FREE+10.30,0)),mRotY(-enR+Math.sin(t*1.7)*0.09*enW)),mRotZ(-0.37+Math.sin(t*2.3+1.1)*0.05*enW));
@@ -2775,7 +3024,7 @@ EXO.home=function(){ EXO.lookToward((((-cam.az*R2D)%360)+360)%360,{el:0.26,tilt:
 EXO.setLayer=function(name,on){ EXO.layers[name]=!!on; kick(); };
 EXO.setQuality=function(q,auto){ EXO.quality=q; if(!auto) EXO.qualityLocked=true;
   if(q==='lite') GFX.tier=EXO.tier=0; else if(GFX.tier===0) GFX.tier=EXO.tier=1;
-  resize();
+  tierProgs(); resize();
   if(EXO.state){ EXO.state.quality=q; EXO.state.qualityAuto=!!auto;
     for(var i=0;i<EXO._on.length;i++){ try{ EXO._on[i](EXO.state); }catch(e){} } } kick(); };
 /* צעד הגלגלת. הבסיס גדל מ-0.00135 ל-0.0019, ומעליו מאיץ שמזהה סיבוב רצוף.
