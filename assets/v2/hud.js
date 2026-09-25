@@ -208,28 +208,112 @@ if(lyrEl) lyrEl.addEventListener('click',function(ev){ var t=ev.target.closest?e
 /* בלי WebGL אין הדמיה לסמן עליה, והמלל הוא כל מה שיש: "איפה הוא עכשיו" דולקת מההתחלה */
 if(!LIVE) setTimeout(function(){ setLy('now',true); },0);
 
-/* "היומן" (מנה 4): במקום רצועת הזמן, שהיא "קווי גרף" שלא הובנו. זמנים במילים: נגיעה מעבירה את השעון של ההדמיה
-   לשם, והים, הרוח והאור הם של אותה שעה — מהארכיון (עבר) או מהתחזית (עתיד), כמו שהרצועה עשתה. רק זמנים שיש עליהם נתונים;
-   אין — הכפתור לא מוצג (לא ממציאים ים שלא נשמר). */
-var LOGH=[[-72,'לפני 3 ימים'],[-48,'לפני יומיים'],[-24,'לפני יום'],[-12,'לפני 12 שע׳'],[0,'עכשיו'],[12,'בעוד 12 שע׳'],[24,'בעוד יום'],[48,'בעוד יומיים']];
-var logSel=0;
-function logBuild(){ var host=$('logBar'); if(!host) return;
-  try{ tsSpan(); }catch(e){}
-  if(!host.firstChild){ LOGH.forEach(function(h){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-h',h[0]); b.textContent=h[1];
-      b.className=h[0]<0?'p':h[0]>0?'f':''; host.appendChild(b); });
-    host.addEventListener('click',function(ev){ var b=ev.target.closest?ev.target.closest('button'):null; if(!b||b.disabled) return; logGo(+b.getAttribute('data-h')); }); }
-  var now=Date.now(), bs=host.querySelectorAll('button');
-  for(var i=0;i<bs.length;i++){ var hh=+bs[i].getAttribute('data-h'), t=now+hh*3600000, ok=!hh||(LIVE&&EXO.setClock&&Math.abs(tsSnap(t)-t)<45*60000); bs[i].disabled=!ok; }
-  logPaint(); }
-function logGo(h){ logSel=h; var t=Math.round((Date.now()+h*3600000)/3600000)*3600000; if(h) t=tsSnap(t); try{ tsSet(h?t-Date.now():0); }catch(e){} logPaint(); }
-function logPaint(){ var host=$('logBar'); if(host){ var bs=host.querySelectorAll('button'); for(var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed',(+bs[i].getAttribute('data-h')===(tsScrub?logSel:0))?'true':'false'); }
-  if(!tsScrub) logSel=0;
-  /* בטלפון השורה נגללת: הזמן הנבחר תמיד בתוך המסך */
-  var sel=host&&host.querySelector('[aria-pressed=true]'); if(sel&&host.scrollWidth>host.clientWidth){ try{ var r=sel.getBoundingClientRect(), hr=host.getBoundingClientRect(); host.scrollLeft+=(r.left+r.width/2)-(hr.left+hr.width/2); }catch(e){} } }
+/* "היומן" — a12 (24.9 לילה, שמוליק: "הכי יפה זה בזריחה או בשקיעה; לתת לאנשים הזדמנות לראות את זה").
+   במקום הזמנים במילים ("לפני 12 שע׳", "בעוד יום"): פס זמן אחד, רק אחורה, 48 שעות. "עכשיו" בקצה הימני — אותו כיוון כמו
+   הפס בגלובוס, כך שיש פס זמן אחד בכל הגבהים. בלי תחזית בינתיים (a10/a11 פתוחים).
+   על הפס: אור היום בנקודה שבה הסירה הייתה בכל רגע, וסימן קטן בכל זריחה ושקיעה. הזמנים מחושבים (לא מודל):
+   גובה השמש במיקום של אקסודוס באותה שעה — מהארכיון (lat/lon של הבוט) ומנקודת הציון האחרונה — שעובר את -0.833°
+   (מרכז השמש, עם השבירה וחצי הקוטר). נבדק מול ephem (ספרייה עצמאית): עד 3 שניות.
+   גרירה שמתקרבת לסימן נדבקת אליו (מגנט, 12 פיקסלים), וגם לקצה של "עכשיו". הניגון עובר על היומיים ב-~24 שניות,
+   מאט סביב כל זריחה ושקיעה ועוצר עליה לרגע. רק איפה שיש ים שנשמר (הכיסוי של tsSnap) — לא ממציאים. */
+var SS={box:$('sScrub'), cv:$('ssCv'), rng:$('ssRange'), play:$('ssPlay')};
+var ssPtr=false, SS_BACK=48*3600000, SS_T0=0, SS_T1=0, SS_EV=[], SS_TRACK=null, ssW=0, ssBg=null, ssPlayRaf=0, ssHold=0, ssLastT=0, ssHeld=null;
+function ssOK(){ return !!(SS.box&&SS.cv&&SS.rng&&LIVE&&EXO.setClock&&typeof COND!=='undefined'&&COND.length); }
+/* המסלול לחישוב השמש: נקודות הארכיון עד נקודת הציון, ואז נקודת הציון עצמה */
+function ssTrackPts(){ var fx=FIX.at*1000, P=[], i; if(SS_TRACK) for(i=0;i<SS_TRACK.length;i++) if(SS_TRACK[i][0]<fx) P.push(SS_TRACK[i]);
+  P.push([fx,FIX.lat,FIX.lon]); return P; }
+function ssPos(P,t){ if(t<=P[0][0]) return [P[0][1],P[0][2]];
+  for(var i=1;i<P.length;i++) if(t<=P[i][0]){ var a=P[i-1], b=P[i], f=(t-a[0])/Math.max(1,b[0]-a[0]), dl=b[2]-a[2]; if(dl>180) dl-=360; if(dl<-180) dl+=360;
+    return [a[1]+(b[1]-a[1])*f, a[2]+dl*f]; }
+  var z=P[P.length-1]; return [z[1],z[2]]; }
+function ssAlt(P,t){ var p=ssPos(P,t); return EXO.astro.sunPos(t,p[0],p[1]).alt*R2D; }
+function ssCovStart(){ return TS_COV.length?TS_COV[0][0]:Date.now(); }
+function ssSpan(){ try{ tsSpan(); }catch(e){} var n=Date.now(); SS_T1=n; SS_T0=n-SS_BACK; ssBg=null; SS_EV=[];
+  if(!EXO.astro||!EXO.astro.sunPos) return;
+  /* זריחות ושקיעות: סריקה כל 5 דקות, ואז חציה עד שנייה. רק בטווח שיש לו מסלול אמיתי (הארכיון) או נקודת ציון קרובה */
+  var P=ssTrackPts(), lo0=Math.max(SS_T0, P.length>1?P[0][0]:FIX.at*1000-6*3600000), t, a, tp=lo0, ap=ssAlt(P,lo0)+0.833;
+  for(t=lo0+300000;t<=n;t+=300000){ a=ssAlt(P,t)+0.833;
+    if((ap<0)!==(a<0)){ var lo=tp, hi=t; for(var k=0;k<22;k++){ var m=(lo+hi)/2; if(((ssAlt(P,m)+0.833)<0)===(ap<0)) lo=m; else hi=m; }
+      SS_EV.push({t:Math.round(lo/1000)*1000, rise:a>=0}); }
+    tp=t; ap=a; } }
+function ssTimeOf(v){ return SS_T0+(SS_T1-SS_T0)*(v/1000); }
+function ssValOf(t){ return clamp((t-SS_T0)/(SS_T1-SS_T0)*1000,0,1000); }
+/* המיפוי של הציור זהה לזה של השדה range: הידית (30 פיקסלים) לא יוצאת מהקצוות, אז 15 פיקסלים שוליים לכל צד */
+var SS_PAD=15;
+function ssX(t,W){ return SS_PAD+(t-SS_T0)/(SS_T1-SS_T0)*(W-2*SS_PAD); }
+/* הרקע של הפס: אור היום בכל עמודה, לפי גובה השמש במיקום של הסירה באותו רגע. נשמר ומצויר מחדש רק כשהטווח זז */
+function ssBackground(W,H,dpr){ var c=document.createElement('canvas'); c.width=Math.round(W*dpr); c.height=Math.round(H*dpr);
+  var x=c.getContext('2d'); if(!x) return null; x.setTransform(dpr,0,0,dpr,0,0);
+  var P=ssTrackPts(), i, y0=H/2-4, bh=8, cs=ssCovStart();
+  for(i=Math.floor(SS_PAD);i<W-SS_PAD;i++){ var t=SS_T0+(SS_T1-SS_T0)*(i+0.5-SS_PAD)/(W-2*SS_PAD), a=ssAlt(P,t), day=clamp((a+4)/10,0,1), dusk=Math.max(0,1-Math.abs(a+1)/8);
+    var R=Math.round(14+day*52+dusk*150), G=Math.round(24+day*84+dusk*72), B=Math.round(38+day*104+dusk*8);
+    x.fillStyle='rgb('+R+','+G+','+B+')'; x.fillRect(i,y0,1.02,bh); }
+  /* לפני תחילת הים השמור: מעומעם, ואי אפשר לגרור לשם */
+  if(cs>SS_T0){ x.fillStyle='rgba(3,9,15,.7)'; x.fillRect(SS_PAD,y0,clamp(ssX(cs,W),SS_PAD,W-SS_PAD)-SS_PAD,bh); }
+  /* סימן לכל זריחה ושקיעה: חצי שמש על קו אופק קטן, מעל הפס */
+  SS_EV.forEach(function(e){ if(e.t<cs) return; var px=ssX(e.t,W), yy=y0-5;
+    x.fillStyle='rgba(241,207,138,.95)'; x.beginPath(); x.arc(px,yy,4,Math.PI,0); x.closePath(); x.fill();
+    x.fillRect(px-6.5,yy+0.5,13,1.2); });
+  return c; }
+function ssDraw(){
+  if(!ssOK()||!SS.box.offsetWidth) return;
+  var cv=SS.cv, r=cv.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2), W=Math.max(60,Math.round(r.width)), H=Math.max(30,Math.round(r.height));
+  if(W!==ssW||cv.width!==Math.round(W*dpr)||!ssBg){ ssW=W; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ssBg=ssBackground(W,H,dpr); }
+  var x=cv.getContext('2d'); if(!x) return; x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,cv.width,cv.height);
+  if(ssBg) x.drawImage(ssBg,0,0); x.setTransform(dpr,0,0,dpr,0,0);
+  var y0=H/2-4, bh=8, tn=tsLive(), past=tn<Date.now()-60000, sx=ssX(clamp(tn,SS_T0,SS_T1),W), xe=W-SS_PAD;
+  /* השטח שבין הזמן שנבחר לבין עכשיו — בצבע של העבר */
+  if(past){ x.fillStyle='rgba(143,227,222,.30)'; x.fillRect(sx,y0,xe-sx,bh); }
+  /* עכשיו: קו קצר בקצה הימני */
+  x.fillStyle='rgba(255,255,255,.8)'; x.fillRect(xe,y0-3,1.5,bh+6);
+  /* הסמן */
+  x.fillStyle=past?'#8fe3de':'#ffffff'; x.fillRect(sx-1,y0-6,2,bh+12);
+  x.beginPath(); x.arc(sx,y0+bh/2,5,0,6.283); x.fill(); }
+function ssNear(t){ var W=ssW||SS.cv.clientWidth||300, px=(SS_T1-SS_T0)/Math.max(30,W-2*SS_PAD), best=null, bd=12*px, cs=ssCovStart();
+  SS_EV.forEach(function(e){ var d=Math.abs(e.t-t); if(e.t>=cs&&d<bd){ bd=d; best=e; } }); return best; }
+function ssAt(t){ var cs=ssCovStart(); for(var i=0;i<SS_EV.length;i++){ var e=SS_EV[i]; if(e.t>=cs&&Math.abs(e.t-t)<20*60000) return e; } return null; }
+function ssGo(t,fromUser){ var now=Date.now(); t=Math.min(t,now); if(t!==now) t=tsSnap(t);
+  if(now-t<60000) t=now;
+  try{ tsSet(t===now?0:t-now,true); }catch(e){}
+  SS.rng.value=ssValOf(t); ssAria(t); ssDraw(); }
+function ssAria(t){ var e=ssAt(t), d=new Date(t), h=(Date.now()-t)/3600000;
+  SS.rng.setAttribute('aria-valuetext', h<0.02?'עכשיו':(e?(e.rise?'זריחה':'שקיעה')+', ':'')+'לפני '+(h<1?Math.round(h*60)+' דקות':Math.round(h)+' שעות')+', '+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC'); }
+function ssInput(){ ssStop(); var t=ssTimeOf(+SS.rng.value), W=ssW||SS.cv.clientWidth||300, px=(SS_T1-SS_T0)/Math.max(30,W-2*SS_PAD);
+  if(SS_T1-t<10*px) t=Date.now();                       /* מגנט ל"עכשיו" */
+  else if(ssPtr){ var e=ssNear(t); if(e){ if(ssHeld!==e&&navigator.vibrate) try{ navigator.vibrate(8); }catch(er){} ssHeld=e; t=e.t; } else ssHeld=null; }   /* מגנט לזריחה/שקיעה */
+  ssGo(t,true); }
+/* ניגון: מהזמן שעל הפס (או מלפני יומיים, אם עומדים על עכשיו) עד עכשיו. קצב בסיס ~2 שעות לשנייה;
+   ב-40 הדקות שסביב זריחה או שקיעה מאט עד ל-5 דקות לשנייה, ועל הרגע עצמו עוצר לשנייה וחצי */
+function ssStop(){ if(ssPlayRaf){ cancelAnimationFrame(ssPlayRaf); ssPlayRaf=0; } clearTimeout(ssHold); ssHold=0; if(SS.play){ SS.play.classList.remove('on'); SS.play.setAttribute('aria-label','נגן את היומיים האחרונים'); } }
+function ssPlay(){ if(ssPlayRaf||ssHold){ ssStop(); return; }
+  var now=Date.now(), cur=tsLive(); if(now-cur<5*60000) cur=Math.max(SS_T0,ssCovStart());
+  ssGo(cur); SS.play.classList.add('on'); SS.play.setAttribute('aria-label','עצירה');
+  var t=tsLive(), last=performance.now(), done={};
+  SS_EV.forEach(function(e){ if(e.t<=t) done[e.t]=1; });
+  (function step(){ var p=performance.now(), dt=Math.min(0.25,(p-last)/1000); last=p;
+    var e=null, bd=Infinity; SS_EV.forEach(function(q){ var d=Math.abs(q.t-t); if(d<bd){ bd=d; e=q; } });
+    var k=bd<40*60000?(bd/(40*60000)):1, v=7200000*(0.042+0.958*k*k), nt=t+v*dt;
+    if(e&&!done[e.t]&&t<e.t&&nt>=e.t){ done[e.t]=1; t=e.t; ssGo(t); ssPlayRaf=0;
+      ssHold=setTimeout(function(){ ssHold=0; last=performance.now(); ssPlayRaf=requestAnimationFrame(step); },1500); return; }
+    t=nt; if(t>=Date.now()){ ssGo(Date.now()); ssStop(); return; }
+    ssGo(t); ssPlayRaf=requestAnimationFrame(step); })(); }
+function logBuild(){ if(!ssOK()){ if(SS.box) SS.box.hidden=true; return; }
+  if(!SS.box._init){ SS.box._init=1;
+    SS.rng.addEventListener('input',ssInput);
+    /* המגנט רק באצבע או בעכבר: במקלדת כל לחיצה זזה צעד, ולא נתקעת על הסימן */
+    SS.rng.addEventListener('pointerdown',function(){ ssPtr=true; });
+    ['pointerup','pointercancel','blur'].forEach(function(n){ SS.rng.addEventListener(n,function(){ ssPtr=false; ssHeld=null; }); });
+    SS.rng.addEventListener('dblclick',function(){ ssStop(); ssGo(Date.now()); });
+    SS.play.addEventListener('click',ssPlay);
+    window.addEventListener('resize',function(){ ssBg=null; ssW=0; ssDraw(); });
+    setInterval(function(){ if(document.hidden||!LY_ON.log||ssPlayRaf||ssHold) return; ssSpan(); ssGo(tsLive()); },60000); }
+  ssSpan(); SS.rng.value=ssValOf(tsLive()); ssAria(tsLive()); requestAnimationFrame(ssDraw);
+  EXO.ss={ev:function(){ return SS_EV; }, go:ssGo, play:ssPlay, stop:ssStop};   /* לבדיקות */ }
+function logPaint(){ ssStop(); if(SS.rng) SS.rng.value=1000; ssDraw(); }
 function capLog(s,c,ps){ var e=$('capLog'); if(!e) return; var off=(LIVE&&EXO.clockOff)?EXO.clockOff():0, h;
-  if(Math.abs(off)<60000){ h='בחרו זמן למטה: ההדמיה תעבור לשם — הים, הרוח והאור של אותה שעה.'; }
-  else { var d=new Date(s.now), past=off<0;
-    h='<b class="n">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</b> · '+(past&&ps.src==='archive'?'היה ב־<b class="n">'+dmm(ps.lat,2,'N','S')+' '+dmm(ps.lon,3,'E','W')+'</b>':past?'בערך במקום שבו הוא עכשיו':'הצפוי במקום שבו הוא עכשיו');
+  if(Math.abs(off)<60000){ h='גררו את הפס שלמטה אחורה, עד יומיים: הים, הרוח והאור של אותה שעה. הסימנים הקטנים — זריחה ושקיעה.'; }
+  else { var d=new Date(s.now), past=off<0, se=past&&typeof ssAt==='function'?ssAt(s.now):null;
+    h=(se?'<b>'+(se.rise?'זריחה':'שקיעה')+'</b> · ':'')+'<b class="n">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC</b> · '+(past&&ps.src==='archive'?'היה ב־<b class="n">'+dmm(ps.lat,2,'N','S')+' '+dmm(ps.lon,3,'E','W')+'</b>':past?'בערך במקום שבו הוא עכשיו':'הצפוי במקום שבו הוא עכשיו');
     if(c&&!c.missing) h+='<br>רוח <b class="n">'+Math.round(c.wind)+' kn</b> · גל <b class="n">'+c.waveH.toFixed(1)+' m</b> · '+(past?'מהארכיון של מודל מזג האוויר':'תחזית, לא מדידה'); }
   if(e._h!==h){ e._h=h; e.innerHTML=h; } }
 
@@ -586,19 +670,53 @@ function faqData(){
     ['איך משתמשים באתר?','הדף הוא הדמיה של דניאל והסירה, במקום ובשעה האמיתיים. גוררים באצבע כדי להסתכל סביב — גם מתחת למים. העיגול בפינה פותח את הקטגוריות, וכל אחת מוסיפה משהו להדמיה: איפה הוא עכשיו, האזור, היומן (הים והרוח בשעות אחרות), המירוץ (הסירות הקרובות, באופק) והסיפור. כאן, ב״שאלות״, יש גם הגדרות: קול, מצב קל והתקנה כאפליקציה. התרחקות — צביטה באצבעות או גלגלת בעכבר — מובילה עד הגלובוס עם כל הצי.'],
     ['מה אני רואה — זה צילום?','לא. זה שחזור: המיקום מהמשדר, והרוח, הגלים, הזרם והעננים ממודל מזג אוויר לאותה נקודה ולאותה שעה. השמש והכוכבים מחושבים לפי המקום והזמן, והסירה מצוירת לפי תצלומים של אקסודוס. שום דבר כאן לא נמדד על הסירה עצמה.'],
     ['מי עומד מאחורי האתר, ואיך יוצרים קשר?','זה פרויקט עצמאי, לא אתר רשמי של המרוץ ולא של הצוות של דניאל. הקוד פתוח, ברישיון MIT. הערות, טעויות ורעיונות — <a href="https://github.com/exodus-log/exodus-log/issues" rel="noopener" target="_blank">דרך GitHub</a>.'],
-    ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a> ו<a href="'+EX+'" rel="noopener" target="_blank">האתר שלו</a>.']]}
+    ['מאיפה הנתונים?','מיקומים — <a href="https://pro.yb.tl/ggr2026/" rel="noopener" target="_blank">המעקב הרשמי של המרוץ</a> (YB Tracking). דיווחים — <a href="https://goldengloberace.com/" rel="noopener" target="_blank">אתר המרוץ</a>. רוח, גלים וזרמים — <a href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>, מודל ולא מדידה בסירה. כדור הארץ — NASA Blue Marble; קו החוף — Natural Earth; המפה — MapLibre. הכוכבים — קטלוג הכוכבים הבהירים של ייל; הירח — <a href="https://svs.gsfc.nasa.gov/4720" rel="noopener" target="_blank">NASA\'s Scientific Visualization Studio</a> (LRO); שביל החלב — <a href="https://www.eso.org/public/images/eso0932a/" rel="noopener" target="_blank">ESO/S. Brunier</a>, ברישיון <a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener" target="_blank">CC BY 4.0</a>. צבע השמיים מחושב מפיזור האור באוויר, לא מצולם. ועל דניאל: <a href="'+SK+'" rel="noopener" target="_blank">הדף שלו באתר המרוץ</a> ו<a href="'+EX+'" rel="noopener" target="_blank">האתר שלו</a>.']]}
   ]; }
 function faqBuild(){ if(faqBuilt||!faqEl) return; faqBuilt=true;
   var h=''; faqData().forEach(function(g){ h+='<details class="g"><summary>'+g.t+' <span class="c">'+g.q.length+'</span></summary><div>';
     g.q.forEach(function(q){ h+='<details class="q"><summary>'+q[0]+'</summary><p>'+q[1]+'</p></details>'; }); h+='</div></details>'; });
   $('faqBody').innerHTML=h;
   $('faqS').innerHTML='על המרוץ, על דניאל ועל האתר. המספרים של עכשיו — מנקודת הציון של '+faqFix()+'.'; }
-function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on) faqBuild();
+function setFaq(on){ faqOpen=!!on; if(!faqEl) return; if(on){ faqBuild(); if(wordsOpen) setWords(false); }
   faqEl.hidden=!on; document.body.classList.toggle('faq-open',faqOpen);
   [$('bFaq'),menuBtn,menuBtn2].forEach(function(b){ if(b) b.setAttribute('aria-expanded',on?'true':'false'); });
   if(on&&kbNav){ var f=faqEl.querySelector('summary'); if(f) try{ f.focus({preventScroll:true}); }catch(e){} } }
 if(faqEl){ $('faqX').addEventListener('click',function(){ setFaq(false); ($('bFaq')||keyEl).focus(); });
   document.addEventListener('pointerdown',function(ev){ if(faqOpen&&!faqEl.contains(ev.target)&&![$('bFaq'),keyEl,menuBtn,menuBtn2].some(function(b){ return b&&b.contains(ev.target); })) setFaq(false); },true); }
+/* ================= g01 (24.9): "מילים לדניאל" — חלונית עם טופס קצר. נפתחת מ"הסיפור", נסגרת מה-×, מ-Escape וממגע בחוץ.
+   השרת (functions/api/words.js) שומר את הזמן ואת מקום הסירה בעצמו, מ-data.js, ולא סומך על הדפדפן ================= */
+var wordsEl=$('words'), wordsOpen=false;
+function setWords(on){ wordsOpen=!!on; if(!wordsEl) return; if(on&&faqOpen) setFaq(false);
+  wordsEl.hidden=!on; document.body.classList.toggle('words-open',wordsOpen);
+  var b=$('bWords'); if(b) b.setAttribute('aria-expanded',on?'true':'false');
+  if(on){ var t=$('wordsTx'); if(t&&kbNav) try{ t.focus({preventScroll:true}); }catch(e){} } }
+if(wordsEl){
+  $('bWords').addEventListener('click',function(){ setWords(!wordsOpen); });
+  $('wordsX').addEventListener('click',function(){ setWords(false); $('bWords').focus(); });
+  document.addEventListener('pointerdown',function(ev){ if(wordsOpen&&!wordsEl.contains(ev.target)&&!$('bWords').contains(ev.target)) setWords(false); },true);
+  var wTx=$('wordsTx'), wGo=$('wordsGo'), wMsg=$('wordsMsg');
+  wTx.addEventListener('input',function(){ $('wordsC').textContent=wTx.value.length+'/500'; });
+  $('wordsF').addEventListener('submit',function(ev){ ev.preventDefault();
+    var text=wTx.value.trim(); if(text.length<2){ wMsg.textContent='צריך לכתוב משהו קודם.'; wTx.focus(); return; }
+    wGo.disabled=true; wMsg.textContent='שולח…';
+    fetch('/api/words',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:text,name:$('wordsNm').value.trim(),hp:$('wordsHp').value})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(x){ if(x.ok&&x.j&&x.j.ok){ wTx.value=''; $('wordsC').textContent='0/500'; wMsg.textContent='נשמר. תודה.'; }
+        else wMsg.textContent=(x.j&&x.j.error==='limit')?'אפשר לשלוח עד חמש הודעות ביום. מחר שוב.':'לא נשמר. אפשר לנסות שוב בעוד רגע.'; })
+      .catch(function(){ wMsg.textContent='לא נשמר — אין חיבור. אפשר לנסות שוב.'; })
+      .then(function(){ wGo.disabled=false; });
+  });
+}
+/* ================= l21 (24.9): שיתוף. משפט אחד שאדם ישלח כמו שהוא, והכתובת הראשית (גם מ-/next/) ================= */
+var shareBtn=$('shareBtn');
+if(shareBtn){ shareBtn.hidden=false;
+  shareBtn.addEventListener('click',function(){
+    var d={title:'יומן אקסודוס',text:'דניאל פינסקי מקיף את העולם לבד, בלי עצירה. כאן רואים איפה הוא עכשיו:',url:'https://exodus-log.com/'};
+    var ok=$('shareOk'), say=function(t){ ok.textContent=t; setTimeout(function(){ ok.textContent=''; },2200); };
+    if(navigator.share){ navigator.share(d).catch(function(){}); return; }
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(d.url).then(function(){ say('הקישור הועתק'); },function(){ say(d.url); });
+    else say(d.url);
+  }); }
 if(typeof STORY!=='undefined'&&STORY){ put('jLead',STORY);
   /* 23.9 (l19): משפט הסיפור חוזר למסך הראשון, מתחת לכותרת */
   put('capStoryT',STORY);
@@ -641,7 +759,18 @@ function goFull(){ var on=document.fullscreenElement||document.webkitFullscreenE
 (function(){ var b=$('bFull'), h=$('mHint'); if(b) b.hidden=!canFull||standalone;
   if(h){ if(standalone) h.hidden=true; else if(isIOS) h.textContent='באייפון: שיתוף ← ״הוספה למסך הבית״. מהסמל שנוצר היומן נפתח על כל המסך, כמו אפליקציה.';
     else h.textContent='אפשר להוסיף את היומן למסך הבית מתפריט הדפדפן, ואז הוא נפתח על כל המסך, כמו אפליקציה.'; } })();
-var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); installEv=e; var b=$('bInstall'); if(b) b.hidden=false; });
+var installEv=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); installEv=e; var b=$('bInstall'); if(b) b.hidden=false; var g=$('homeHintGo'); if(g) g.hidden=false; });
+/* a-home-hint (24.9): ספירת ביקורים בפתק מקומי — לכל היותר אחד ביום. בשלישי, פעם אחת בלבד, אחרי שהעיגול נולד */
+(function(){ var el=$('homeHint'); if(!el||standalone) return;
+  var today=new Date().toISOString().slice(0,10), last=store('exo.visitDay'), n=+(store('exo.visits')||0);
+  if(last!==today){ n++; store('exo.visits',String(n)); store('exo.visitDay',today); }
+  if(n<3||store('exo.homeHint')) return;
+  $('homeHintT').textContent=isIOS?'באייפון: שיתוף ← ״הוספה למסך הבית״':'אפשר להוסיף את היומן למסך הבית';
+  function hide(){ el.hidden=true; }
+  $('homeHintX').addEventListener('click',hide);
+  $('homeHintGo').addEventListener('click',function(){ if(installEv){ installEv.prompt(); installEv=null; } hide(); });
+  (function wait(){ if(!document.body.classList.contains('keyed')){ setTimeout(wait,500); return; }
+    setTimeout(function(){ if(!isIOS&&!installEv) $('homeHintT').textContent='אפשר להוסיף למסך הבית מתפריט הדפדפן'; store('exo.homeHint','1'); el.hidden=false; },2500); })(); })();
 
 /* ================= הגלובוס: שכבה קבועה על כל המסך =================
    MapLibre (1.1MB), קו החוף והשמות נטענים והגלובוס נבנה ברקע, מוסתר, כמה שניות אחרי הפריים הראשון (ב"מצב קל": רק כשמבקשים).
@@ -751,7 +880,7 @@ window.addEventListener('popstate',function(){ if(popSkip>0){ popSkip--; return;
 $('jBack').addEventListener('click',function(){ closeJourney(false); });
 $('mini').addEventListener('click',function(){ openJourney(); });
 if($('bJourney')) $('bJourney').addEventListener('click',function(){ setMenu(false); openJourney(); });
-document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
+document.addEventListener('keydown',function(ev){ if(ev.key==='Escape'){ if(wordsOpen){ setWords(false); ($('bWords')||keyEl).focus(); } else if(faqOpen){ setFaq(false); ($('bFaq')||keyEl).focus(); } else if(lyrIsOpen){ lyrOpen(false); keyEl.focus(); } else if(jOpen) closeJourney(false); else if(gOpen) closeGlobe(false); } });
 /* זום במקלדת: + ו-−. עד כה הגלובוס היה נגיש רק בצביטה או בגלגלת — כלומר ממקלדת, או מקורא
    מסך, לא היה אליו שום מסלול (נבדק ב-audit_keys.py: Tab, "-", PageDown, End, והתפריט).
    במקום לוגיקת זום חדשה, המקש שולח אירוע גלגלת אל המשטח הפעיל: אותו מסלול בדיוק, כולל
@@ -901,7 +1030,9 @@ if(LIVE&&EXO.setArchive&&typeof COND!=='undefined'&&COND.length) idle(function()
   Promise.all(L).then(function(A){ var rows=[];
     A.forEach(function(d){ if(d&&d.boats&&d.boats['4']) rows=rows.concat(d.boats['4']); });
     if(!rows.length) return;
-    EXO.setArchive(rows); tsSpan(); TS.rng.value=tsValOf(tsLive()); tsDraw(); }); },3000);
+    SS_TRACK=rows.filter(function(r){ return r[15]!=null&&r[16]!=null; }).map(function(r){ return [Date.parse(r[0]+'Z'),r[15],r[16]]; }).sort(function(a,b){ return a[0]-b[0]; });
+    EXO.setArchive(rows); tsSpan(); TS.rng.value=tsValOf(tsLive()); tsDraw();
+    if(LY_ON.log&&!ssPlayRaf&&!ssHold){ ssSpan(); ssGo(tsLive()); } else ssBg=null; }); },3000);
 vigTick(); setInterval(vigTick,60000); if(window.EXO) EXO.vigTick=vigTick;   /* נחשף לבדיקות: audit_contrast.py מזיז את השעון ישירות */
 /* קטלוג הכוכבים: רק אחרי שהסצנה כבר רצה. המנוע מזהה אותו לבד בפריים הבא; בלעדיו נשארים כוכבי הרעש */
 if(LIVE) idle(function(){ loadScript('assets/v2/stars.js').then(function(){ if(EXO.kick) EXO.kick(); }).catch(function(){}); },2600);
