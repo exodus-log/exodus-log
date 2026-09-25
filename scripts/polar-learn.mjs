@@ -146,7 +146,7 @@ for (let i = COURSE.length - 2; i >= 0; i--) CUM[i] = CUM[i + 1] + dist(COURSE[i
 function nextNode(dtf, lat, lon) {
   let best = 1e9, k = 0;
   for (let i = 0; i < COURSE.length - 1; i++) {
-    if (Math.abs(CUM[i] - dtf) > 400) continue;
+    if (dtf > CUM[i] + 400 || dtf < CUM[i + 1] - 400) continue;      /* 25.9: כמו ב-forecast.mjs — המקטע מתאים אם ה-dtf בתוכו, לא רק ליד תחילתו */
     const a = COURSE[i], b = COURSE[i + 1], seg = dist(a.lat, a.lon, b.lat, b.lon);
     const d = dist(lat, lon, a.lat, a.lon) + dist(lat, lon, b.lat, b.lon) - seg;   /* 0 על הקטע עצמו */
     if (d < best) { best = d; k = i + 1; }
