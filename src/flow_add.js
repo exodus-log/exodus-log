@@ -97,10 +97,14 @@ function crestLines(c,t,dt,eye){
    הגוף מתפתל, והראש (חץ פתוח ומעוגל, כמו בסמל הכפתור) מצביע תמיד ישר אל c.curDir.
    אותה מהירות בכל העומקים: אין נתון על גזירה בעומק ולא ממציאים. */
 var CUR_DEPTH=[1.0,4.0,9.0];
+/* 24.9 (רשימת הממשק, סעיף 9): מעל המים הזרם כמעט לא נראה — סרט אחד, מטר מתחת לפני הים, שפונה אל המצלמה ("עומד").
+   עכשיו, כשמסתכלים מעל המים, החיצים שוכבים על פני הים, מקבילים להם, עבים וברורים יותר. מתחת למים — כמו קודם */
+var CUR_FLAT=false;
 function curStroke(ax,ay,az,bx,by,bz,eye,w,a,sh){                 /* קטע עבה שפונה אל המצלמה, עם קצה מעוגל ב-b */
   var dx=bx-ax, dy=by-ay, dz=bz-az, ex=eye[0]-ax, ey=eye[1]-ay, ez=eye[2]-az;
-  var cx=dy*ez-dz*ey, cy=dz*ex-dx*ez, cz=dx*ey-dy*ex, cl=Math.sqrt(cx*cx+cy*cy+cz*cz); if(cl<1e-6) return;
-  cx*=w/cl; cy*=w/cl; cz*=w/cl; if(cy<0){ cx=-cx; cy=-cy; cz=-cz; }                     /* c מצביע תמיד כלפי מעלה */
+  var cx=dy*ez-dz*ey, cy=dz*ex-dx*ez, cz=dx*ey-dy*ex; if(CUR_FLAT){ cx=-dz; cy=0; cz=dx; }      /* שוכב: הרוחב אופקי */
+  var cl=Math.sqrt(cx*cx+cy*cy+cz*cz); if(cl<1e-6) return;
+  cx*=w/cl; cy*=w/cl; cz*=w/cl; if(!CUR_FLAT&&cy<0){ cx=-cx; cy=-cy; cz=-cz; }                     /* c מצביע תמיד כלפי מעלה */
   var ci0=1+0.45*Math.max(0,sh-0.12), ci1=1+0.45*Math.min(1,sh+0.30);
   fv(ax+cx,ay+cy,az+cz,a,ci0); fv(ax,ay,az,a,(ci0+ci1)/2); fv(bx,by,bz,a,(ci0+ci1)/2);
   fv(ax+cx,ay+cy,az+cz,a,ci0); fv(bx,by,bz,a,(ci0+ci1)/2); fv(bx+cx,by+cy,bz+cz,a,ci0);
@@ -116,9 +120,10 @@ function curRibbon(tr,eye,w,a,sh){
   for(k=0;k<n;k++){
     var f=k/(n-1), k0=Math.max(0,k-1), k1=Math.min(n-1,k+1), X=tr.x[k], Y=tr.y[k], Z=tr.z[k];
     var dx=tr.x[k1]-tr.x[k0], dy=tr.y[k1]-tr.y[k0], dz=tr.z[k1]-tr.z[k0], ex=eye[0]-X, ey=eye[1]-Y, ez=eye[2]-Z;
-    var cx=dy*ez-dz*ey, cy=dz*ex-dx*ez, cz=dx*ey-dy*ex, cl=Math.sqrt(cx*cx+cy*cy+cz*cz); if(cl<1e-6){ have=false; continue; }
+    var cx=dy*ez-dz*ey, cy=dz*ex-dx*ez, cz=dx*ey-dy*ex; if(CUR_FLAT){ cx=-dz; cy=0; cz=dx; }
+    var cl=Math.sqrt(cx*cx+cy*cy+cz*cz); if(cl<1e-6){ have=false; continue; }
     var wk=w*(0.22+0.78*Math.pow(f,0.6))/cl; cx*=wk; cy*=wk; cz*=wk;
-    if(have?(cx*lx+cy*ly+cz*lz<0):(cy<0)){ cx=-cx; cy=-cy; cz=-cz; }            /* הצד הבהיר נשאר באותו צד לאורך כל הסרט */
+    if(have?(cx*lx+cy*ly+cz*lz<0):(!CUR_FLAT&&cy<0)){ cx=-cx; cy=-cy; cz=-cz; }            /* הצד הבהיר נשאר באותו צד לאורך כל הסרט */
     var ak=a*Math.pow(f,1.4);
     if(have){
       fv(px+lx,py+ly,pz+lz,pa,ci0); fv(px,py,pz,pa,cm); fv(X,Y,Z,ak,cm);
@@ -136,7 +141,7 @@ function buildCurrent(c,t,dt,eye){
   var str=sst(0.08,1.0,c.cur), gain=(LAB.curGain==null?1:LAB.curGain), thin=(LAB.curThin==null?1:LAB.curThin);
   var n=Math.round(NCUR*(lite?0.5:1));
   /* מהירות הזחילה מוגזמת פי כמה כדי שתיראה; היחס בין זרם חלש לחזק נשמר */
-  var crawl=cspd;
+  var crawl=cspd; CUR_FLAT=!under;
   var fxd=Math.sin(cr), fzd=-Math.cos(cr), cnx=Math.cos(cr), cnz=Math.sin(cr);
   for(i=0;i<n;i++){ p=PC[i];
     var ly=lite?0:(i%3), dep=CUR_DEPTH[ly]*(0.85+0.3*h1(i*7.3));
@@ -149,22 +154,22 @@ function buildCurrent(c,t,dt,eye){
     var wy=Math.exp(-dep/6);                                        /* תנועת הגל דועכת עם העומק */
     for(k=CSEG;k>=0;k--){ var q=1-k/CSEG, straight=sst(0,0.30,q);      /* שלושת המקטעים שליד הראש מתיישרים: הגוף מתפתל, הראש לא */
       var so=0.42*Math.sin(k*0.80-t*(0.9+crawl*1.4)+p.ph)*straight;
-      tr.x[k]=x+cnx*so; tr.z[k]=z+cnz*so; tr.y[k]=waveY(x,z,t)*0.55*wy-dep+0.10*Math.sin(k*0.55+p.ph*2.0)*straight;
+      tr.x[k]=x+cnx*so; tr.z[k]=z+cnz*so; tr.y[k]=CUR_FLAT?(waveY(x,z,t)+0.06):(waveY(x,z,t)*0.55*wy-dep+0.10*Math.sin(k*0.55+p.ph*2.0)*straight);
       x-=fxd*0.95; z-=fzd*0.95; }
     var fade2=Math.min(1,p.age/2.0)*Math.min(1,(p.life-p.age)/2.6), edg2=Math.min(1,2.4*(1-rr2/p.R));
     var dcam=Math.hypot(eye[0]-p.px,eye[2]-p.pz);
-    var base=(under?[0.60,0.50,0.40][ly]:0.34)*(0.46+0.54*str)*gain;
+    var base=(under?[0.60,0.50,0.40][ly]:0.62)*(0.46+0.54*str)*gain;
     var d3=Math.sqrt(dcam*dcam+(eye[1]-(-dep))*(eye[1]-(-dep)));
     a=base*fade2*edg2*Math.max(0,Math.min(1,1.25-dcam/(under?52:64)))*sst(2.5,7.0,d3); if(a<0.012) continue;      /* סרט שעובר ממש מול העין נמוג */
-    var hw=(0.125+0.090*h1(i*3.9))*(1+0.10*ly)*(0.78+0.22*str)*thin, sh=[0.0,0.42,0.80][ly];   /* חצי עובי: כ-0.18 עד 0.30 מ' עובי מלא */
+    var hw=(0.125+0.090*h1(i*3.9))*(1+0.10*ly)*(0.78+0.22*str)*thin*(CUR_FLAT?2.0:1), sh=[0.0,0.42,0.80][ly];   /* חצי עובי: כ-0.18 עד 0.30 מ' עובי מלא */
     curRibbon(tr,eye,hw,a,sh);
     /* הראש קטן ודק מהגוף. קודם הוא היה עבה ממנו, ושתי הזרועות נפגשו באותו פיקסל — ובמיזוג מצטבר
        הן הכפילו את עצמן והראש יצא כתם מלא במקום חץ. */
     var hx=tr.x[CSEG], hy=tr.y[CSEG], hz=tr.z[CSEG], HL=(0.70+0.95*str)+hw*2.2, HWd=(0.50+0.55*str)+hw*1.6, tx=hx+fxd*0.55, tz=hz+fzd*0.55;
     /* הראש: חץ פתוח. הזרועות במישור האופקי כשמסתכלים מלמעלה, ובמישור האנכי כשמסתכלים מהצד, כך שהוא נקרא מכל זווית */
-    var vy=Math.abs(eye[1]-hy), vh=Math.hypot(eye[0]-hx,eye[2]-hz), kv=sst(0.35,1.1,vy/Math.max(0.5,vh));
+    var vy=Math.abs(eye[1]-hy), vh=Math.hypot(eye[0]-hx,eye[2]-hz), kv=CUR_FLAT?1:sst(0.35,1.1,vy/Math.max(0.5,vh));
     var ox=cnx*HWd*kv, oz=cnz*HWd*kv, oy=HWd*(1-kv);
     curStroke(hx,hy,hz,tx,hy,tz,eye,hw*0.85,a*0.9,sh);
     curStroke(tx-fxd*HL+ox,hy+oy,tz-fzd*HL+oz,tx,hy,tz,eye,hw*0.62,a*0.72,sh);
     curStroke(tx-fxd*HL-ox,hy-oy,tz-fzd*HL-oz,tx,hy,tz,eye,hw*0.62,a*0.72,sh); }
-}
+  CUR_FLAT=false; }

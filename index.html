@@ -81,7 +81,7 @@
 @media (min-width:1441px){ :root{ --edge:22px; --gut:14px } }
 *{box-sizing:border-box}
 html,body{height:100%}
-html{background:var(--ground);-webkit-text-size-adjust:100%}
+html{background:var(--ground);-webkit-text-size-adjust:100%;touch-action:manipulation}      /* 24.9 (סעיף 3): לחיצה כפולה לא מגדילה את הדף — היא שייכת לסירה */
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--ui);overflow:hidden;overscroll-behavior:none}
 [hidden]{display:none!important}
 #stage{position:fixed;left:0;top:0;width:100%;height:100vh;height:100dvh;background:linear-gradient(#0b2233,#06121b 58%,#0a2a3a);overflow:hidden;
@@ -147,7 +147,7 @@ body.more .vit>#vDayW+span::before{display:none}
 #moreBtn:focus-visible::before,#menuBtn2:focus-visible::before{outline:2px solid #fff;outline-offset:2px}
 body.more #menuBtn2{display:none}
 /* המסך הראשון (בלי "עוד"): ההדמיה, הכותרת וארבעה מספרים. כל השאר מחכה מאחורי הכפתור */
-body:not(.more) #hudBand,body:not(.more) #hudDot,body:not(.more) .mini,body:not(.more) .vw,body:not(.more) .tstrip,
+body:not(.more) #hudBand,body:not(.more) #hudDot,body:not(.more) .mini,body:not(.more) .tstrip,
 body:not(.more) .lay,body:not(.more) #sndBtn{display:none!important}
 /* בלי רצועת הזמן השורה יורדת לתחתית */
 body:not(.more){--e-b:calc(12px + env(safe-area-inset-bottom,0px))}
@@ -173,19 +173,22 @@ body.hfold .topr{opacity:0;transform:translateY(-10px);visibility:hidden;pointer
   padding:var(--e-t) calc(var(--e-r) + 32px) 18px var(--e-l);text-shadow:var(--shd,var(--sh));
   background:linear-gradient(to bottom,rgba(4,12,19,.58),rgba(4,12,19,.34) 64%,rgba(4,12,19,0));
   transition:opacity .28s ease,visibility 0s}
-.lead-t{margin:0;font:500 19px/1.3 var(--ui);color:var(--ink);letter-spacing:.005em;max-width:46em;text-wrap:balance}
-.lead-t span{font-weight:400;color:var(--ink2d)}
+.lead-t{margin:0;font:500 24px/1.25 var(--ui);color:var(--ink);letter-spacing:.005em}
+.lead-t span{display:block;white-space:nowrap}      /* שתי שורות תמיד: כל חצי בשורה משלו, ואף אחד לא נשבר */
+/* העלייה: מחלש לחזק, עם תזוזה קטנה כלפי מעלה. .up נוסף ב-JS בפריים הראשון */
+.lead:not(.up):not(.suck){opacity:0;transform:translateY(8px)}
+.lead.up:not(.suck){transition:opacity 1.9s cubic-bezier(.25,.1,.25,1),transform 1.9s cubic-bezier(.2,.7,.2,1),visibility 0s}
 .lead-s{margin:5px 0 0;font:400 14px/1.45 var(--ui);color:var(--ink2d);max-width:46em;pointer-events:auto;cursor:pointer}
 .lead-t b{font-weight:inherit}
 .lead-s:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:2px}
 body.more:not(.hfold) .lead,body.g-open .lead{opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s}
 @media (max-width:700px){
-  .lead-t{font-size:16px} .lead-s{font-size:13px;margin-top:4px}
+  .lead-t{font-size:20px} .lead-s{font-size:13px;margin-top:4px}
   /* בטלפון לאורך המשפט עד שלוש שורות, לרוחב שורה אחת (אחרת הוא יושב על המפרשים); נגיעה פותחת את כולו */
   .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 }
 @media (max-height:520px){
-  .lead{padding-bottom:12px} .lead-t{font-size:15px} .lead-s{font-size:12.5px;margin-top:3px}
+  .lead{padding-bottom:12px} .lead-t{font-size:18px} .lead-s{font-size:12.5px;margin-top:3px}
   .lead-s:not(.open){display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 }
 body.hfold #hudDot::before{animation:hdGlow 3.4s ease-in-out infinite}
@@ -209,6 +212,9 @@ body.keyed.key-born #key i{animation:keyBorn 2.3s ease-out both}
 @keyframes keyBorn{0%{transform:scale(.2);opacity:.3}14%{transform:scale(1.5);opacity:1}24%{transform:scale(1)}
   38%{opacity:.25}50%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}
   64%{opacity:.25}76%{opacity:1;box-shadow:0 0 8px 3px rgba(143,227,222,1),0 0 26px 10px rgba(143,227,222,.55)}100%{opacity:1}}
+/* 24.9 (סעיף 2): תזכורת שקטה — כל 12 שניות הבהוב חלש ועדין של כשנייה, רק כשהעיגול סגור ואין תנועה אחרת */
+body.keyed:not(.key-born):not(.lyr-open) #key i{animation:keyIdle 12s ease-in-out 3s infinite}
+@keyframes keyIdle{0%,90%,100%{box-shadow:0 0 5px 1px rgba(143,227,222,.85),0 0 16px 5px rgba(143,227,222,.32)}95%{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}}
 #key:hover i,#key[aria-expanded=true] i{box-shadow:0 0 7px 2px rgba(143,227,222,1),0 0 22px 8px rgba(143,227,222,.5)}
 #key:focus-visible{outline:none} #key:focus-visible i{outline:2px solid #fff;outline-offset:5px}
 body.g-open #key{display:none}
@@ -228,7 +234,7 @@ body:not(.keyed) #shareBtn,body.lyr-open #shareBtn,body.g-open #shareBtn,body.j-
 .hud.vit>span+span::before{content:"·";display:inline;width:auto;height:auto;background:none;margin:0 .6em;color:var(--ink3d);vertical-align:0}
 .vit>#vAgeW.stale{color:#ffb3a8}
 @media (max-width:700px){ .hud.vit>span+span::before{display:inline!important} .vit{font-size:11.5px;gap:2px 0} .vit b{font-size:12px} }
-@media (prefers-reduced-motion:reduce){ .lead.suck{transition:none} body.keyed.key-born #key i{animation:none} }
+@media (prefers-reduced-motion:reduce){ .lead.suck{transition:none} body.keyed.key-born #key i,body.keyed #key i{animation:none!important} .lead:not(.up):not(.suck){opacity:1;transform:none} .lead.up{transition:none} }
 
 /* ===== l23 מנה 2: התפריט העליון והשכבות ===== */
 #lyr{position:absolute;z-index:7;top:calc(var(--e-t) - 15px);right:calc(var(--e-r) + 26px);left:calc(var(--e-l) - 6px);height:44px;
@@ -243,25 +249,34 @@ body:not(.keyed) #shareBtn,body.lyr-open #shareBtn,body.g-open #shareBtn,body.j-
 #lyr button[aria-pressed=true]::after,#lyr button[aria-expanded=true]::after{opacity:1;transform:none}
 #lyr button:hover{color:var(--ink)}
 #lyr button:focus-visible{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
-#lyr button#bFaq{margin-inline-start:auto}
 body.g-open #lyr,body.g-open #lyCap,body.j-open #lyr{display:none}
 /* מעט מלל ליד הסימנים: מתחת לתפריט, מימין. רק של השכבות הדולקות */
 #lyCap{position:absolute;z-index:6;top:calc(var(--e-t) + 34px);right:var(--e-r);left:var(--e-l);pointer-events:none;text-shadow:var(--shd,var(--sh))}
 #lyCap .cap{display:none;margin:0 0 6px;max-width:34em;font:400 12.5px/1.45 var(--ui);color:var(--ink2d)}
 #lyCap .cap b{color:var(--ink);font-weight:400}
 #lyCap .cap .n{font-size:1.02em}
-body.ly-now #lyCap .cap-now,body.ly-race #lyCap .cap-race,body.ly-story #lyCap .cap-story{display:block}
+body.ly-pos #lyCap .cap-pos,body.ly-nat #lyCap .cap-nat,body.ly-race #lyCap .cap-race,body.ly-ahead #lyCap .cap-ahead,body.ly-story #lyCap .cap-story{display:block}
 body:not(.lyr-open) #lyCap{top:calc(var(--e-t) + 20px);right:calc(var(--e-r) + 30px)}
 #lyCap .cap-story p{margin:0}
 #capStoryT{font-size:13px;color:var(--ink)}
 .cap-links{margin-top:6px!important;pointer-events:auto}
 .cap-links button,.cap-links a{display:inline-block;margin:0 0 0 14px;padding:13px 0;min-height:44px;box-sizing:border-box;border:0;background:none;color:var(--ink);font:500 12.5px var(--ui);
   text-decoration:underline;text-decoration-color:rgba(225,236,243,.45);text-underline-offset:3px;cursor:pointer}
-body.t-past #capNow .tv{color:var(--tpast)} body.t-fut #capNow .tv{color:var(--tfut)}
+body.t-past #capPos .tv,body.t-past #capNat .tv{color:var(--tpast)} body.t-fut #capPos .tv,body.t-fut #capNat .tv{color:var(--tfut)}
+#lyCap .cap p{margin:0}
+#lyCap .cap-pos>p+div,#lyCap .cap-nat>p+p{margin-top:4px}
+/* מתגים: שורה אחת של כפתורים עם נקודה (דולק/כבוי) והנתון של הרגע. אזור מגע 44 */
+.cap-sw{display:flex;flex-wrap:wrap;gap:0 14px;margin:0!important;pointer-events:auto}
+.sw{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0;border:0;background:none;color:var(--ink2d);font:400 12.5px var(--ui);cursor:pointer;text-shadow:var(--shd,var(--sh));-webkit-tap-highlight-color:transparent}
+.sw i{flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:50%;border:1.5px solid currentColor;transition:background-color .2s}
+.sw[aria-pressed=true]{color:var(--ink)} .sw[aria-pressed=true] i{background:#eefcfb;border-color:#eefcfb;box-shadow:0 0 4px 1px rgba(143,227,222,.7)}
+.sw b{font-weight:400;color:inherit} .sw:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:4px}
+#lyCap .cap-links{margin-top:0!important}
 /* הסימנים שעל ההדמיה: שייכים לשכבות. .deg ו-.dat — "איפה הוא עכשיו"; המשואה — "האזור"; הסירות באופק — "המירוץ" */
-body:not(.ly-now) #labels .deg,body:not(.ly-now) #labels .dat.wind,body:not(.ly-now) #labels .dat.wave,body:not(.ly-now) #labels .dat.cur{display:none!important}
-body:not(.ly-area) #labels .beacon{display:none!important}
-body:not(.ly-race) #labels .fb{display:none!important}
+/* 24.9: הטבעת ותוויות המים — "תנאי הטבע"; המשואה — "המרוץ"; הסימנים שבשולי המסך ירדו לטובת הרדאר */
+body:not(.ly-nat) #labels .deg,body:not(.ly-nat) #labels .dat.wind,body:not(.ly-nat) #labels .dat.wave,body:not(.ly-nat) #labels .dat.cur,body.rose-off #labels .deg{display:none!important}
+body:not(.ly-race) #labels .beacon{display:none!important}
+#labels .fb{display:none!important}
 .lb.fb{color:var(--ink2d);font-size:11.5px;text-align:center;padding-bottom:22px}
 .lb.fb::after{content:"";position:absolute;left:50%;bottom:0;width:1px;height:16px;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0))}
 .lb.fb.edge{padding:0}
@@ -272,7 +287,7 @@ body:not(.ly-race) #labels .fb{display:none!important}
 /* "היומן": רצועת הזמן הישנה (שבוע, עבר ועתיד, קווי גרף) לא מוצגת — הקוד שלה נשאר, הוא מזיז את השעון. במקומה (a12) פס של 48 שעות אחורה, מעל השורה הדקה */
 .tstrip{display:none!important}
 .ss{position:absolute;z-index:6;left:var(--e-l);right:var(--e-r);bottom:calc(var(--bot) + 2px);max-width:680px;margin:0 auto;height:44px;display:none;align-items:center;gap:4px;direction:ltr}
-body.ly-log .ss{display:flex} .ss[hidden]{display:none!important}
+body.ly-story .ss{display:flex} .ss[hidden]{display:none!important}
 body.g-open .ss,body.j-open .ss{display:none!important}
 #ssPlay{flex:none;width:44px;height:44px;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
 #ssPlay svg{display:block;width:26px;height:26px;margin:auto;overflow:visible}
@@ -285,9 +300,8 @@ body.g-open .ss,body.j-open .ss{display:none!important}
 .ss-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:44px;background:transparent}
 .ss-bar input[type=range]::-moz-range-thumb{width:30px;height:44px;border:0;background:transparent}
 .ss-bar:focus-within{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
-body.ly-log #lyCap .cap-log{display:block}
+body.ly-story #lyCap .cap-log{display:block}
 /* "האזור" (מנה 5): מעט על המקום — מה ידוע עליו, ממקור שמקושר בסוף כל פסקה */
-body.ly-area #lyCap .cap-area{display:block}
 #capArea p{margin:0 0 5px}
 #capArea .t{color:var(--ink);font-weight:500}
 #capArea .k{font-size:10.5px;color:var(--ink3d);border:1px solid rgba(225,236,243,.28);border-radius:3px;padding:0 4px;margin-inline-start:4px;white-space:nowrap}
@@ -296,14 +310,33 @@ body.ly-area #lyCap .cap-area{display:block}
 @media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
 body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
 /* מספר בתוך משפט — בגופן הטקסט (כמו בשורה הדקה וב"שאלות"): בגופן המכשירים נראה רווח מדומה אחרי הנקודה והנקודתיים */
-#capLog .n{font-family:var(--ui);letter-spacing:0}
+#capLog .n,#capPos .n,#capNat .n,#capAhead .n,#radarCap .n,.sw .n{font-family:var(--ui);letter-spacing:0}      /* מספר בתוך משפט — בגופן הטקסט (24.9) */
 @media (max-width:420px){ #lyr button{padding:0 6px;font-size:12.5px} }
+/* 24.9: חמש קטגוריות. בטלפון כל שם בשתי שורות קצרות (נשבר ברווח) — כך הכול נכנס מ-320 בלי גלילה ובלי לקצר שמות */
+@media (max-width:600px){ #lyr{justify-content:space-between} #lyr button{white-space:normal;width:min-content;line-height:1.12;text-align:center;padding:0 4px} #lyr button::after{bottom:1px} }
 /* 24.9: שש קטגוריות נכנסות ברוחב בלי גלילה מ-360 פיקסלים (נמדד). מתחת ל-380 הריווח מצטמצם; אזור המגע נשאר 44.
    ההדהייה בקצה השמאלי — רק כשבאמת יש מה לגלול (.ovf, נמדד ב-hud.js), כדי שהכפתור האחרון לא יידהה סתם */
 @media (max-width:380px){ #lyr button{padding:0 3px;font-size:12px} }
 /* מתחת ל-340 (אייפון SE הראשון, 320): "איפה הוא עכשיו" בשתי שורות — כך גם שם הכול נכנס, בלי לקצר שם ובלי יעד קטן מ-44 */
-@media (max-width:340px){ #lyr button[data-l="now"]{width:52px;padding:0;font-size:11.5px;white-space:normal;line-height:1.15} #lyr button[data-l="now"]::after{bottom:2px} }
 #lyr:not(.ovf){mask-image:none;-webkit-mask-image:none}
+/* 24.9 (סעיף 10): רדאר המרוץ — בתחתית, באמצע, מעל השורה הדקה (ובגלובוס מעל ציר הזמן) */
+#radar{position:absolute;z-index:6;left:50%;bottom:calc(var(--botv,40px) + 2px);transform:translateX(-50%);margin:0;width:var(--rdS,240px);pointer-events:none;text-shadow:var(--shd,var(--sh))}
+body.g-open #radar{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+body.j-open #radar,body.faq-open #radar,body.words-open #radar{display:none}
+#radar svg{display:block;width:100%;height:auto;overflow:visible}
+#radar .rg{fill:rgba(4,12,19,.38);stroke:rgba(225,236,243,.5);stroke-width:1}
+#radar .rr{fill:none;stroke:rgba(225,236,243,.22);stroke-width:1;stroke-dasharray:2 3}
+#radar .rl{font:400 9.5px var(--ui);fill:var(--ink3d)}
+#radar text{direction:rtl;unicode-bidi:plaintext}
+#radar .bt.far{fill:none;stroke:#eef4f7;stroke-width:1.2}
+#radar .rc{font:500 10px var(--ui);fill:var(--ink2d)}
+#radar .me{fill:#ff8a3c;stroke:#fff;stroke-width:1.2}
+#radar .bt{fill:#eef4f7;stroke:rgba(3,10,16,.8);stroke-width:1}
+#radar .lb1{font:500 10.5px var(--ui);fill:var(--ink)} #radar .lb2{font:400 9.5px var(--ui);fill:var(--ink2d)}
+#radar .lbg{paint-order:stroke;stroke:rgba(3,10,16,.85);stroke-width:3px;stroke-linejoin:round}
+#radar .rn{font:500 10px var(--ui);fill:var(--ink2d)} #radar .rn.hi{fill:var(--ink)}
+#radarCap{margin:2px auto 0;width:max-content;max-width:calc(100vw - 28px);font:400 11px/1.35 var(--ui);color:var(--ink2d);text-align:start}
+#radarCap>span{display:block;white-space:nowrap} #radarCap b{display:inline-block;min-width:1.4em;color:var(--ink);font-weight:500} #radarCap .rme{color:var(--ink3d);font-size:10.5px;white-space:normal}
 /* "שאלות" (l26): חלונית קריאה מתחת לתפריט, מימין — שם מתחילים לקרוא. עד מעל השורה הדקה, ונגללת בתוכה.
    שתי רמות קיפול: קבוצה, ובתוכה שאלה. כל שורה שנוגעים בה — לפחות 44 פיקסלים */
 body.faq-open #lyCap,body.words-open #lyCap{visibility:hidden}
@@ -425,6 +458,9 @@ body.t-fut #hDay,body.t-fut #hDate,body.t-fut .topr .r2 b,body.t-fut .topr .r3 b
 .vw button:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:2px;border-radius:3px}
 .vw-knob{position:absolute;left:4.5px;top:0;width:9px;height:9px;box-sizing:border-box;border:1px solid rgba(255,255,255,.85);border-radius:50%;pointer-events:none;will-change:transform}
 body.j-open .vw{display:none}
+/* 24.9: מופיע רק בזמן זום (body.vw-show, נקבע ב-hud.js), ונמוג לאט. במקלדת (פוקוס בתוכו) — נשאר */
+.vw{opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s .6s;z-index:7}
+body.vw-show .vw,.vw:focus-within{opacity:1;visibility:visible;transition:opacity .18s ease,visibility 0s}
 /* טלפון לרוחב: אין גובה לאמצע המסך — הסרגל נשען מעל מפת המיקומים, בצפיפות, וסרגל קנה המידה מעליו */
 @media (max-height:520px){
   .vw{top:auto;transform:none;bottom:calc(var(--row2) + var(--ms) + 14px)}
@@ -630,20 +666,23 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
 #globeLayer .g-ui #gBack{min-height:44px;padding:0 8px;border:0;border-radius:0;background:none;color:var(--ink2d);font:400 13px/1 var(--ui);text-shadow:var(--shd,var(--sh))}
 #globeLayer .g-ui #gBack:hover{color:var(--ink);background:none}
 #globeLayer .g-ui #gBack::before{content:"›";margin-inline-end:.4em;font-size:1.25em;vertical-align:-.06em}
-#globeLayer .g-scrub{left:0!important;right:0!important;bottom:env(safe-area-inset-bottom,0px)!important;top:auto!important;height:40px;padding:0!important;gap:0!important;display:block}
-#globeLayer .g-scrub .sc-track{position:absolute;left:0;right:0;bottom:0;height:40px;padding:0}
-#globeLayer .g-scrub input[type=range]{position:absolute;left:0;right:0;bottom:0;width:100%;height:30px}
-#globeLayer .g-scrub input[type=range]::-webkit-slider-runnable-track{height:1px}
-#globeLayer .g-scrub input[type=range]::-webkit-slider-thumb{width:9px;height:9px;margin-top:-4px}
-#globeLayer .g-scrub input[type=range]::-moz-range-thumb{width:9px;height:9px}
+/* 24.9 (סעיף 5): הקו הוגבה ועובה טיפה — קודם 1 פיקסל צמוד לתחתית ולא ראו אותו. ה-play עבר לצד הקו, באותו גובה, בתוך עיגול */
+#globeLayer .g-scrub{left:0!important;right:0!important;bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;top:auto!important;height:48px;padding:0!important;gap:0!important;display:block}
+#globeLayer .g-scrub .sc-track{position:absolute;left:calc(var(--e-l) + 40px);right:var(--e-r);bottom:14px;height:34px;padding:0}
+#globeLayer .g-scrub input[type=range]{position:absolute;left:0;right:0;bottom:0;width:100%;height:34px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px}
+#globeLayer .g-scrub input[type=range]::-moz-range-track{height:3px;border-radius:2px}
+#globeLayer .g-scrub input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-5px}
+#globeLayer .g-scrub input[type=range]::-moz-range-thumb{width:13px;height:13px}
 #globeLayer .g-scrub .sc-ticks{display:none}
-/* play: קטן, בלי עיגול, יושב על הקו בקצה שבו המסע מתחיל */
-#globeLayer .g-scrub button#scPlay{position:absolute;z-index:2;left:calc(var(--e-l) - 12px);bottom:12px;width:44px;height:44px;border:0;border-radius:0;background:none;color:var(--ink)}
-#globeLayer .g-scrub button#scPlay svg{width:13px;height:13px;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
+/* play: לצד הקו, מרכזו בגובה הקו, עיגול דק סביבו. אזור המגע 44 */
+#globeLayer .g-scrub button#scPlay{position:absolute;z-index:2;left:calc(var(--e-l) - 8px);bottom:9px;width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--ink)}
+#globeLayer .g-scrub button#scPlay::before{content:"";position:absolute;left:8px;top:8px;width:28px;height:28px;box-sizing:border-box;border-radius:50%;border:1.5px solid rgba(225,236,243,.75);background:rgba(7,17,26,.35);box-shadow:0 0 4px rgba(3,10,16,.7)}
+#globeLayer .g-scrub button#scPlay svg{position:relative;width:13px;height:13px;filter:drop-shadow(0 0 2px rgba(3,10,16,.9))}
 #globeLayer .g-scrub button#scPlay:hover{background:none;color:#fff}
-#globeLayer .g-scrub button#scPlay:focus-visible{outline:2px solid #fff;outline-offset:-10px}
+#globeLayer .g-scrub button#scPlay:focus-visible{outline:2px solid #fff;outline-offset:-6px}
 /* "עכשיו": שנתה קטנה על הקו. מעבר לה הקו חיוור */
-#globeLayer .sc-now{position:absolute;bottom:10px;width:1px;height:9px;margin-left:-.5px;background:#f2f6f8;pointer-events:none;box-shadow:0 0 3px rgba(3,10,16,.9)}
+#globeLayer .sc-now{position:absolute;bottom:11px;width:2px;height:12px;margin-left:-1px;background:#f2f6f8;pointer-events:none;box-shadow:0 0 3px rgba(3,10,16,.9)}
 /* מתחת לקו: רק תאריך קטן שזז עם נקודת הנגינה */
 #globeLayer .g-scrub output{position:absolute;bottom:0;right:auto;min-width:0;padding:0;transform:translateX(-50%);font-size:10.5px;line-height:12px;color:var(--ink2d);white-space:nowrap;pointer-events:none;text-shadow:var(--sh)}
 #globeLayer .g-scrub output.fut{color:#f1cf8a}
@@ -676,9 +715,10 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
   </section>
 
   <!-- 23.9 (l19, "המסך הראשון בחיסור"): מי שפותח את הקישור מקבוצה צריך להבין בשלוש שניות מה זה ואיפה הוא.
-       שורת כותרת אנושית אחת ומשפט הסיפור. פס הנתונים נשאר, מקופל לנקודה שבפינה -->
+       24.9 (רשימת הממשק, סעיף 1): הכותרת בדיוק במילים של בעל האתר, תמיד בשתי שורות — שורה לכל חצי, בלי שבירה
+       באמצע. היא עולה בהדרגה (דהייה פנימה ותזוזה קטנה למעלה), נשארת, ורק אז נשאבת לעיגול. בכל טעינה -->
   <header class="lead" id="lead">
-    <h1 class="lead-t"><b>דניאל פינסקי מקיף את העולם לבד, בלי עצירה.</b> <span>כאן רואים איפה הוא עכשיו ואת תנאי הטבע האמיתיים סביבו.</span></h1>
+    <h1 class="lead-t"><span>דניאל פינסקי</span> <span>מקיף את העולם לבד</span></h1>
     <p class="lead-s" id="leadStory" hidden tabindex="0" role="button" aria-expanded="false"></p>
   </header>
   <!-- 23.9 (l23, "הממשק הנקי"): ההדמיה היא האתר. משפט הפתיחה נשאב אחרי ארבע שניות לתוך העיגול הזה,
@@ -689,23 +729,36 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
   <div id="homeHint" hidden role="status"><span id="homeHintT"></span><button type="button" id="homeHintGo" hidden>התקנה</button><button type="button" id="homeHintX" aria-label="סגירה">×</button></div>
   <button type="button" id="key" aria-expanded="false" aria-controls="lyr" aria-label="המפתח: השכבות, מה שמאחורי ההדמיה"><i aria-hidden="true"></i></button>
   <!-- 23.9 (l23, מנה 2): התפריט העליון. כל קטגוריה היא שכבה — נגיעה מדליקה, נגיעה נוספת מכבה, וכשהיא דולקת
-       מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. "שאלות" (24.9) הוא הכפתור האחרון, משמאל:
-       חלונית ולא שכבה, ו"אודות" נבלע בה. כלל: כל הקטגוריות נכנסות ברוחב המסך, בלי גלילה (נמדד מ-360 פיקסלים) -->
+       מופיעים סימנים על ההדמיה עצמה ומעט מלל. כמה שכבות יחד — מותר. כלל: כל הקטגוריות נכנסות ברוחב המסך, בלי גלילה.
+       24.9 (רשימת הממשק, סעיף 7): חמש קטגוריות, בסדר שבו קורא שואל על אקסודוס — איפה הוא, מה סביבו, מול מי, לאן,
+       והסיפור המלא. שום תוכן לא ירד: "איפה הוא עכשיו" ← נקודת ציון; "האזור" ← האיים לנקודת ציון, משטרי הרוח וטמפרטורת
+       המים לתנאי הטבע, המשואה למרוץ; "היומן" ← העתיד להדרך קדימה והעבר למסע והניתוח; "הסיפור" ו"שאלות" ← המסע והניתוח -->
   <nav id="lyr" hidden aria-label="השכבות">
-    <button type="button" data-l="now" aria-pressed="false">איפה הוא עכשיו</button>
-    <button type="button" data-l="area" aria-pressed="false">האזור</button>
-    <button type="button" data-l="log" aria-pressed="false">היומן</button>
-    <button type="button" data-l="race" aria-pressed="false">המירוץ</button>
-    <button type="button" data-l="story" aria-pressed="false">הסיפור</button>
-    <button type="button" id="bFaq" aria-expanded="false" aria-controls="faq">שאלות</button>
+    <button type="button" data-l="pos" aria-pressed="false">נקודת ציון</button>
+    <button type="button" data-l="nat" aria-pressed="false">תנאי הטבע</button>
+    <button type="button" data-l="race" aria-pressed="false">המרוץ</button>
+    <button type="button" data-l="ahead" aria-pressed="false">הדרך קדימה</button>
+    <button type="button" data-l="story" aria-pressed="false">המסע והניתוח</button>
   </nav>
   <div id="lyCap" aria-live="polite">
-    <p class="cap cap-now" id="capNow"></p>
+    <div class="cap cap-pos" id="capPosW"><p id="capPos"></p><div id="capPosArea"></div>
+      <p class="cap-sw"><button type="button" class="sw" id="swGrid" aria-pressed="false"><i aria-hidden="true"></i>קווי אורך ורוחב</button></p></div>
+    <div class="cap cap-nat" id="capNatW">
+      <p class="cap-sw" role="group" aria-label="מה מוצג בהדמיה">
+        <button type="button" class="sw" data-nat="wind" aria-pressed="true"><i aria-hidden="true"></i>רוח <b class="n" id="natWind">—</b></button>
+        <button type="button" class="sw" data-nat="wave" aria-pressed="true"><i aria-hidden="true"></i>גל <b class="n" id="natWave">—</b></button>
+        <button type="button" class="sw" data-nat="cur" aria-pressed="true"><i aria-hidden="true"></i>זרם <b class="n" id="natCur">—</b></button>
+        <button type="button" class="sw" data-nat="rose" aria-pressed="true"><i aria-hidden="true"></i>שושנת הרוחות</button></p>
+      <p id="capNat"></p><div id="capArea"></div></div>
     <p class="cap cap-race" id="capRace"></p>
-    <div class="cap cap-area" id="capArea"></div>
+    <div class="cap cap-ahead" id="capAheadW"><p id="capAhead"></p><p class="cap-links"><button type="button" id="bAhead24">24 השעות הקרובות, שעה אחר שעה</button></p></div>
     <p class="cap cap-log" id="capLog"></p>
-    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a><button type="button" id="bWords" aria-expanded="false" aria-controls="words">מילים לדניאל</button></p></div>
+    <div class="cap cap-story" id="capStory"><p id="capStoryT"></p><p class="cap-links"><button type="button" id="bJourney">המסע והניתוח</button><a href="deep-dive.html">הניתוח המלא</a><button type="button" id="bWords" aria-expanded="false" aria-controls="words">מילים לדניאל</button><button type="button" id="bFaq" aria-expanded="false" aria-controls="faq">שאלות</button></p></div>
   </div>
+
+  <!-- 24.9 (סעיף 10): רדאר המרוץ — לוח קטן על המסך, לא חלק מהסצנה, ולכן עובד מכל גובה. אקסודוס במרכז, טבעת כיוונים,
+       כל סירה לפי הכיוון והמרחק האמיתיים שלה מאקסודוס (מעגל גדול מנקודות הציון שב-FLEET). מחליף את הסימנים שבשולי המסך -->
+  <figure id="radar" hidden aria-label="רדאר המרוץ: הסירות סביב אקסודוס, לפי כיוון ומרחק"><svg id="radarSvg" aria-hidden="true"></svg><figcaption id="radarCap"></figcaption></figure>
 
   <!-- הנתונים שבראש המסך (מ-21.9 בערב, הערה בתחנה): פס אחד צמוד לקצה העליון בכל הרוחב, והוא מתקפל
        לנקודה זוהרת. הקשה על הנקודה פותחת את הכול בבת אחת; גרירת הזמן פותחת אותו לבד -->
@@ -748,11 +801,14 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
     <canvas id="miniCv" width="300" height="300"></canvas><span>המסע והניתוח</span>
   </button>
 
-  <!-- שלושת המבטים (22.9): סרגל אנכי דק בשוליים השמאליים. הטבעת הקטנה נעה עם כל זום ומראה איפה אנחנו -->
-  <nav class="vw" id="vw" aria-label="מבט">
-    <button type="button" data-v="boat" aria-pressed="true"><span>סירה</span></button>
+  <!-- שלושת המבטים (22.9): סרגל אנכי דק בשוליים השמאליים. הטבעת הקטנה נעה עם כל זום ומראה איפה אנחנו.
+       24.9 (סעיף 4): ארבע תחנות — דניאל, סירה, אזור, מרוץ — והסרגל מופיע רק כשמתחילים לצבוט או לגלגל, ונעלם בעדינות
+       אחרי כשנייה וחצי של שקט, כמו מחוון הווליום בטלפון. למעלה = גבוה (המרוץ), למטה = הכי קרוב (דניאל) -->
+  <nav class="vw" id="vw" aria-label="גובה המבט: מאיפה מסתכלים">
+    <button type="button" data-v="race" aria-pressed="false"><span>מרוץ</span></button>
     <button type="button" data-v="region" aria-pressed="false"><span>אזור</span></button>
-    <button type="button" data-v="race" aria-pressed="false"><span>כל המרוץ</span></button>
+    <button type="button" data-v="boat" aria-pressed="true"><span>סירה</span></button>
+    <button type="button" data-v="daniel" aria-pressed="false"><span>דניאל</span></button>
     <i class="vw-knob" aria-hidden="true"></i>
   </nav>
 

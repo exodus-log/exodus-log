@@ -275,7 +275,24 @@ function addGrid(){
   map.addLayer({id:'grid10',type:'line',source:'grid',minzoom:3,filter:['==',['get','k'],'g10'],paint:{'line-color':GC,'line-width':0.6,'line-opacity':0.08}},'night');
   map.addLayer({id:'grid30',type:'line',source:'grid',filter:['==',['get','k'],'g30'],paint:{'line-color':GC,'line-width':0.7,'line-opacity':0.12}},'night');
   map.addLayer({id:'gridMain',type:'line',source:'grid',filter:['==',['get','k'],'main'],paint:{'line-color':GC,'line-width':0.8,'line-opacity':0.28}},'night');
+  /* 24.9 (סעיף 8): "הארבעים השואגים" ו"החמישים הזועמים" — שני קווי רוחב מסומנים, רק כשהמתג "קווי אורך ורוחב" דולק */
+  var R=[]; [-40,-50].forEach(function(la){ var c=[], lo; for(lo=-180;lo<=180;lo+=2) c.push([lo,la]); R.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:c}}); });
+  map.addSource('roar',{type:'geojson',data:{type:'FeatureCollection',features:R}});
+  map.addLayer({id:'roar',type:'line',source:'roar',layout:{visibility:'none'},paint:{'line-color':'#cfe3ef','line-width':1,'line-opacity':0.55,'line-dasharray':[3,3]}},'night');
+  if(window.__exoGridWant&&window.__exoGridWant()) window.__exoGrid(true);
 }
+/* המתג "קווי אורך ורוחב" (ב"נקודת ציון"): הרשת מתבהרת, שנתות המעלות נשארות, ושני הקווים של הדרום מקבלים שם.
+   השמות יושבים על קו האורך של אקסודוס, כדי שיופיעו במקום שבו מסתכלים */
+var roarMk=[];
+window.__exoGrid=function(on){ try{
+  map.setPaintProperty('grid10','line-opacity',on?0.22:0.08); map.setPaintProperty('grid30','line-opacity',on?0.34:0.12); map.setPaintProperty('gridMain','line-opacity',on?0.5:0.28);
+  map.setLayoutProperty('roar','visibility',on?'visible':'none');
+  roarMk.forEach(function(m){ m.remove(); }); roarMk=[];
+  if(on) [[-40,'הארבעים השואגים'],[-50,'החמישים הזועמים']].forEach(function(L){ var e=document.createElement('div'); e.className='gl-name sea'; e.style.setProperty('--o','.8'); e.textContent=L[1]+' · '+(-L[0])+'° S';
+    roarMk.push(new maplibregl.Marker({element:e,anchor:'bottom',offset:[0,-3]}).setLngLat([FIX.lon,L[0]]).addTo(map)); });
+}catch(e){} };
+/* הרגע שבו המסלול ירד לראשונה מתחת לקו רוחב (לחציית 40 ו-50 דרום) — מהמסלול האמיתי */
+window.__exoCrossed=function(la){ for(var i=1;i<TRACK.length;i++) if(TRACK[i].p[1]<la&&TRACK[i-1].p[1]>=la) return TRACK[i].t; return 0; };
 /* הילה קרטוגרפית לשמות שעל המפה: טבעת כהה צמודה לאות ועוד זוהר רך מסביב. זוהר רך לבדו
    לא מחזיק שם לבן מעל אריח מדברי בהיר — נמדד 2.6:1 מול רקע בבהירות 0.30. */
 function addNames(){
@@ -325,7 +342,7 @@ window.__exoGlobeTrack=function(widthM,brg){ try{
   var z=Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),zForWidth(widthM)));
   map.jumpTo({center:here,zoom:z,bearing:armB?armB*Math.max(0,Math.min(1,(z-5.4)/3.0)):map.getBearing()});
   tracking=false; }catch(e){ tracking=false; } };
-window.__exoGlobeSettle=function(){ armB=0; if(autoRun) return; try{ bandGo(-1); }catch(e){} };
+window.__exoGlobeSettle=function(){ armB=0; };      /* 24.9 (סעיף 4): בלי המשך אוטומטי אל מבט האזור — המגנט של התחנות (hud.js) מחליט */
 /* כל כתיבה אל המפה נדחית לפריים הבא: setCenter או setBearing בתוך אירוע zoom של אותה מפה
    מאלצים חישוב טרנספורם נוסף באמצע הציור, וזה היה מקור לחלק מהקפיצות בהתרחקות. */
 var pendC=null, pendB=null, pRaf=0;
@@ -678,17 +695,15 @@ map.on('zoom',function(){
 var zfC=null;
 function zFleet(){ var W=Math.max(1,box.clientWidth), H=Math.max(1,box.clientHeight), key=T1+'|'+W+'|'+H;
   if(zfC&&zfC.k===key&&(zfC.land||typeof LAND50==='undefined')) return zfC.z;
-  var la0=here[1], cs=Math.cos(la0*D2R), best=1e12, land=false;
+  /* 24.9 (סעיף 4): "ברמת אזור רואים את אקסודוס ולפחות כמה סירות סביבה" — הקנה נקבע לפי הסירה השלישית בקרבה
+     (או האחרונה, אם נשארו פחות), ולא לפי הדבר הראשון שנכנס למסך. קו חוף ושמות כבר לא קובעים */
+  var la0=here[1], cs=Math.cos(la0*D2R), best=1e12, land=true, ms=[];
   function cand(lon,lat){ var dl=lon-here[0]; if(dl>180) dl-=360; if(dl<-180) dl+=360;
     var dx=Math.abs(dl)*60*cs*1852, dy=Math.abs(lat-la0)*60*1852;
     if(dx+dy<400) return;                                           /* אקסודוס עצמה */
-    var m=Math.max(dx/(0.42*W),dy/(0.30*H)); if(m<best) best=m; }
+    ms.push(Math.max(dx/(0.42*W),dy/(0.30*H))); }
   try{ fleetAt(T1).forEach(function(o){ if(o.id!==4) cand(o.lon,o.lat); }); }catch(e){}
-  try{ MARKS.forEach(function(m){ if(m[2]) cand(m[1],m[0]); }); }catch(e){}
-  try{ if(typeof GEO_NAMES!=='undefined') GEO_NAMES.forEach(function(n){ if(n[3]>0) cand(n[1],n[0]); }); }catch(e){}
-  try{ if(typeof landIndex==='function'&&typeof LAND50!=='undefined'){ land=true;
-    landIndex().forEach(function(R){ var b=R.b; if(b[3]<la0-14||b[1]>la0+14) return;
-      for(var k=0;k<R.r.length;k++){ var q=R.r[k]; if(Math.abs(q[1]-la0)<14) cand(q[0],q[1]); } }); } }catch(e){}
+  ms.sort(function(a,b){ return a-b; }); if(ms.length) best=ms[Math.min(2,ms.length-1)];
   var z=best<1e12?Math.log(78271.517*cs/best)/Math.LN2-0.15:8;       /* ‏-0.15: עוד נשימה, כדי שהדבר הראשון לא יישב על הקצה */
   z=Math.max(3.2,Math.min(11,z)); zfC={k:key,z:z,land:land}; return z; }
 function zRace(){ try{ return worldZoom(); }catch(e){ return 1.2; } }
@@ -717,8 +732,7 @@ function bandGo(dir,fromWheel){
   function kick(){ clearTimeout(timer); timer=setTimeout(settle,240); }
   function settle(){ timer=0; if(bandTw||nT||!document.body.classList.contains('g-open')) return;
     var st=window.__exoGlobeZoomState&&window.__exoGlobeZoomState(); if(st&&st[1]) { kick(); return; }
-    var z=map.getZoom(); if(dirL>0&&z<zFleet()+0.4) return;      /* נגיעה קלה פנימה ממבט הצי לא מחזירה לסיפון */
-    bandGo(dirL); }
+    return;      /* 24.9 (סעיף 4): הרצועה כבר לא "שואבת" — התחנות המגנטיות ב-hud.js מחליפות אותה */ }
   map.on('zoom',function(){ var z=map.getZoom();
     if(zPrev!==null&&Math.abs(z-zPrev)>1e-4&&!bandTw) dirL=z>zPrev?1:-1;
     zPrev=z; if(!bandTw&&!tracking) kick(); });
@@ -811,7 +825,7 @@ function fcLoad(){
     FC=j; T2=j.from+j.hours*3600; if(T2<=T1) { FC=null; return; }
     FUT=Math.round(1000*(T2-T1)/(T1-T0));
     range.max=1000+FUT; range.setAttribute('aria-label','פס זמן: מהזינוק ועד עכשיו, ומשם תחזית ל-72 שעות');
-    scTicksDraw(); fcStyle(); if(typeof scNowMark==='function') scNowMark(); var lg=document.querySelector('.g-leg .l-fc'); if(lg) lg.hidden=false;
+    scTicksDraw(); fcStyle(); if(typeof scNowMark==='function') scNowMark(); try{ scOutPos(); }catch(e){}      /* 24.9: הרצועה התארכה — התאריך זז עם הנקודה */ var lg=document.querySelector('.g-leg .l-fc'); if(lg) lg.hidden=false;
   }).catch(function(){}); }catch(e){} }
 function scTicksDraw(){ var span=T2-T0, days=(T1-T0)/86400, step=days>120?30:days>40?10:days>16?5:2, h='', d;
   for(d=0;d<=days;d+=step) h+='<span style="left:'+(d*86400/span*100).toFixed(1)+'%">'+(d===0?'זינוק':'יום '+d)+'</span>';
@@ -824,11 +838,18 @@ function fcStyle(){ var st=document.createElement('style');
     +'.g-scrub .sc-ticks span.fut{color:#f1cf8a}';
   document.head.appendChild(st); }
 /* מיקום צפוי של סירה בזמן t (אחרי הנ״צ): אינטרפולציה בין נקודות התחזית; null אם אין לה תחזית */
-function fcAt(bid,t){ var b=FC&&FC.boats[String(bid)]; if(!b) return null; var p=b.pts, n=p.length-1, i;
+function fcRaw(b,t){ var p=b.pts, n=p.length-1, i;
   if(t<=p[0][0]) return [p[0][2],p[0][1]]; if(t>=p[n][0]) return [p[n][2],p[n][1]];
   for(i=0;i<n&&p[i+1][0]<t;i++);
   var a=p[i], c=p[i+1], f=(t-a[0])/((c[0]-a[0])||1);
   return [a[2]+(c[2]-a[2])*f, a[1]+(c[1]-a[1])*f]; }
+/* 24.9 (תיקון באג): התחזית יכולה להיות מנקודת ציון אחרת מזו שעל המסך (עד 6 שעות — הדפדפן מחזיק data.js ישן, או שצעד התחזית
+   בבוט נכשל פעם אחת). קודם הסירה קפצה ברגע "עכשיו" אל המקום שהתחזית ציפתה לו, והקו חזר אחורה על המסלול. עכשיו התחזית
+   מוזזת כך שתתחיל בדיוק במקום שעל המסך, וההפרש נמוג בהדרגה ב-12 השעות הראשונות */
+function fcAt(bid,t){ var b=FC&&FC.boats[String(bid)]; if(!b) return null; var p=fcRaw(b,t), h=(t-T1)/43200;
+  if(h<1){ var cur=null; if(bid===4) cur=here; else FLEET.forEach(function(f){ if(f[1]===bid) cur=[f[3],f[2]]; });
+    if(cur){ var q=fcRaw(b,T1), k=1-Math.max(0,h); p=[p[0]+(cur[0]-q[0])*k, p[1]+(cur[1]-q[1])*k]; } }
+  return p; }
 /* רדיוס המניפה (מייל) לפי שעות מהנ״צ: ליניארי בין 0, 24, 48, 72 שעות, מהעשירון העליון של המבחן לאחור */
 function fanNm(h){ var f=FC&&FC.fan; if(!f) return 0; var ks=[0,24,48,72], vs=[0,f['24']?f['24'].p90:0,f['48']?f['48'].p90:0,f['72']?f['72'].p90:0], i;
   for(i=1;i<ks.length;i++) if(h<=ks[i]) return vs[i-1]+(vs[i]-vs[i-1])*(h-ks[i-1])/(ks[i]-ks[i-1]); return vs[3]; }
@@ -839,7 +860,7 @@ function fcFC(t){ var fs=[], h=(t-(FC?FC.from:T1))/3600, r=fanNm(h);
     fs.push({type:'Feature',properties:{id:f[1],name:f[4]},geometry:{type:'Polygon',coordinates:[circleFC(p[0],p[1],r)]}}); });
   return {type:'FeatureCollection',features:fs}; }
 function fcPathFC(t){ var b=FC&&FC.boats['4']; if(!b) return {type:'FeatureCollection',features:[]};
-  var pts=[here], i; for(i=1;i<b.pts.length&&b.pts[i][0]<=t;i++) pts.push([b.pts[i][2],b.pts[i][1]]);
+  var pts=[here], i; for(i=1;i<b.pts.length&&b.pts[i][0]<=t;i++) if(b.pts[i][0]>T1) pts.push(fcAt(4,b.pts[i][0]));      /* 24.9: רק נקודות אחרי "עכשיו", מוזזות כמו הסירה */
   var p=fcAt(4,t); if(p) pts.push(p);
   return {type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:pts}}]}; }
 function addForecast(){ try{
@@ -865,8 +886,10 @@ var atNowStop=false;
 function scNowMark(){ var tr=document.querySelector('#scrub .sc-track'); if(!tr) return; var m=tr.querySelector('.sc-now');
   if(!m){ m=document.createElement('i'); m.className='sc-now'; tr.appendChild(m); }
   var mx=+range.max||1000; m.style.left=(1000/mx*100).toFixed(2)+'%'; m.hidden=mx<=1000; }
-function scOutPos(){ var mx=+range.max||1000, v=+range.value, w=range.clientWidth||1, th=9;
-  var x=th/2+(w-th)*(v/mx); out.style.left=Math.max(18,Math.min(w-18,x)).toFixed(1)+'px'; out.classList.toggle('fut',v>1000.5); }
+function scOutPos(){ var mx=+range.max||1000, v=+range.value, w=range.clientWidth||1, th=13;
+  /* 24.9: הקו כבר לא מתחיל בקצה המסך (ה-play לצידו) — התאריך נמדד מתחילת הקו */
+  var o=0; try{ o=range.getBoundingClientRect().left-out.offsetParent.getBoundingClientRect().left; }catch(e){}
+  var x=th/2+(w-th)*(v/mx); out.style.left=(o+Math.max(18,Math.min(w-18,x))).toFixed(1)+'px'; out.classList.toggle('fut',v>1000.5); }
 function scDate(t){ var d=new Date(t*1000); out.innerHTML='<span class="num">'+d.getUTCDate()+'.'+(d.getUTCMonth()+1)+'</span>'; scOutPos(); }
 function play(){
   /* הגלובוס עוד נטען (המקורות של המפה לא קיימים): מחכים לו ואז מנגנים. נתפס באתר החי — נגיעה ב-play בשניות הראשונות */

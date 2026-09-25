@@ -704,7 +704,7 @@ rep("  EXO.frame.u=cam.u; EXO.frame.sD=sD; EXO.frame.gT=gT; EXO.frame.gX=gX;",
     "  EXO.frame.u=cam.u; EXO.frame.sD=sD; EXO.frame.gT=gT; EXO.frame.gX=gX;")
 # T7. ההצלבה מתחילה מאוחר, כשקנה המידה כבר קרוב לזה של הגלובוס (כ-9 ק"מ ומעלה)
 rep("var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_GLOBE=U_MAX+2.82, zoomT=0, camGlide=null;",
-    "var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_XF=U_TOP-0.12, U_GLOBE=U_TOP+0.42, zoomT=0, camGlide=null;")
+    "var U_FOV=-2, U_DECK=-1, U_MAX=Math.log(150/9), U_TOP=U_MAX+0.75, U_XF=U_TOP-0.30, U_GLOBE=U_TOP+0.42, zoomT=0, camGlide=null;")
 rep("var gX=cam.u>U_TOP?Math.min(1,(cam.u-U_TOP)/(U_GLOBE-U_TOP)):0, deck=sD>0.6;",
     "var gX=cam.u>U_XF?Math.min(1,(cam.u-U_XF)/(U_GLOBE-U_XF)):0, deck=sD>0.6;")
 rep("EXO.setU=function(u){ setU(u); kick(); }; EXO.zoomAxis={DECK:U_DECK,MAX:U_MAX,TOP:U_TOP,GLOBE:U_GLOBE,uOfR:uOfR};",
