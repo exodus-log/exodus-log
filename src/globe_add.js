@@ -35,7 +35,7 @@ function addGrid(){
   map.addSource('roar',{type:'geojson',data:{type:'FeatureCollection',features:R}});
   map.addLayer({id:'roar',type:'line',source:'roar',layout:{visibility:'none'},paint:{'line-color':'#cfe3ef','line-width':1,'line-opacity':0.55,'line-dasharray':[3,3]}},'night');
   if(window.__exoGridWant&&window.__exoGridWant()) window.__exoGrid(true);
-  if(window.__exoWindWant&&window.__exoWindWant()) setTimeout(function(){ window.__exoGlobeWind(true); },0);
+  if(window.__exoNatWant) setTimeout(function(){ window.__exoGlobeNat(window.__exoNatWant()); },0);
 }
 /* המתג "קווי אורך ורוחב" (ב"נקודת ציון"): הרשת מתבהרת, שנתות המעלות נשארות, ושני הקווים של הדרום מקבלים שם.
    השמות יושבים על קו האורך של אקסודוס, כדי שיופיעו במקום שבו מסתכלים */
@@ -47,29 +47,42 @@ window.__exoGrid=function(on){ try{
   if(on) [[-40,'הארבעים השואגים'],[-50,'החמישים הזועמים']].forEach(function(L){ var e=document.createElement('div'); e.className='gl-name sea'; e.style.setProperty('--o','.8'); e.textContent=L[1]+' · '+(-L[0])+'° S';
     roarMk.push(new maplibregl.Marker({element:e,anchor:'bottom',offset:[0,-3]}).setLngLat([FIX.lon,L[0]]).addTo(map)); });
 }catch(e){} };
-/* 25.9 (רשימת הממשק, סעיף 4 — השכבות מתאימות את עצמן לגובה): ליד הסירה הרוח היא חיצים סביבה; מלמעלה, בגלובוס,
-   היא זרימה על פני האזור — חץ בכל מקום שיש בו נתון אמיתי: במיקום של כל סירה בצי, מהארכיון של הבוט (assets/cond/fleet-wNN.json,
-   Open-Meteo, כל 3 שעות), ובמיקום של אקסודוס מ-COND. לא ממלאים את הים בחיצים מומצאים ביניהם. החץ לכיוון שאליו הרוח נושבת,
-   ואורכו לפי המהירות. דולק כש"תנאי הטבע" דולקת והמתג "רוח" בה דולק */
-var windWk=null, windOn=false;
-function windFC(rows){ var fs=[]; rows.forEach(function(r){ var sp=r[2], to=((r[3]+180)%360)*D2R, L=Math.max(0.1,sp*0.03), cl=Math.max(0.2,Math.cos(r[1]*D2R));
-    var x0=r[0], y0=r[1], x1=x0+Math.sin(to)*L/cl, y1=y0+Math.cos(to)*L, h=Math.min(0.18,L*0.35), a1=to+2.6, a2=to-2.6;
-    fs.push({type:'Feature',properties:{kn:Math.round(sp)},geometry:{type:'MultiLineString',coordinates:[[[x0,y0],[x1,y1]],[[x1,y1],[x1+Math.sin(a1)*h/cl,y1+Math.cos(a1)*h]],[[x1,y1],[x1+Math.sin(a2)*h/cl,y1+Math.cos(a2)*h]]]}}); });
+/* 25.9 (רשימת הממשק, סעיף 4 — השכבות מתאימות את עצמן לגובה): ליד הסירה הרוח, הגל והזרם הם סימנים סביבה; מלמעלה, בגלובוס,
+   הם זרימה על פני האזור — סימן בכל מקום שיש בו נתון אמיתי: במיקום של כל סירה בצי, מהארכיון של הבוט (assets/cond/fleet-wNN.json,
+   Open-Meteo, כל 3 שעות), ובמיקום של אקסודוס מ-COND. לא ממלאים את הים בסימנים מומצאים ביניהם. כל אחד דולק לפי המתג שלו
+   ב"תנאי הטבע" (כשהקטגוריה דולקת).
+   רוח: חץ בהיר לכיוון שאליו היא נושבת, אורך לפי המהירות. גל: שתי קשתות פסגה (כמו בטבעת), בכיוון שאליו הגל מתקדם, אורך לפי הגובה.
+   זרם: חץ טורקיז מקווקו לכיוון הזרימה, אורך לפי המהירות (מוגדל פי 10 — זרם של חצי קשר נראה כמו רוח של 5).
+   שורה: [lon, lat, רוח kn, רוח מכיוון°, גל m, גל מכיוון°, זרם kn, זרם אל°] */
+var natWk=null, natOn={wind:false,wave:false,cur:false};
+function arrowGeom(x0,y0,to,L,cl){ var x1=x0+Math.sin(to)*L/cl, y1=y0+Math.cos(to)*L, h=Math.min(0.18,L*0.35), a1=to+2.6, a2=to-2.6;
+  return [[[x0,y0],[x1,y1]],[[x1,y1],[x1+Math.sin(a1)*h/cl,y1+Math.cos(a1)*h]],[[x1,y1],[x1+Math.sin(a2)*h/cl,y1+Math.cos(a2)*h]]]; }
+function natFC(rows,kind){ var fs=[]; rows.forEach(function(r){ var cl=Math.max(0.2,Math.cos(r[1]*D2R)), g=null;
+    if(kind==='wind'&&r[2]!=null&&r[3]!=null) g=arrowGeom(r[0],r[1],((r[3]+180)%360)*D2R,Math.max(0.1,r[2]*0.03),cl);
+    else if(kind==='cur'&&r[6]!=null&&r[7]!=null) g=arrowGeom(r[0],r[1],r[7]*D2R,Math.max(0.08,r[6]*0.3),cl);
+    else if(kind==='wave'&&r[4]!=null&&r[5]!=null){ var to=((r[5]+180)%360)*D2R, L=Math.max(0.06,r[4]*0.06), w=0.10+r[4]*0.03; g=[];
+      [0.45,0.9].forEach(function(k){ var cx=r[0]+Math.sin(to)*L*k/cl, cy=r[1]+Math.cos(to)*L*k, arc=[], m;
+        for(m=-4;m<=4;m++){ var q=m/4, px=Math.cos(to)*w*q, py=-Math.sin(to)*w*q, back=-0.35*w*q*q; arc.push([cx+(px+Math.sin(to)*back)/cl, cy+py+Math.cos(to)*back]); }
+        g.push(arc); }); }
+    if(g) fs.push({type:'Feature',properties:{},geometry:{type:'MultiLineString',coordinates:g}}); });
   return {type:'FeatureCollection',features:fs}; }
-function windRows(){ var now=Date.now(), rows=[], wk=Math.floor((now-Date.UTC(2026,8,6))/(7*86400000))+1, f='assets/cond/fleet-w'+(wk<10?'0':'')+wk+'.json';
+function natRows(){ var now=Date.now(), rows=[], wk=Math.floor((now-Date.UTC(2026,8,6))/(7*86400000))+1, f='assets/cond/fleet-w'+(wk<10?'0':'')+wk+'.json';
   var me=null; try{ if(typeof COND!=='undefined'){ var bd=1e18; COND.forEach(function(c){ var d=Math.abs(Date.parse(c[0]+'Z')-now); if(d<bd){ bd=d; me=c; } }); } }catch(e){}
-  if(me) rows.push([here[0],here[1],me[1],me[3]]);
-  if(windWk) return Promise.resolve(rows.concat(windWk));
+  if(me) rows.push([here[0],here[1],me[1],me[3],me[4],me[6],me[7],me[8]]);
+  if(natWk) return Promise.resolve(rows.concat(natWk));
   return fetch(f,{cache:'no-cache'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ var L=[];
     if(j&&j.boats) Object.keys(j.boats).forEach(function(id){ if(id==='4') return; var B=j.boats[id], best=null, i;
       for(i=0;i<B.length;i++){ var t=Date.parse(B[i][0]+'Z'); if(t<=now+1800000) best=B[i]; }
-      if(best&&now-Date.parse(best[0]+'Z')<12*3600000&&best[15]!=null) L.push([best[16],best[15],best[1],best[3]]); });
-    windWk=L; return rows.concat(L); }).catch(function(){ return rows; }); }
-window.__exoGlobeWind=function(on){ windOn=!!on; try{
-  if(!map.getSource('gwind')){ map.addSource('gwind',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'gwind',type:'line',source:'gwind',layout:{'line-cap':'round','line-join':'round',visibility:'none'},paint:{'line-color':'#bfe9f5','line-width':['interpolate',['linear'],['zoom'],3,1,7,2],'line-opacity':0.85}}); }
-  map.setLayoutProperty('gwind','visibility',on?'visible':'none');
-  if(on) windRows().then(function(R){ if(windOn) map.getSource('gwind').setData(windFC(R)); });
+      if(best&&now-Date.parse(best[0]+'Z')<12*3600000&&best[15]!=null) L.push([best[16],best[15],best[1],best[3],best[4],best[6],best[7],best[8]]); });
+    natWk=L; return rows.concat(L); }).catch(function(){ return rows; }); }
+var NATSTY={wind:{'line-color':'#bfe9f5','line-opacity':0.85},wave:{'line-color':'#a9c8ff','line-opacity':0.8},cur:{'line-color':'#7fe0c8','line-opacity':0.9,'line-dasharray':[2,1.2]}};
+window.__exoGlobeNat=function(want){ try{
+  ['wind','wave','cur'].forEach(function(k){ var id='gn-'+k, on=!!(want&&want[k]); natOn[k]=on;
+    if(!map.getSource(id)){ map.addSource(id,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      var pt={'line-width':['interpolate',['linear'],['zoom'],3,1,7,2]}; for(var q in NATSTY[k]) pt[q]=NATSTY[k][q];
+      map.addLayer({id:id,type:'line',source:id,layout:{'line-cap':'round','line-join':'round',visibility:'none'},paint:pt}); }
+    map.setLayoutProperty(id,'visibility',on?'visible':'none'); });
+  if(natOn.wind||natOn.wave||natOn.cur) natRows().then(function(R){ ['wind','wave','cur'].forEach(function(k){ if(natOn[k]) map.getSource('gn-'+k).setData(natFC(R,k)); }); });
 }catch(e){} };
 /* הרגע שבו המסלול ירד לראשונה מתחת לקו רוחב (לחציית 40 ו-50 דרום) — מהמסלול האמיתי */
 window.__exoCrossed=function(la){ for(var i=1;i<TRACK.length;i++) if(TRACK[i].p[1]<la&&TRACK[i-1].p[1]>=la) return TRACK[i].t; return 0; };

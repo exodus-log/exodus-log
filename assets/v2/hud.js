@@ -241,11 +241,11 @@ if($('bFaq')) $('bFaq').addEventListener('click',function(){ setFaq(!faqOpen); }
 var NAT={rose:false};
 function natSet(n,on){ if(!LIVE) return; if(n==='rose'){ NAT.rose=!!on; ringTo(on?1:0); clearInterval(ringHold); document.body.classList.toggle('rose-off',!on);
     if(on){ LAB.ringHotT=performance.now(); ringHold=setInterval(function(){ LAB.ringHotT=performance.now(); },500); } }
-  else EXO.setLayer(n,!!on); if(n==='wind') gWind(); }
-/* 25.9: ברוח, "תנאי הטבע" ממשיכה גם בגלובוס — חיצי רוח במקום של כל סירה (globe_add.js) */
-function natWindWant(){ return !!(LY_ON.nat&&LIVE&&EXO.layers&&EXO.layers.wind); }
-window.__exoWindWant=natWindWant;
-function gWind(){ if(window.__exoGlobeWind) window.__exoGlobeWind(natWindWant()); }
+  else EXO.setLayer(n,!!on); gWind(); }
+/* 25.9: "תנאי הטבע" ממשיכה גם בגלובוס — רוח, גל וזרם במקום של כל סירה (globe_add.js) */
+function natWant(){ var on=!!(LY_ON.nat&&LIVE&&EXO.layers); return {wind:on&&!!EXO.layers.wind, wave:on&&!!EXO.layers.wave, cur:on&&!!EXO.layers.cur}; }
+window.__exoNatWant=natWant;
+function gWind(){ if(window.__exoGlobeNat) window.__exoGlobeNat(natWant()); }
 function natPaint(){ var bs=document.querySelectorAll('[data-nat]'); for(var i=0;i<bs.length;i++){ var n=bs[i].getAttribute('data-nat');
   bs[i].setAttribute('aria-pressed',(n==='rose'?NAT.rose:(LIVE&&EXO.layers&&!!EXO.layers[n]))?'true':'false'); } }
 if($('capNatW')) $('capNatW').addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('[data-nat]'):null; if(!t||!LIVE) return;
@@ -313,6 +313,8 @@ function capAhead(){ var e=$('capAhead'); if(!e) return; var tg=toGateNow();
         +(fan&&fan.p50?' <span class="dim">(הערכה; בבדיקה לאחור הטעות האופיינית ביממה — כ־<span class="n">'+Math.round(fan.p50)+'</span> מייל)</span>':' <span class="dim">(הערכה)</span>'); } }
   if(e._h!==h){ e._h=h; e.innerHTML=h; if(LY_ON.ahead) measureTop(); } }
 if($('bAhead24')) $('bAhead24').addEventListener('click',function(){ openJourney('ahead'); });
+/* 25.9 (שמוליק): "לנווט כמו דניאל" שייך ל"נקודת ציון" — זו התשובה ל"איך יודעים איפה הוא". הסקסטנט עצמו נשאר בחלונית המסע, והקישור פותח אותה עליו */
+if($('bSextant')) $('bSextant').addEventListener('click',function(){ openJourney('sextant'); });
 
 /* "היומן" — a12 (24.9 לילה, שמוליק: "הכי יפה זה בזריחה או בשקיעה; לתת לאנשים הזדמנות לראות את זה").
    במקום הזמנים במילים ("לפני 12 שע׳", "בעוד יום"): פס זמן אחד, רק אחורה, 48 שעות. "עכשיו" בקצה הימני — אותו כיוון כמו

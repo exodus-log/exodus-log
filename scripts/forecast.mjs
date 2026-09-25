@@ -56,12 +56,24 @@ function nextNode(dtf, lat, lon) {
   return k;
 }
 /* שעה-שעה. cond(h) נותן {tws, wdir, cur, curTo, wave} לשעה h מההתחלה */
+/* 25.9 (שמוליק: "ממשיך בעיקול דומה למה שהיה, ובמגמה הכללית ולכיוון היעד"): ההיגוי. יוצאים בכיוון שבו הסירה שטה (cog של
+   הקטע האחרון), ממשיכים את העיקול שהיה לה ביממה האחרונה (קצב הפנייה, דועך בקבוע של 12 שעות), ובהדרגה (קבוע של 12 שעות)
+   פונים אל נקודה על קו המסלול שנמצאת 300 מייל קדימה — לא אל הצומת הבא. אותו קוד כמו במבחן לאחור (polar-learn.mjs).
+   במבחן לאחור (202 ריצות): טעות חציונית / עשירון עליון 24/52, 46/92, 61/142 מייל ב-24/48/72 שעות, מול 30/76, 47/117, 65/156 בשיטה הקודמת */
+const TT = 12, TB = 12, LOOK = 300;
+function steerHdg(h, la, lo, k, hdg0, rate) {
+  let j = k; while (j < COURSE.length - 1 && C.dist(la, lo, COURSE[j].lat, COURSE[j].lon) < LOOK) j++;
+  const hT = C.brg(la, lo, COURSE[j].lat, COURSE[j].lon);
+  if (hdg0 == null) return C.brg(la, lo, COURSE[k].lat, COURSE[k].lon);
+  const trend = hdg0 + rate * TT * (1 - Math.exp(-h / TT)), w = 1 - Math.exp(-h / TB);
+  return ((trend + w * ang(hT, trend)) % 360 + 360) % 360;
+}
 function simulate(id, start, cond) {
   const out = []; let la = start.lat, lo = start.lon, k = nextNode(start.dtf, la, lo);
   for (let h = 1; h <= HOURS; h++) {
     const c = cond(h); if (!c) return null;
     if (C.dist(la, lo, COURSE[k].lat, COURSE[k].lon) < 8 && k < COURSE.length - 1) k++;
-    const hdg = C.brg(la, lo, COURSE[k].lat, COURSE[k].lon);
+    const hdg = steerHdg(h, la, lo, k, start.cog, start.rate || 0);
     const v = speed(id, c.tws, Math.abs(ang(c.wdir, hdg)), c.wave);
     const vx = v * Math.sin(hdg * rad) + c.cur * Math.sin(c.curTo * rad), vy = v * Math.cos(hdg * rad) + c.cur * Math.cos(c.curTo * rad);
     const p = C.dest(la, lo, (Math.atan2(vx, vy) / rad + 360) % 360, Math.hypot(vx, vy)); la = p[0]; lo = p[1];
@@ -120,7 +132,12 @@ async function main() {
     if (PORTS.some(q => C.dist(q[0], q[1], p.lat, p.lon) < 12)) { skipped.push(b.name + ' (בנמל)'); continue; }
     const q = tr.length > 1 ? tr[tr.length - 2] : p;
     if (p.at > q.at && C.dist(q.lat, q.lon, p.lat, p.lon) / ((p.at - q.at) / 3600) < 0.5 && now - p.at < 12 * 3600 && p.at - q.at >= 3 * 3600) { skipped.push(b.name + ' (עומדת)'); continue; }
-    starts.push({ ...b, at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf });
+    /* הכיוון ועיקול היממה האחרונה — מהמעקב (נמדד) */
+    const posAt = t => { if (t < tr[0].at || t > p.at) return null; let i = tr.length - 1; while (i > 0 && tr[i - 1].at > t) i--; const a = tr[Math.max(0, i - 1)], c = tr[i], f = c.at === a.at ? 0 : (t - a.at) / (c.at - a.at); return { lat: a.lat + (c.lat - a.lat) * f, lon: a.lon + (c.lon - a.lon) * f }; };
+    const pm = posAt(p.at - 4 * 3600), o1 = posAt(p.at - 28 * 3600), o2 = posAt(p.at - 24 * 3600);
+    const cog = pm ? C.brg(pm.lat, pm.lon, p.lat, p.lon) : null;
+    const rate = (cog != null && o1 && o2) ? Math.max(-2, Math.min(2, ang(cog, C.brg(o1.lat, o1.lon, o2.lat, o2.lon)) / 24)) : 0;
+    starts.push({ ...b, at: p.at, lat: p.lat, lon: p.lon, dtf: p.dtf, cog, rate });
   }
   if (!starts.length) throw new Error('אין סירה עם נקודה טרייה');
   const t0 = Math.round(Math.max(...starts.map(s => s.at)) / 3600) * 3600;  /* התחזית נספרת מהנקודה הטרייה ביותר בצי, מעוגלת לשעה שלמה — Open-Meteo נותן
@@ -153,7 +170,7 @@ async function main() {
   const fan = {}; for (const h of Object.keys(bt)) fan[h] = { p50: bt[h].model.p50, p90: bt[h].model.p90 };
   const json = {
     v: 1, madeAt: new Date(now * 1000).toISOString().slice(0, 16) + 'Z', from: t0, hours: HOURS, step: STEP_OUT,
-    about: 'תחזית 72 שעות לכל הצי: פולאר שנלמד מהמסלולים (assets/polar.json) + תחזית Open-Meteo לאורך הדרך הצפויה. נכתב על ידי scripts/forecast.mjs — לא עורכים ביד. הערכה, לא מדידה.',
+    about: 'תחזית 72 שעות לכל הצי: יוצאת בכיוון שבו הסירה שטה, ממשיכה את העיקול של היממה האחרונה ופונה בהדרגה אל קו המסלול 300 מייל קדימה; המהירות מהפולאר שנלמד מהמסלולים (assets/polar.json) ומתחזית Open-Meteo לאורך הדרך. נכתב על ידי scripts/forecast.mjs — לא עורכים ביד. הערכה, לא מדידה.',
     source: MOCK ? 'mock: השורה האחרונה בארכיון, קבועה' : 'Open-Meteo forecast (best_match): api.open-meteo.com לרוח, marine-api.open-meteo.com לגל ולזרם',
     fan, polarLearnedAt: polar.learnedAt, backtestRuns: polar.backtest ? polar.backtest.runs : 0,
     skipped, boats: out

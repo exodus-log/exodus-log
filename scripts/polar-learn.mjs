@@ -158,12 +158,23 @@ function nextNode(dtf, lat, lon) {
    מינימלית מעליו הייתה סופרת את ההפסד פעמיים. נבדק: 0/30/42/50 נותנים אותה טעות במבחן לאחור (עד כאן המרוץ
    כמעט כולו עם הרוח). EXO_MIN_TWA=42 מחזיר את החוק הפיזיקלי, לבדיקה כשיהיו ימים נגד הרוח. */
 const MIN_TWA = +(process.env.EXO_MIN_TWA ?? 0);
-function simulate(id, polar, t0, lat, lon, dtf0, hours) {
+/* 25.9 (שמוליק: "ממשיך בעיקול דומה למה שהיה, ובמגמה הכללית ולכיוון היעד"): ההיגוי. יוצאים בכיוון שבו הסירה שטה (cog של 4 השעות
+   האחרונות), ממשיכים את העיקול שהיה לה ביממה האחרונה (קצב הפנייה, דועך), ובהדרגה פונים אל נקודה על קו המסלול שנמצאת
+   LOOK מייל קדימה — לא אל הצומת הבא, כדי שסירה שעקפה צומת לא תסתובב אליו. אותו קוד כמו ב-forecast.mjs */
+const TT = +(process.env.EXO_TT ?? 12), TB = +(process.env.EXO_TB ?? 12), LOOK = +(process.env.EXO_LOOK ?? 300), STEER = (process.env.EXO_STEER ?? '1') === '1';
+function steerHdg(h, la, lo, k, hdg0, rate) {
+  let j = k; while (j < COURSE.length - 1 && dist(la, lo, COURSE[j].lat, COURSE[j].lon) < LOOK) j++;
+  const hT = brg(la, lo, COURSE[j].lat, COURSE[j].lon);
+  if (!STEER || hdg0 == null) return brg(la, lo, COURSE[k].lat, COURSE[k].lon);
+  const trend = hdg0 + rate * TT * (1 - Math.exp(-h / TT)), w = 1 - Math.exp(-h / TB);
+  return ((trend + w * ang(hT, trend)) % 360 + 360) % 360;
+}
+function simulate(id, polar, t0, lat, lon, dtf0, hours, hdg0, rate) {
   const out = []; let la = lat, lo = lon, k = nextNode(dtf0, lat, lon);
   for (let h = 1; h <= hours; h++) {
     const t = t0 + h * 3600, c = condAt(id, t); if (!c) return null;
     if (dist(la, lo, COURSE[k].lat, COURSE[k].lon) < 8 && k < COURSE.length - 1) k++;
-    const tgt = COURSE[k]; let hdg = brg(la, lo, tgt.lat, tgt.lon);
+    let hdg = steerHdg(h, la, lo, k, hdg0, rate || 0);
     const rel = ang(hdg, c.wdir); if (Math.abs(rel) < MIN_TWA) hdg = (c.wdir + Math.sign(rel || 1) * MIN_TWA + 360) % 360;   /* אין להפליג ישר לרוח */
     const twa = Math.abs(ang(c.wdir, hdg)), v = polar.speed(id, c.tws, twa, c.wave);
     const vx = v * Math.sin(hdg * rad) + c.cur * Math.sin(c.curTo * rad), vy = v * Math.cos(hdg * rad) + c.cur * Math.cos(c.curTo * rad);
@@ -188,7 +199,9 @@ for (let D = RACE_START + 3 * 86400 - (RACE_START % 86400) + 86400; D + 24 * 360
     if (PORTS.some(p => dist(p[0], p[1], p0.lat, p0.lon) < 12)) continue;
     const pm = posAt(tr, D - 4 * 3600); if (!pm) continue;
     const sog = dist(pm.lat, pm.lon, p0.lat, p0.lon) / 4, cog = brg(pm.lat, pm.lon, p0.lat, p0.lon);
-    const sim = simulate(id, polar, D, p0.lat, p0.lon, p0.dtf, 72); if (!sim) { skipped++; continue; }
+    const po1 = posAt(tr, D - 28 * 3600), po2 = posAt(tr, D - 24 * 3600);
+    const rate = (po1 && po2) ? Math.max(-2, Math.min(2, ang(cog, brg(po1.lat, po1.lon, po2.lat, po2.lon)) / 24)) : 0;
+    const sim = simulate(id, polar, D, p0.lat, p0.lon, p0.dtf, 72, cog, rate); if (!sim) { skipped++; continue; }
     runs++;
     for (const h of HORIZONS) {
       const real = posAt(tr, D + h * 3600); if (!real) continue;
