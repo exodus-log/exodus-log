@@ -269,21 +269,22 @@ body:not(.ly-race) #labels .fb{display:none!important}
 .lb.fb.el::after{display:inline;position:static;content:"‹";width:auto;height:auto;background:none;margin-inline-start:.3em;font-size:1.3em;line-height:0}
 .lb.fb.er::before{content:"›";margin-inline-end:.3em;font-size:1.3em;line-height:0}
 .lb.fb .n{color:var(--ink)}
-/* "היומן" (מנה 4): רצועת הזמן ירדה לגמרי (הקוד שלה נשאר — הוא מזיז את השעון). במקומה שורת זמנים במילים מעל השורה הדקה */
+/* "היומן": רצועת הזמן הישנה (שבוע, עבר ועתיד, קווי גרף) לא מוצגת — הקוד שלה נשאר, הוא מזיז את השעון. במקומה (a12) פס של 48 שעות אחורה, מעל השורה הדקה */
 .tstrip{display:none!important}
-.logbar{position:absolute;z-index:6;left:0;right:0;bottom:calc(var(--bot) + 2px);display:none;justify-content:flex-start;gap:0;
-  overflow-x:auto;scrollbar-width:none;padding:0 var(--e-r) 0 var(--e-l)}
-.logbar::-webkit-scrollbar{display:none}
-body.ly-log .logbar{display:flex}
-/* מרכוז בלי לחתוך: כשהשורה רחבה מהמסך (טלפון) היא נגללת, והקצוות נשארים נגישים */
-.logbar>button:first-child{margin-inline-start:auto} .logbar>button:last-child{margin-inline-end:auto}
-body.g-open .logbar,body.j-open .logbar{display:none!important}
-.logbar button{flex:none;position:relative;height:44px;padding:0 9px;border:0;background:none;color:var(--ink2d);font:400 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap;text-shadow:var(--shd,var(--sh));-webkit-tap-highlight-color:transparent}
-.logbar button::after{content:"";position:absolute;left:50%;bottom:9px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor;opacity:0}
-.logbar button[aria-pressed=true]{color:var(--ink)} .logbar button[aria-pressed=true]::after{opacity:1}
-.logbar button.p[aria-pressed=true]{color:var(--tpast)} .logbar button.f[aria-pressed=true]{color:var(--tfut)}
-.logbar button:disabled{display:none}
-.logbar button:focus-visible{outline:2px solid #fff;outline-offset:-8px;border-radius:6px}
+.ss{position:absolute;z-index:6;left:var(--e-l);right:var(--e-r);bottom:calc(var(--bot) + 2px);max-width:680px;margin:0 auto;height:44px;display:none;align-items:center;gap:4px;direction:ltr}
+body.ly-log .ss{display:flex} .ss[hidden]{display:none!important}
+body.g-open .ss,body.j-open .ss{display:none!important}
+#ssPlay{flex:none;width:44px;height:44px;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#ssPlay svg{display:block;width:26px;height:26px;margin:auto;overflow:visible}
+#ssPlay circle{fill:rgba(4,12,19,.35);stroke:rgba(225,236,243,.6);stroke-width:1.2}
+#ssPlay path{fill:currentColor} #ssPlay .pa{display:none} #ssPlay.on .pa{display:inline} #ssPlay.on .pl{display:none}
+#ssPlay:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:50%}
+.ss-bar{position:relative;flex:1;min-width:0;height:44px;touch-action:pan-y}
+.ss-bar canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.ss-bar input[type=range]{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none;background:none;direction:ltr}
+.ss-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:44px;background:transparent}
+.ss-bar input[type=range]::-moz-range-thumb{width:30px;height:44px;border:0;background:transparent}
+.ss-bar:focus-within{outline:2px solid #fff;outline-offset:-6px;border-radius:6px}
 body.ly-log #lyCap .cap-log{display:block}
 /* "האזור" (מנה 5): מעט על המקום — מה ידוע עליו, ממקור שמקושר בסוף כל פסקה */
 body.ly-area #lyCap .cap-area{display:block}
@@ -294,6 +295,8 @@ body.ly-area #lyCap .cap-area{display:block}
 @media (max-width:700px){ #capArea p{font-size:12px} }
 @media (max-height:520px){ #capArea p:nth-child(n+3){display:none} }
 body.t-past #capLog b{color:var(--tpast)} body.t-fut #capLog b{color:var(--tfut)}
+/* מספר בתוך משפט — בגופן הטקסט (כמו בשורה הדקה וב"שאלות"): בגופן המכשירים נראה רווח מדומה אחרי הנקודה והנקודתיים */
+#capLog .n{font-family:var(--ui);letter-spacing:0}
 @media (max-width:420px){ #lyr button{padding:0 6px;font-size:12.5px} }
 /* 24.9: שש קטגוריות נכנסות ברוחב בלי גלילה מ-360 פיקסלים (נמדד). מתחת ל-380 הריווח מצטמצם; אזור המגע נשאר 44.
    ההדהייה בקצה השמאלי — רק כשבאמת יש מה לגלול (.ovf, נמדד ב-hud.js), כדי שהכפתור האחרון לא יידהה סתם */
@@ -770,8 +773,12 @@ body.g-open #homeHint,body.j-open #homeHint,body.lyr-open #homeHint,body.faq-ope
     <span id="vAgeW" hidden><i>נ״צ</i><b id="vAge">—</b></span>
   </div>
 
-  <!-- l23 מנה 4: "היומן" — במקום רצועת הזמן. זמנים במילים; נגיעה מעבירה את ההדמיה לשם (הים והרוח מהארכיון או מהתחזית) -->
-  <div class="logbar" id="logBar" role="group" aria-label="היומן: הים והרוח בזמנים אחרים"></div>
+  <!-- a12 (24.9 לילה): "היומן" — פס זמן אחד, רק אחורה, 48 שעות; "עכשיו" בקצה הימני כמו בגלובוס. הסימנים הקטנים — זריחה ושקיעה
+       במקום שבו הסירה הייתה באותה שעה; גרירה לידם נדבקת אליהם, והניגון מאט סביבם ועוצר עליהם לרגע -->
+  <div class="ss" id="sScrub" role="group" aria-label="היומן: 48 השעות האחרונות">
+    <button type="button" id="ssPlay" aria-label="נגן את היומיים האחרונים"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path class="pl" d="M10 8.2v7.6l6-3.8z"/><path class="pa" d="M9.2 8.3h2v7.4h-2zM12.8 8.3h2v7.4h-2z"/></svg></button>
+    <div class="ss-bar"><canvas id="ssCv" aria-hidden="true"></canvas><input type="range" id="ssRange" min="0" max="1000" step="1" value="1000" aria-label="היומן: אחורה בזמן עד יומיים. ימינה — עכשיו"></div>
+  </div>
   <div id="toast" class="off" role="status"></div>
 
   <!-- רוח, גל, זרם: שלושה שלישים של עיגול אחד (בטלפון לאורך: שלושה עיגולים בטור). התפריט בטבור -->
