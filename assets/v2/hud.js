@@ -225,7 +225,7 @@ function ringTo(v){ if(!LIVE) return; cancelAnimationFrame(ringAnim); var a=LAB.
 function setLy(n,on){ on=!!on; LY_ON[n]=on; document.body.classList.toggle('ly-'+n,on);
   var b=lyrEl&&lyrEl.querySelector('[data-l="'+n+'"]'); if(b) b.setAttribute('aria-pressed',on?'true':'false');
   /* 24.9: הטבעת (שושנת הרוחות) והזרם — "תנאי הטבע". בפתיחה: דולקים; המתגים שבמלל מדליקים ומכבים כל אחד לבד */
-  if(n==='nat'&&LIVE){ natSet('rose',on); natSet('cur',on); if(!on){ natSet('wind',true); natSet('wave',true); } natPaint(); }
+  if(n==='nat'&&LIVE){ natSet('rose',on); natSet('cur',on); if(!on){ natSet('wind',true); natSet('wave',true); } natPaint(); gWind(); }
   if(n==='pos'||n==='nat'){ var ea=$('capArea'), eb=$('capPosArea'); if(ea) ea._h=null; if(eb) eb._h=null; }
   if(n==='race'){ var r0=$('capRace'); if(r0) r0._h=null; radarShow(on); }
   if(n==='pos'||n==='nat'||n==='race'){ if(LIVE&&EXO.state) renderHud(EXO.state); else renderHud(staticState()); }
@@ -241,7 +241,11 @@ if($('bFaq')) $('bFaq').addEventListener('click',function(){ setFaq(!faqOpen); }
 var NAT={rose:false};
 function natSet(n,on){ if(!LIVE) return; if(n==='rose'){ NAT.rose=!!on; ringTo(on?1:0); clearInterval(ringHold); document.body.classList.toggle('rose-off',!on);
     if(on){ LAB.ringHotT=performance.now(); ringHold=setInterval(function(){ LAB.ringHotT=performance.now(); },500); } }
-  else EXO.setLayer(n,!!on); }
+  else EXO.setLayer(n,!!on); if(n==='wind') gWind(); }
+/* 25.9: ברוח, "תנאי הטבע" ממשיכה גם בגלובוס — חיצי רוח במקום של כל סירה (globe_add.js) */
+function natWindWant(){ return !!(LY_ON.nat&&LIVE&&EXO.layers&&EXO.layers.wind); }
+window.__exoWindWant=natWindWant;
+function gWind(){ if(window.__exoGlobeWind) window.__exoGlobeWind(natWindWant()); }
 function natPaint(){ var bs=document.querySelectorAll('[data-nat]'); for(var i=0;i<bs.length;i++){ var n=bs[i].getAttribute('data-nat');
   bs[i].setAttribute('aria-pressed',(n==='rose'?NAT.rose:(LIVE&&EXO.layers&&!!EXO.layers[n]))?'true':'false'); } }
 if($('capNatW')) $('capNatW').addEventListener('click',function(ev){ var t=ev.target.closest?ev.target.closest('[data-nat]'):null; if(!t||!LIVE) return;
@@ -899,7 +903,7 @@ function globeBuild(){ return gBuild||(gBuild=Promise.all([loadCss('assets/vendo
 function openGlobe(how){
   if(gFailed){ toast('הגלובוס לא נטען. רענון בדרך כלל פותר את זה'); return; }
   if(jOpen) closeJourney(false);
-  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); G.inert=false; document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop();
+  if(!gOpen){ gOpen=true; if(LIVE) EXO.globeOwns=true; tsVeil(1); G.setAttribute('aria-hidden','false'); G.inert=false; document.body.classList.add('g-open'); setMenu(false); if(LIVE) EXO.pause(true); measureTop(); setTimeout(gWind,400);      /* 25.9: חיצי הרוח בגלובוס, אם "תנאי הטבע" ו"רוח" דולקות */
     try{ history.pushState({exoGlobe:1},''); gPushed=true; }catch(e){ gPushed=false; } }
   if(!window.__exoGlobeLoaded) toast('הגלובוס נטען',2500);
   globeBuild().then(function(){ if(gOpen&&window.__exoGlobeEnter) window.__exoGlobeEnter(how||'boat'); });
